@@ -1,0 +1,21 @@
+version: '2'
+services:
+
+  postgres:
+    image: postgres:{{ pg_version }}
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    hostname: postgres
+    restart: unless-stopped
+    volumes:
+      - "{{ postgres_compose_dir }}/data:/var/lib/postgresql/data:Z"
+    environment:
+      http_proxy:
+      https_proxy:
+      no_proxy:
+
+      POSTGRES_DB: {{ pg_database }}
+      POSTGRES_USER: {{ pg_username }}
+      POSTGRES_PASSWORD: {{ pg_password }}
+      PGDATA: /var/lib/postgresql/data/pgdata

@@ -1,0 +1,12 @@
+---
+- name: Stop all containers
+  docker_service:
+    project_name: "awx"
+    project_src: "{{ awx_compose_dir }}/"
+    stopped: true
+
+- name: Start containers on Primary node
+  docker_service:
+    project_name: "awx"
+    project_src: "{{ awx_compose_dir }}/"
+  when: inventory_hostname in groups['awx_instance_group_web'] and node == "primary"

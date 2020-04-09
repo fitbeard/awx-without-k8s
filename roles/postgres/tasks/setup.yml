@@ -1,0 +1,39 @@
+---
+- name: Enabling Docker-CE repository
+  get_url:
+    url: "{{ docker_ce_url }}"
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: 0644
+
+- name: Install YUM dependencies
+  yum:
+    name: "{{ dependencies.pkg }}"
+    update_cache: yes
+
+- name: Install Python dependencies
+  pip:
+    name: "{{ dependencies.pip }}"
+
+- name: Create Docker compose directory
+  file:
+    path: "{{ postgres_compose_dir }}"
+    state: directory
+
+- name: Create Postgres data directory
+  file:
+    path: "{{ postgres_compose_dir }}/data"
+    state: directory
+
+- name: Template Docker compose config
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ postgres_compose_dir }}/{{ item.dst }}"
+    mode: 0644
+  with_items:
+    - { src: docker-compose.yml.j2, dst: docker-compose.yml }
+
+- name: Starting Docker services
+  systemd:
+    name: docker.service
+    state: started
+    enabled: yes

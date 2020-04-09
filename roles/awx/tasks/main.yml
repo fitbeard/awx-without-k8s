@@ -1,0 +1,9 @@
+---
+- import_tasks: setup.yml
+  when: task == "all" or task == "setup"
+
+- import_tasks: run.yml
+  when: task == "all" or task == "run"
+
+- import_tasks: upgrade.yml
+  when: task == "upgrade"

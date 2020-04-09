@@ -1,0 +1,55 @@
+version: '2'
+services:
+
+  task:
+    image: {{ awx_task_docker_actual_image }}
+    container_name: awx_task
+    depends_on:
+      - memcached
+    hostname: awx
+    user: root
+    restart: unless-stopped
+    networks:
+      - local
+    volumes:
+      - "{{ awx_compose_dir }}/launch_awx_task.sh:/usr/bin/launch_awx_task.sh"
+      - "{{ awx_compose_dir }}/settings.py:/etc/tower/settings.py"
+      - "{{ awx_compose_dir }}/credentials.py:/etc/tower/conf.d/credentials.py"
+      - "{{ awx_compose_dir }}/projects:/var/lib/awx/projects:rw"
+    environment:
+      http_proxy:
+      https_proxy:
+      no_proxy:
+
+      CLUSTER_NODE: {{ ansible_fqdn }}
+      SECRET_KEY: {{ awx_secret_key }}
+
+      DATABASE_NAME: {{ pg_database }}
+      DATABASE_USER: {{ pg_username }}
+      DATABASE_PASSWORD: {{ pg_password }}
+      DATABASE_HOST: {{ pg_hostname }}
+      DATABASE_PORT: {{ pg_port }}
+
+      RABBITMQ_USER: {{ rabbitmq_user }}
+      RABBITMQ_PASSWORD: {{ rabbitmq_password }}
+      RABBITMQ_HOST: {{ rabbitmq_hostname }}
+      RABBITMQ_PORT: {{ rabbitmq_port }}
+      RABBITMQ_VHOST: {{ rabbitmq_vhost }}
+
+      MEMCACHED_HOST: {{ memcached_hostname }}
+      MEMCACHED_PORT: {{ memcached_port }}
+
+      AWX_ADMIN_USER: {{ admin_user }}
+      AWX_ADMIN_PASSWORD: {{ admin_password }}
+
+  memcached:
+    image: memcached:alpine
+    container_name: memcached
+    restart: unless-stopped
+    networks:
+      - local
+
+networks:
+  local:
+    external:
+      name: {{ docker_network_name }}

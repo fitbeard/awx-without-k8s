@@ -1,0 +1,58 @@
+[
+  {% for project in webhook_awx_projects %}
+  {
+    "id": "awx-project-{{ project.name }}",
+    "execute-command": "/etc/webhook/scripts/awx-project-{{ project.name }}.sh",
+    "trigger-rule":
+    {
+      "match":
+      {
+        "type": "payload-hash-sha1",
+        "secret": "{{ project.secret }}",
+        "parameter":
+        {
+          "source": "header",
+          "name": "X-Hub-Signature"
+        }
+      }
+    }
+  }{% if not loop.last %},{% endif %}
+{% endfor %},
+{% for job in webhook_awx_jobs %}
+  {
+    "id": "awx-job-{{ job.name }}",
+    "execute-command": "/etc/webhook/scripts/awx-job-{{ job.name }}.sh",
+    "trigger-rule":
+    {
+      "and":
+      [
+        {
+          "match":
+          {
+            "type": "payload-hash-sha1",
+            "secret": "{{ job.secret }}",
+            "parameter":
+            {
+              "source": "header",
+              "name": "X-Hub-Signature"
+            }
+          }
+        },
+        {
+          "match":
+          {
+            "type": "value",
+            "value": "refs/heads/{{ job.branch }}",
+            "parameter":
+            {
+              "source": "payload",
+              "name": "ref"
+            }
+          }
+        }
+      ]
+    }    
+  }{% if not loop.last %},{% endif %}
+{% endfor %}
+
+]

@@ -1,0 +1,24 @@
+version: '2'
+services:
+
+  webhook:
+    image: {{ awx_webhook_docker_actual_image }}
+    container_name: webhook
+    ports:
+      - "9000:9000"
+    hostname: webhook
+    restart: unless-stopped
+    networks:
+      - local
+    volumes:
+      - "{{ webhook_compose_dir }}/data:/etc/webhook"
+    environment:
+      http_proxy:
+      https_proxy:
+      no_proxy:
+    command: ["-verbose", "--hooks=/etc/webhook/hooks.json", "-hotreload", "-secure", "-cert=/etc/webhook/cert.pem", "-key=/etc/webhook/cert.key"]
+
+networks:
+  local:
+    external:
+      name: {{ docker_network_name }}

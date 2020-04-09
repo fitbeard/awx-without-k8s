@@ -1,0 +1,48 @@
+awx_version: "docker_tag"
+rabbitmq_version: "3.7.15"
+webhook_version: "xxx"
+enable_webhooks: "no"
+awx_host: "awx.hostname"
+pg_hostname: "postgres.hostname"
+
+# Here is variables from HashiCorp Vault. They can be crypted with ansible vault or in plain text.
+admin_user: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').admin_user }}"
+admin_password: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').admin_password }}"
+automation_user: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').automation_user }}"
+automation_password: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').automation_password }}"
+github_secret: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').github_secret }}"
+awx_secret_key: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').awx_secret_key }}"
+pg_database: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').pg_database }}"
+pg_username: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').pg_username }}"
+pg_password: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').pg_password }}"
+rabbitmq_user: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').rabbitmq_user }}"
+rabbitmq_password: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').rabbitmq_password }}"
+rabbitmq_cookie: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').rabbitmq_cookie }}"
+ssl_certificate: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').ssl_certificate }}"
+ssl_key: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').ssl_key }}"
+
+# https://awx.hostname:9000/hooks/awx-project-{{ name }}
+webhook_awx_projects:
+  - id: 11
+    name: sample-handbook
+    secret: "{{ github_secret }}"
+  - id: 13
+    name: magic-repo
+    secret: "{{ github_secret }}"
+  - id: 41
+    name: test-project
+    secret: "{{ github_secret }}"
+  - id: 56
+    name: test-product
+    secret: "{{ github_secret }}"
+
+# https://awx.hostname:9000/hooks/awx-job-{{ name }}
+webhook_awx_jobs:
+  - id: 700
+    name: test-job
+    branch: test_branch
+    secret: test-secret-word
+  - id: 34
+    name: test-job2
+    branch: master
+    secret: "{{ github_secret }}"

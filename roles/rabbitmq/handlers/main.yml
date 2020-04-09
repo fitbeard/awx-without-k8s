@@ -1,0 +1,6 @@
+---
+- name: Enable RabbitMQ
+  docker_service:
+    project_name: "rabbitmq"
+    project_src: "{{ rabbitmq_compose_dir }}/"
+    restarted: yes

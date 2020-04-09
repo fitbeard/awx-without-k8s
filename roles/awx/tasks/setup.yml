@@ -1,0 +1,96 @@
+---
+- name: Enabling Docker-CE repository
+  get_url:
+    url: "{{ docker_ce_url }}"
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: 0644
+
+- name: Install YUM dependencies
+  yum:
+    name: "{{ dependencies.pkg }}"
+    update_cache: yes
+
+- name: Install Python dependencies
+  pip:
+    name: "{{ dependencies.pip }}"
+
+- name: Create Docker compose directory in all nodes
+  file:
+    path: "{{ awx_compose_dir }}"
+    state: directory
+
+- name: Create AWX project directory in all nodes
+  file:
+    path: "{{ awx_compose_dir }}/projects"
+    state: directory
+
+- name: Define system UUID
+  shell: "echo 'import uuid; print(uuid.uuid4())' | python; touch {{ awx_compose_dir }}/system_uuid_generated.txt"
+  args:
+    chdir: "{{ awx_compose_dir }}"
+    creates: system_uuid_generated.txt
+  register: system_uuid_generate
+
+- debug:
+    var: system_uuid_generate.stdout
+
+- name: Write system UUID
+  shell: "echo {{ system_uuid_generate.stdout }} > {{ awx_compose_dir }}/system_uuid.txt"
+  when:
+    - system_uuid_generate is changed
+
+- name: Get system UUID
+  shell: "cat {{ awx_compose_dir }}/system_uuid.txt"
+  register: system_uuid
+
+- debug:
+    var: system_uuid.stdout
+
+- name: Template Docker compose and AWX configs to Primary Node
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ awx_compose_dir }}/{{ item.dst }}"
+    mode: 0644
+  with_items:
+    - { src: docker-compose.yml.j2, dst: docker-compose.yml }
+    - { src: settings.py.j2, dst: settings.py }
+    - { src: credentials.py.j2, dst: credentials.py }
+    - { src: nginx.conf.j2, dst: nginx.conf }
+    - { src: awxweb.pem.j2, dst: awxweb.pem }
+  when: inventory_hostname in groups['awx_instance_group_web']
+
+- name: Template AWX launcher files to Primary Node
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ awx_compose_dir }}/{{ item.dst }}"
+    mode: 0744
+  with_items:
+    - { src: launch_awx_task.sh.j2, dst: launch_awx_task.sh }
+    - { src: launch_awx.sh.j2, dst: launch_awx.sh }
+  when: inventory_hostname in groups['awx_instance_group_web']
+
+- name: Template Docker compose and AWX configs to Agent Nodes
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ awx_compose_dir }}/{{ item.dst }}"
+    mode: 0644
+  with_items:
+    - { src: docker-compose.yml.agent.j2, dst: docker-compose.yml }
+    - { src: settings.py.j2, dst: settings.py }
+    - { src: credentials.py.j2, dst: credentials.py }
+  when: inventory_hostname in groups['awx_instance_group_task']
+
+- name: Template AWX launcher file to Agent Nodes
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ awx_compose_dir }}/{{ item.dst }}"
+    mode: 0744
+  with_items:
+    - { src: launch_awx_task.sh.j2, dst: launch_awx_task.sh }
+  when: inventory_hostname in groups['awx_instance_group_task']
+
+- name: Starting Docker services
+  systemd:
+    name: docker.service
+    state: started
+    enabled: yes

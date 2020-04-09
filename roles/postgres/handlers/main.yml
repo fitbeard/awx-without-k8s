@@ -1,0 +1,5 @@
+- name: Enable Postgres
+  docker_service:
+    project_name: "postgres"
+    project_src: "{{ postgres_compose_dir }}/"
+    restarted: yes
