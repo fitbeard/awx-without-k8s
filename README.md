@@ -4,7 +4,7 @@
 
 ## AWX configuration and deployment
 
-<font color='red'>2020 04 27</font> Updated to support AWX version __11+__
+2020 04 27 Updated to support AWX version __11+__
 
 ## Dependencies
 
