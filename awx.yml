@@ -1,28 +1,22 @@
 ---
+- name: Configure Base
+  hosts:
+    - all
+  roles:
+    - base
+  tags: base
+  
 - name: Deploy Postgres
   hosts:
     - postgres
-  become: yes
-  become_method: sudo
   roles:
     - { role: postgres, when: external_database == "no" }
   tags: postgres
-
-- name: Deploy RabbitMQ
-  hosts:
-    - rabbitmq
-  become: yes
-  become_method: sudo
-  roles:
-    - { role: rabbitmq }
-  tags: rabbitmq
 
 - name: Deploy AWX
   hosts:
     - awx_instance_group_web
     - awx_instance_group_task
-  become: yes
-  become_method: sudo
   roles:
     - { role: awx }
   tags: awx
@@ -30,8 +24,6 @@
 - name: Deploy Webhook
   hosts:
     - awx_instance_group_web
-  become: yes
-  become_method: sudo
   roles:
     - { role: webhook, when: enable_webhooks == "yes" }
   tags: webhook

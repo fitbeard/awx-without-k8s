@@ -1,6 +1,6 @@
 ---
 - name: Enable Webhook
-  docker_service:
+  docker_compose:
     project_name: "webhook"
     project_src: "{{ webhook_compose_dir }}/"
     restarted: yes

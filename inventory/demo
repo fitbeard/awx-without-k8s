@@ -1,18 +1,9 @@
-[all]
-
-[awx_instance_group_web:vars]
+[all:vars]
 ansible_ssh_user=ansible
 ansible_become=true
 
-[rabbitmq:vars]
-ansible_ssh_user=ansible
-ansible_become=true
-rabbitmq_cluster_master=awxn001dc1
-
-[rabbitmq]
+[postgres]
 awxn001dc1.domain ansible_ssh_host=10.55.55.76
-awxn001dc12.domain ansible_ssh_host=10.13.55.76
-awxn001dc13.domain ansible_ssh_host=10.3.55.76
 
 [awx_instance_group_web]
 awxn001dc1.domain ansible_ssh_host=10.55.55.76 node=primary
@@ -20,5 +11,3 @@ awxn001dc12.domain ansible_ssh_host=10.13.55.76
 awxn001dc13.domain ansible_ssh_host=10.3.55.76
 
 [awx_instance_group_task]
-
-[postgres]

@@ -1,9 +1,0 @@
----
-task: all
-docker_ce_url: "https://download.docker.com/linux/centos/docker-ce.repo"
-dependencies:
-  pkg:
-    - python-pip
-    - docker-ce
-  pip:
-    - docker-compose

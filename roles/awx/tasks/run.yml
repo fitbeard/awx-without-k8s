@@ -1,9 +1,5 @@
 ---
-- name: Create Docker network
-  docker_network:
-    name: "{{ docker_network_name }}"
-
 - name: Start all AWX containers
-  docker_service:
+  docker_compose:
     project_name: "awx"
     project_src: "{{ awx_compose_dir }}/"

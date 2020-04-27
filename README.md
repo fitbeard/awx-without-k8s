@@ -4,12 +4,21 @@
 
 ## AWX configuration and deployment
 
+<font color='red'>2020 04 27</font> Updated to support AWX version __11+__
+
+## Dependencies
+
+- CentOS 7
+- EPEL
+- Ansible 2.8+
+- Python `hvac` module (for HashiCorp Vault)
+
 ### Install
 
 ```bash
 ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=setup awx.yml
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run --tags postgres,rabbitmq,webhook awx.yml
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run --tags awx --limit first_awx_node awx.yml
+ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run awx.yml --skip-tags awx
+ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run --tags awx --limit primary_awx_node awx.yml
 ansible-playbook -i inventory/demo -e @vars/demo.yml awx.yml
 ```
 

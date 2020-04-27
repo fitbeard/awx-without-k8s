@@ -1,9 +1,5 @@
 ---
-- name: Create Docker network
-  docker_network:
-    name: "{{ docker_network_name }}"
-
 - name: Start Webhook container
-  docker_service:
+  docker_compose:
     project_name: "webhook"
     project_src: "{{ webhook_compose_dir }}/"

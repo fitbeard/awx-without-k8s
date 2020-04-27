@@ -8,6 +8,8 @@ services:
       - "5432:5432"
     hostname: postgres
     restart: unless-stopped
+    networks:
+      - local
     volumes:
       - "{{ postgres_compose_dir }}/data:/var/lib/postgresql/data:Z"
     environment:
@@ -19,3 +21,8 @@ services:
       POSTGRES_USER: {{ pg_username }}
       POSTGRES_PASSWORD: {{ pg_password }}
       PGDATA: /var/lib/postgresql/data/pgdata
+
+networks:
+  local:
+    external:
+      name: {{ docker_network_name }}

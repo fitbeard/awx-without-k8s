@@ -1,9 +1,0 @@
----
-- name: Create Docker network
-  docker_network:
-    name: "{{ docker_network_name }}"
-
-- name: Start RabbitMQ container
-  docker_service:
-    project_name: "rabbitmq"
-    project_src: "{{ rabbitmq_compose_dir }}/"

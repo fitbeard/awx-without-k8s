@@ -1,8 +1,8 @@
 awx_version: "docker_tag"
-rabbitmq_version: "3.7.15"
 webhook_version: "xxx"
 enable_webhooks: "no"
 awx_host: "awx.hostname"
+external_database: "no"
 pg_hostname: "postgres.hostname"
 
 # Here is variables from HashiCorp Vault. They can be crypted with ansible vault or in plain text.
@@ -15,11 +15,9 @@ awx_secret_key: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/a
 pg_database: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').pg_database }}"
 pg_username: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').pg_username }}"
 pg_password: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').pg_password }}"
-rabbitmq_user: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').rabbitmq_user }}"
-rabbitmq_password: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').rabbitmq_password }}"
-rabbitmq_cookie: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').rabbitmq_cookie }}"
 ssl_certificate: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').ssl_certificate }}"
 ssl_key: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').ssl_key }}"
+broadcast_websocket_secret: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').broadcast_websocket_secret }}"
 
 # https://awx.hostname:9000/hooks/awx-project-{{ name }}
 webhook_awx_projects:

@@ -1,19 +1,4 @@
 ---
-- name: Enabling Docker-CE repository
-  get_url:
-    url: "{{ docker_ce_url }}"
-    dest: /etc/yum.repos.d/docker-ce.repo
-    mode: 0644
-
-- name: Install YUM dependencies
-  yum:
-    name: "{{ dependencies.pkg }}"
-    update_cache: yes
-
-- name: Install Python dependencies
-  pip:
-    name: "{{ dependencies.pip }}"
-
 - name: Create Docker compose directory in all nodes
   file:
     path: "{{ awx_compose_dir }}"
@@ -24,6 +9,18 @@
     path: "{{ awx_compose_dir }}/projects"
     state: directory
 
+- name: Create Redis socket directory
+  file:
+    path: "{{ awx_compose_dir }}/redis_socket"
+    state: directory
+    mode: 0777
+
+- name: Create Memcached socket directory
+  file:
+    path: "{{ awx_compose_dir }}/memcached_socket"
+    state: directory
+    mode: 0777
+  
 - name: Define system UUID
   shell: "echo 'import uuid; print(uuid.uuid4())' | python; touch {{ awx_compose_dir }}/system_uuid_generated.txt"
   args:
@@ -50,13 +47,14 @@
   template:
     src: "{{ item.src }}"
     dest: "{{ awx_compose_dir }}/{{ item.dst }}"
-    mode: 0644
+    mode: "{{ item.mode }}"
   with_items:
-    - { src: docker-compose.yml.j2, dst: docker-compose.yml }
-    - { src: settings.py.j2, dst: settings.py }
-    - { src: credentials.py.j2, dst: credentials.py }
-    - { src: nginx.conf.j2, dst: nginx.conf }
-    - { src: awxweb.pem.j2, dst: awxweb.pem }
+    - { src: docker-compose.yml.j2, dst: docker-compose.yml, mode: "0644" }
+    - { src: settings.py.j2, dst: settings.py, mode: "0644" }
+    - { src: credentials.py.j2, dst: credentials.py, mode: "0644" }
+    - { src: redis.conf.j2, dst: redis.conf, mode: "0666" }
+    - { src: nginx.conf.j2, dst: nginx.conf, mode: "0644" }
+    - { src: awxweb.pem.j2, dst: awxweb.pem, mode: "0644" }
   when: inventory_hostname in groups['awx_instance_group_web']
 
 - name: Template AWX launcher files to Primary Node
@@ -73,11 +71,12 @@
   template:
     src: "{{ item.src }}"
     dest: "{{ awx_compose_dir }}/{{ item.dst }}"
-    mode: 0644
+    mode: "{{ item.mode }}"
   with_items:
-    - { src: docker-compose.yml.agent.j2, dst: docker-compose.yml }
-    - { src: settings.py.j2, dst: settings.py }
-    - { src: credentials.py.j2, dst: credentials.py }
+    - { src: docker-compose.agent.yml.j2, dst: docker-compose.yml, mode: "0644" }
+    - { src: settings.py.j2, dst: settings.py, mode: "0644" }
+    - { src: credentials.py.j2, dst: credentials.py, mode: "0644" }
+    - { src: redis.conf.j2, dst: redis.conf, mode: "0666" }
   when: inventory_hostname in groups['awx_instance_group_task']
 
 - name: Template AWX launcher file to Agent Nodes
@@ -88,9 +87,3 @@
   with_items:
     - { src: launch_awx_task.sh.j2, dst: launch_awx_task.sh }
   when: inventory_hostname in groups['awx_instance_group_task']
-
-- name: Starting Docker services
-  systemd:
-    name: docker.service
-    state: started
-    enabled: yes

@@ -1,19 +1,4 @@
 ---
-- name: Enabling Docker-CE repository
-  get_url:
-    url: "{{ docker_ce_url }}"
-    dest: /etc/yum.repos.d/docker-ce.repo
-    mode: 0644
-
-- name: Install YUM dependencies
-  yum:
-    name: "{{ dependencies.pkg }}"
-    update_cache: yes
-
-- name: Install Python dependencies
-  pip:
-    name: "{{ dependencies.pip }}"
-
 - name: Create Docker compose directory
   file:
     path: "{{ postgres_compose_dir }}"

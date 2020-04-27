@@ -2,7 +2,6 @@
 node: "awx"
 compose_dir: "/opt"
 awx_compose_dir: "{{ compose_dir }}/awx"
-rabbitmq_compose_dir: "{{ compose_dir }}/rabbitmq"
 postgres_compose_dir: "{{ compose_dir }}/postgres"
 webhook_compose_dir: "{{ compose_dir}}/webhook"
 external_database: "yes"
@@ -34,19 +33,6 @@ pg_password: "awxpass"
 pg_port: "5432"
 pg_username: "awx"
 pg_database: "awx"
-
-### Memcached default settings
-memcached_hostname: "memcached"
-memcached_port: "11211"
-
-### RabbitMQ default settings
-rabbitmq_version: "3.7.15"
-rabbitmq_cookie: "cookiemonster"
-rabbitmq_user: "awx"
-rabbitmq_password: "password"
-rabbitmq_hostname: "{{ ansible_default_ipv4.address }}"
-rabbitmq_port: "5672"
-rabbitmq_vhost: "awx"
 
 ### Webhook default settings
 webhook_version: "2.6.9-1"

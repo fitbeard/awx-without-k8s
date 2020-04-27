@@ -1,19 +1,4 @@
 ---
-- name: Enabling Docker-CE repository
-  get_url:
-    url: "{{ docker_ce_url }}"
-    dest: /etc/yum.repos.d/docker-ce.repo
-    mode: 0644
-
-- name: Install YUM dependencies
-  yum:
-    name: "{{ dependencies.pkg }}"
-    update_cache: yes
-
-- name: Install Python dependencies
-  pip:
-    name: "{{ dependencies.pip }}"
-
 - name: Create Docker compose directory
   file:
     path: "{{ webhook_compose_dir }}"
@@ -68,13 +53,3 @@
     src: hooks.json.j2
     dest: "{{ webhook_compose_dir }}/data/hooks.json"
   notify: Enable Webhook
-
-- name: Starting Docker services
-  systemd:
-    name: docker.service
-    state: started
-    enabled: yes
-
-- name: Create Docker network
-  docker_network:
-    name: "{{ docker_network_name }}"
