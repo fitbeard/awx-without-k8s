@@ -1,0 +1,15 @@
+---
+task: all
+
+dependencies:
+  pkg:
+#    - epel-release
+    - python-pip
+    - docker-ce
+    - bash-completion
+    - bash-completion-extras
+  pip:
+    - pip==9.0.3
+    - setuptools==41.0.0
+    - docker==4.2.0
+    - docker-compose==1.24.1
