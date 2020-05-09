@@ -28,12 +28,8 @@ INTERNAL_API_URL = 'http://awxweb:8052'
 # Container environments don't like chroots
 AWX_PROOT_ENABLED = False
 
-
 CLUSTER_HOST_ID = os.getenv("CLUSTER_NODE", "awx")
 SYSTEM_UUID = '{{ system_uuid.stdout }}'
-
-# Automatically deprovision instances that go offline
-AWX_AUTO_DEPROVISION_INSTANCES = True
 
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
