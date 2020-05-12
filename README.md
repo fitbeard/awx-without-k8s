@@ -4,6 +4,7 @@
 
 ## AWX configuration and deployment
 
+Compatible with AWX __11.2.0__
 |Date|Change|
 |---|---|
 |2020 04 27|Updated to support AWX version __11+__|
