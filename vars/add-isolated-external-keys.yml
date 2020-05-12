@@ -1,0 +1,22 @@
+awx_isolated_nodes: true
+awx_isolated_ssh_keys_external: true
+
+awx_isolated_ssh_keys_private:
+  key1: |
+    -----BEGIN RSA PRIVATE KEY-----
+    -----END RSA PRIVATE KEY-----
+  key3: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').ssh_private_key3 }}"
+
+awx_isolated_ssh_keys_public: |
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCbLPUKIyJvy0LiGsGm0px6========If+F+VGZSipQCGjIrnzvPjWT+YpOKUm1U8VG4c1OMyzUYGu13o3J3Yn5a/ pub@key1
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCYsDDFaiKtZ0X8HU6FAvN9========IaZULC9TSwH9j53TUUfsmE/fJkEOIpJdW8TI52tAKXcgpY2ltreqIKPIGR pub@key3
+
+awx_isolated_ssh_config:
+  awxn001iso.domain:
+    HostName: awxn001iso.domain
+    Port: 2022
+    IdentityFile: /root/.ssh/key1
+  awxn002iso.domain:
+    HostName: 10.17.56.164
+    Port: 2022
+    IdentityFile: /root/.ssh/key3

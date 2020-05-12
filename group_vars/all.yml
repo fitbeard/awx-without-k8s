@@ -2,6 +2,7 @@
 node: "awx"
 compose_dir: "/opt"
 awx_compose_dir: "{{ compose_dir }}/awx"
+isolated_compose_dir: "{{ compose_dir }}/isolated"
 postgres_compose_dir: "{{ compose_dir }}/postgres"
 webhook_compose_dir: "{{ compose_dir}}/webhook"
 external_database: "yes"
@@ -13,8 +14,10 @@ docker_registry: "dockerhost"
 docker_registry_namespace: "docker-repo/awx"
 awx_web_image: "awx_web"
 awx_task_image: "awx_task"
+awx_isolated_image: "awx_isolated"
 awx_web_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}/{{ awx_web_image }}:{{ awx_version }}"
 awx_task_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}/{{ awx_task_image }}:{{ awx_version }}"
+awx_isolated_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}/{{ awx_isolated_image }}:{{ awx_version }}"
 awx_webhook_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}-webhook:{{ webhook_version }}"
 docker_network_name: "awx"
 
@@ -25,6 +28,9 @@ awx_secret_key: "awxsecret"
 automation_user: "{{ admin_user }}"
 automation_password: "{{ admin_password }}"
 awx_host: "set_awx_fqdn"
+create_preload_data: true
+awx_isolated_nodes: false
+awx_isolated_ssh_keys_external: false
 
 ### Postgres DB details
 pg_version: "11"
@@ -33,6 +39,9 @@ pg_password: "awxpass"
 pg_port: "5432"
 pg_username: "awx"
 pg_database: "awx"
+
+### Redis details
+redis_version: "6"
 
 ### Webhook default settings
 webhook_version: "2.6.9-1"

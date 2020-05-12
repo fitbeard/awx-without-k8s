@@ -19,9 +19,11 @@ services:
       - supervisor-socket:/var/run/supervisor
       - rsyslog-socket:/var/run/awx-rsyslog/
       - rsyslog-config:/var/lib/awx/rsyslog/
+      - "{{ awx_compose_dir }}/SECRET_KEY:/etc/tower/SECRET_KEY"
       - "{{ awx_compose_dir }}/launch_awx.sh:/usr/bin/launch_awx.sh"
       - "{{ awx_compose_dir }}/settings.py:/etc/tower/settings.py"
       - "{{ awx_compose_dir }}/credentials.py:/etc/tower/conf.d/credentials.py"
+      - "{{ awx_compose_dir }}/environment.sh:/etc/tower/conf.d/environment.sh"
       - "{{ awx_compose_dir }}/redis_socket:/var/run/redis/:rw"
       - "{{ awx_compose_dir }}/memcached_socket:/var/run/memcached/:rw"
       - "{{ awx_compose_dir }}/nginx.conf:/etc/nginx/nginx.conf:ro"
@@ -31,18 +33,6 @@ services:
       http_proxy:
       https_proxy:
       no_proxy:
-
-      CLUSTER_NODE: {{ ansible_fqdn }}
-      SECRET_KEY: {{ awx_secret_key }}
-
-      DATABASE_NAME: {{ pg_database }}
-      DATABASE_USER: {{ pg_username }}
-      DATABASE_PASSWORD: {{ pg_password }}
-      DATABASE_HOST: {{ pg_hostname }}
-      DATABASE_PORT: {{ pg_port }}
-
-      AWX_ADMIN_USER: {{ admin_user }}
-      AWX_ADMIN_PASSWORD: {{ admin_password }}
 
   task:
     image: {{ awx_task_docker_actual_image }}
@@ -60,32 +50,30 @@ services:
       - supervisor-socket:/var/run/supervisor
       - rsyslog-socket:/var/run/awx-rsyslog/
       - rsyslog-config:/var/lib/awx/rsyslog/
+      - "{{ awx_compose_dir }}/SECRET_KEY:/etc/tower/SECRET_KEY"
       - "{{ awx_compose_dir }}/launch_awx_task.sh:/usr/bin/launch_awx_task.sh"
       - "{{ awx_compose_dir }}/settings.py:/etc/tower/settings.py"
       - "{{ awx_compose_dir }}/credentials.py:/etc/tower/conf.d/credentials.py"
+      - "{{ awx_compose_dir }}/environment.sh:/etc/tower/conf.d/environment.sh"
       - "{{ awx_compose_dir }}/redis_socket:/var/run/redis/:rw"
       - "{{ awx_compose_dir }}/memcached_socket:/var/run/memcached/:rw"
       - "{{ awx_compose_dir }}/projects:/var/lib/awx/projects:rw"
+{% if awx_isolated_nodes | bool %}
+      - "{{ awx_compose_dir }}/ssh_config:/root/.ssh/config"
+{% endif %}
+{% if awx_isolated_ssh_keys_external | bool %}
+{% for (name,ssh_key) in awx_isolated_ssh_keys_private.items() %}
+      - "{{ awx_compose_dir }}/{{ name }}:/root/.ssh/{{ name }}"
+{% endfor %}
+{% endif %}
     environment:
       http_proxy:
       https_proxy:
       no_proxy:
       SUPERVISOR_WEB_CONFIG_PATH: '/supervisor.conf'
 
-      CLUSTER_NODE: {{ ansible_fqdn }}
-      SECRET_KEY: {{ awx_secret_key }}
-
-      DATABASE_NAME: {{ pg_database }}
-      DATABASE_USER: {{ pg_username }}
-      DATABASE_PASSWORD: {{ pg_password }}
-      DATABASE_HOST: {{ pg_hostname }}
-      DATABASE_PORT: {{ pg_port }}
-
-      AWX_ADMIN_USER: {{ admin_user }}
-      AWX_ADMIN_PASSWORD: {{ admin_password }}
-
   redis:
-    image: redis:latest
+    image: redis:{{ redis_version }}
     container_name: redis
     restart: unless-stopped
     command: ["/usr/local/etc/redis/redis.conf"]

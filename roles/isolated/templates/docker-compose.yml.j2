@@ -1,0 +1,24 @@
+version: '2'
+services:
+
+  isolated:
+    image: {{ awx_isolated_docker_actual_image }}
+    container_name: awx_isolated
+    ports:
+      - "2022:22"
+    hostname: isolated
+    user: root
+    restart: unless-stopped
+    networks:
+      - local
+    volumes:
+      - "{{ isolated_compose_dir }}/authorized_keys:/home/ansible/.ssh/authorized_keys:ro"
+    environment:
+      http_proxy:
+      https_proxy:
+      no_proxy:
+
+networks:
+  local:
+    external:
+      name: {{ docker_network_name }}

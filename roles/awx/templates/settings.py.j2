@@ -6,7 +6,6 @@ import os
 def get_secret():
     if os.path.exists("/etc/tower/SECRET_KEY"):
         return open('/etc/tower/SECRET_KEY', 'rb').read().strip()
-    return os.getenv("SECRET_KEY", "privateawx")
 
 
 ADMINS = ()
@@ -28,8 +27,22 @@ INTERNAL_API_URL = 'http://awxweb:8052'
 # Container environments don't like chroots
 AWX_PROOT_ENABLED = False
 
-CLUSTER_HOST_ID = os.getenv("CLUSTER_NODE", "awx")
+CLUSTER_HOST_ID = "{{ ansible_fqdn }}"
 SYSTEM_UUID = '{{ system_uuid.stdout }}'
+{% if awx_isolated_nodes %}
+
+# The number of seconds to sleep between status checks for jobs running on isolated nodes
+AWX_ISOLATED_CHECK_INTERVAL = {{ awx_isolated_nodes_check_interval|default('30') }}
+
+# The timeout (in seconds) for launching jobs on isolated nodes
+AWX_ISOLATED_LAUNCH_TIMEOUT = {{ awx_isolated_nodes_launch_timeout|default('600') }}
+
+# Ansible connection timeout (in seconds) for communicating with isolated instances
+AWX_ISOLATED_CONNECTION_TIMEOUT = {{ awx_isolated_nodes_connection_timeout|default('10') }}
+
+# The time (in seconds) between the periodic isolated heartbeat status check
+AWX_ISOLATED_PERIODIC_CHECK = {{ awx_isolated_nodes_periodic_check|default('600') }}
+{% endif %}
 
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False

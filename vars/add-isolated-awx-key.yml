@@ -1,0 +1,13 @@
+awx_isolated_nodes: true
+awx_isolated_ssh_keys_external: false
+
+awx_isolated_ssh_keys_public: |
+#  'docker exec -ti awx_task awx-manage generate_isolated_key' output here
+
+awx_isolated_ssh_config:
+  awxn001iso.domain:
+    HostName: awxn001iso.domain
+    Port: 2022
+  awxn002iso.domain:
+    HostName: 10.17.56.164
+    Port: 2022

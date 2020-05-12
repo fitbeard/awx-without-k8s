@@ -16,9 +16,3 @@
     mode: 0644
   with_items:
     - { src: docker-compose.yml.j2, dst: docker-compose.yml }
-
-- name: Starting Docker services
-  systemd:
-    name: docker.service
-    state: started
-    enabled: yes

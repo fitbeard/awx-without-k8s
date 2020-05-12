@@ -1,0 +1,17 @@
+---
+- name: Create Docker compose directory in all nodes
+  file:
+    path: "{{ isolated_compose_dir }}"
+    state: directory
+
+- name: Template Docker compose and Isolated configs
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ isolated_compose_dir }}/{{ item.dst }}"
+    mode: "{{ item.mode }}"
+    owner: "{{ item.owner|default('root') }}"
+    group: "{{ item.group|default('root') }}"
+  with_items:
+    - { src: docker-compose.yml.j2, dst: docker-compose.yml, mode: "0600" }
+    - { src: authorized_keys.j2, dst: authorized_keys, mode: "0600", owner: "1000", group: "1000" }
+  register: config_state_isolated
