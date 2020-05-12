@@ -47,6 +47,10 @@ awx-manage list_instances
 # new instance must be with healthy status in dedicated queue
 ```
 
+## Usage
+
+Select instance group (in this example 'isolated') in job template under the instance groups field.
+
 ## Variables
 
 The following durations associated with isolated groups can be configured in the Jobs tab of the Settings menu or via Ansible variables:
