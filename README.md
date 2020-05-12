@@ -7,7 +7,7 @@
 |Date|Change|
 |---|---|
 |2020 04 27|Updated to support AWX version __11+__|
-|2020 05 12|[Added support for Isolated nodes](/blob/master/ISOLATED.md)|
+|2020 05 12|[Added support for Isolated nodes](/ISOLATED.md)|
 
 ## Dependencies
 
