@@ -4,6 +4,7 @@ enable_webhooks: "no"
 awx_host: "awx.hostname"
 external_database: "no"
 pg_hostname: "postgres.hostname"
+create_preload_data: false
 
 # Here is variables from HashiCorp Vault. They can be crypted with ansible vault or in plain text.
 admin_user: "{{ lookup('hashi_vault', 'secret=secret/test/data/lab/ansible/awx:data').admin_user }}"

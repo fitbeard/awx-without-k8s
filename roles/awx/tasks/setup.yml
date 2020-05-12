@@ -49,13 +49,16 @@
     dest: "{{ awx_compose_dir }}/{{ item.dst }}"
     mode: "{{ item.mode }}"
   with_items:
-    - { src: docker-compose.yml.j2, dst: docker-compose.yml, mode: "0644" }
-    - { src: settings.py.j2, dst: settings.py, mode: "0644" }
-    - { src: credentials.py.j2, dst: credentials.py, mode: "0644" }
+    - { src: docker-compose.yml.j2, dst: docker-compose.yml, mode: "0600" }
+    - { src: settings.py.j2, dst: settings.py, mode: "0600" }
+    - { src: credentials.py.j2, dst: credentials.py, mode: "0600" }
     - { src: redis.conf.j2, dst: redis.conf, mode: "0666" }
-    - { src: nginx.conf.j2, dst: nginx.conf, mode: "0644" }
-    - { src: awxweb.pem.j2, dst: awxweb.pem, mode: "0644" }
+    - { src: nginx.conf.j2, dst: nginx.conf, mode: "0600" }
+    - { src: awxweb.pem.j2, dst: awxweb.pem, mode: "0600" }
+    - { src: environment.sh.j2, dst: environment.sh, mode: "0600" }
+    - { src: SECRET_KEY.j2, dst: SECRET_KEY, mode: "0600" }
   when: inventory_hostname in groups['awx_instance_group_web']
+  register: config_state_primary
 
 - name: Template AWX launcher files to Primary Node
   template:
@@ -66,6 +69,7 @@
     - { src: launch_awx_task.sh.j2, dst: launch_awx_task.sh }
     - { src: launch_awx.sh.j2, dst: launch_awx.sh }
   when: inventory_hostname in groups['awx_instance_group_web']
+  register: launcher_state_primary
 
 - name: Template Docker compose and AWX configs to Agent Nodes
   template:
@@ -73,11 +77,14 @@
     dest: "{{ awx_compose_dir }}/{{ item.dst }}"
     mode: "{{ item.mode }}"
   with_items:
-    - { src: docker-compose.agent.yml.j2, dst: docker-compose.yml, mode: "0644" }
-    - { src: settings.py.j2, dst: settings.py, mode: "0644" }
-    - { src: credentials.py.j2, dst: credentials.py, mode: "0644" }
+    - { src: docker-compose.agent.yml.j2, dst: docker-compose.yml, mode: "0600" }
+    - { src: settings.py.j2, dst: settings.py, mode: "0600" }
+    - { src: credentials.py.j2, dst: credentials.py, mode: "0600" }
     - { src: redis.conf.j2, dst: redis.conf, mode: "0666" }
+    - { src: environment.sh.j2, dst: environment.sh, mode: "0600" }
+    - { src: SECRET_KEY.j2, dst: SECRET_KEY, mode: "0600" }
   when: inventory_hostname in groups['awx_instance_group_task']
+  register: config_state_agent
 
 - name: Template AWX launcher file to Agent Nodes
   template:
@@ -87,3 +94,25 @@
   with_items:
     - { src: launch_awx_task.sh.j2, dst: launch_awx_task.sh }
   when: inventory_hostname in groups['awx_instance_group_task']
+  register: launcher_state_agent
+
+- name: Template AWX /root/.ssh/config to Task Nodes
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ awx_compose_dir }}/{{ item.dst }}"
+    mode: 0600
+  with_items:
+    - { src: ssh_config.j2, dst: ssh_config }
+  when: awx_isolated_nodes | bool
+  register: config_ssh_state
+
+- name: Template AWX /root/.ssh/id's to Task Nodes
+  copy:
+    content: "{{ item.value }}"
+    dest: "{{ awx_compose_dir }}/{{ item.key }}"
+    mode: 0600
+  with_dict: "{{ awx_isolated_ssh_keys_private }}"
+  when:
+    - awx_isolated_nodes | bool
+    - awx_isolated_ssh_keys_external | bool
+  register: ssh_id_state

@@ -1,0 +1,12 @@
+---
+- name: Start Isolated container | config changes
+  docker_compose:
+    project_name: "isolated"
+    project_src: "{{ isolated_compose_dir }}/"
+    restarted: yes
+  when: config_state_isolated.changed
+
+- name: Start Isolated container | docker-compose changes
+  docker_compose:
+    project_name: "isolated"
+    project_src: "{{ isolated_compose_dir }}/"

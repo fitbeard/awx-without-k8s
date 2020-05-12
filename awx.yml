@@ -27,3 +27,10 @@
   roles:
     - { role: webhook, when: enable_webhooks == "yes" }
   tags: webhook
+
+- name: Deploy AWX Isolated nodes
+  hosts:
+    - awx_instance_group_isolated_*
+  roles:
+    - { role: isolated, when: awx_isolated_nodes | bool }
+  tags: isolated
