@@ -9,4 +9,4 @@
   docker_compose:
     project_name: "awx"
     project_src: "{{ awx_compose_dir }}/"
-  when: inventory_hostname in groups['awx_instance_group_web'] and node == "primary"
+  when: inventory_hostname in groups['awx_instance_group_main'] and node == "primary"

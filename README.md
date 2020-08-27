@@ -4,34 +4,36 @@
 
 ## AWX configuration and deployment
 
-Compatible with AWX __11.2.0__
+Compatible with AWX __14.1.0__
 |Date|Change|
 |---|---|
-|2020 04 27|Updated to support AWX version __11+__|
+|2020 04 27|Updated to support AWX version __11.x__|
 |2020 05 12|[Added support for Isolated nodes](/ISOLATED.md)|
+|2020 08 27|Updated to support AWX version __14.x__|
+After upgrading from previous version (__11.x__) remove memcached containers. They are not needed anymore.
 
 ## Dependencies
 
 - CentOS 7
 - EPEL
-- Ansible 2.8+
+- Ansible 2.9+
 - Python `hvac` module (for HashiCorp Vault)
 
 ### Install
 
 ```bash
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=setup awx.yml
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run awx.yml --skip-tags awx
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run --tags awx --limit primary_awx_node awx.yml
-ansible-playbook -i inventory/demo -e @vars/demo.yml awx.yml
+ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=setup awx.yml --diff
+ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run awx.yml --skip-tags awx --diff
+ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run --tags awx --limit primary_awx_node awx.yml --diff
+ansible-playbook -i inventory/demo -e @vars/demo.yml awx.yml --diff
 ```
 
 ### Upgrade
 
 ```bash
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=setup --tags awx awx.yml
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=upgrade --tags awx awx.yml
-ansible-playbook -i inventory/demo -e @vars/demo.yml --tags awx awx.yml
+ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=setup --tags awx awx.yml --diff
+ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=upgrade --tags awx awx.yml --diff
+ansible-playbook -i inventory/demo -e @vars/demo.yml --tags awx awx.yml --diff
 ```
 
 ### Remove old Docker images

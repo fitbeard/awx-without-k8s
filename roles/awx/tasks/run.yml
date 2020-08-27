@@ -5,9 +5,7 @@
     project_src: "{{ awx_compose_dir }}/"
     restarted: yes
   when: config_state_primary.changed or
-        config_state_agent.changed or
         launcher_state_primary.changed or
-        launcher_state_agent.changed or
         config_ssh_state.changed or
         ssh_id_state.changed
 
