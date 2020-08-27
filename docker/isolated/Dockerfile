@@ -1,17 +1,14 @@
-FROM dockerhost/docker-repo/awx/awx_task:docker_tag
+FROM dockerhost/docker-repo/awx/awx:docker_tag
 
 ENV UID=1000
 ENV HOMEDIR=ansible
 
 USER 0
 
-RUN dnf install -y gcc python36-devel
-RUN python3 -m ensurepip && \
-    pip3 install "virtualenv < 20" ansible-runner
+RUN dnf install -y gcc python36-devel openssh-server
+RUN python3 -m ensurepip && pip3 install "virtualenv < 20" ansible-runner
 
-RUN dnf remove -y gcc python36-devel && \
-    dnf clean all && \
-    rm -rf /var/cache/dnf
+RUN dnf remove -y gcc python36-devel && dnf clean all && rm -rf /var/cache/dnf
 
 RUN rm -f /etc/ssh/*_key
 RUN ssh-keygen -q -A -N ""

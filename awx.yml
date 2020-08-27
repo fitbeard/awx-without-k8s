@@ -15,15 +15,14 @@
 
 - name: Deploy AWX
   hosts:
-    - awx_instance_group_web
-    - awx_instance_group_task
+    - awx_instance_group_main
   roles:
     - { role: awx }
   tags: awx
 
 - name: Deploy Webhook
   hosts:
-    - awx_instance_group_web
+    - awx_instance_group_main
   roles:
     - { role: webhook, when: enable_webhooks == "yes" }
   tags: webhook

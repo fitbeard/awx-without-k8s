@@ -14,15 +14,13 @@ STATIC_ROOT = '/var/lib/awx/public/static'
 
 PROJECTS_ROOT = '/var/lib/awx/projects'
 
-INVENTORY_COLLECTIONS_ROOT = '/var/lib/awx/vendor/inventory_collections'
+AWX_ANSIBLE_COLLECTIONS_PATHS = '/var/lib/awx/vendor/awx_ansible_collections'
 
 JOBOUTPUT_ROOT = '/var/lib/awx/job_status'
 
 SECRET_KEY = get_secret()
 
 ALLOWED_HOSTS = ['*']
-
-INTERNAL_API_URL = 'http://awxweb:8052'
 
 # Container environments don't like chroots
 AWX_PROOT_ENABLED = False
