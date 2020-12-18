@@ -5,16 +5,17 @@ awx_compose_dir: "{{ compose_dir }}/awx"
 isolated_compose_dir: "{{ compose_dir }}/awx-isolated"
 postgres_compose_dir: "{{ compose_dir }}/postgres"
 webhook_compose_dir: "{{ compose_dir}}/webhook"
-external_database: "yes"
+external_database: "no"
 enable_webhooks: "no"
 github_secret: "webhook_secret"
 
 ### Docker default settings
 docker_registry: "dockerhost"
-docker_registry_namespace: "docker-repo/awx"
+awx_version: "16.0.0"
+docker_registry_namespace: "ansible"
 awx_image: "awx"
 awx_isolated_image: "awx_isolated"
-awx_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}/{{ awx_image }}:{{ awx_version }}"
+awx_docker_actual_image: "{{ docker_registry_namespace }}/{{ awx_image }}:{{ awx_version }}"
 awx_isolated_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}/{{ awx_isolated_image }}:{{ awx_version }}"
 awx_webhook_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}-webhook:{{ webhook_version }}"
 docker_network_name: "awx"
@@ -25,10 +26,159 @@ admin_password: "password"
 awx_secret_key: "awxsecret"
 automation_user: "{{ admin_user }}"
 automation_password: "{{ admin_password }}"
+broadcast_websocket_secret: "nJaRixlmocgQSzjW5pWr"
 awx_host: "set_awx_fqdn"
-create_preload_data: true
+
+ssl_certificate: |
+  -----BEGIN CERTIFICATE-----
+  MIIFQjCCAyoCCQCVn2m3Vc4B8zANBgkqhkiG9w0BAQsFADBjMQswCQYDVQQGEwJV
+  UzEQMA4GA1UECAwHTm93aGVyZTEQMA4GA1UEBwwHTm93aGVyZTEMMAoGA1UECgwD
+  QVdYMQwwCgYDVQQLDANBV1gxFDASBgNVBAMMC2V4YW1wbGUuY29tMB4XDTIwMTIx
+  ODExMzE0N1oXDTMwMTIxNjExMzE0N1owYzELMAkGA1UEBhMCVVMxEDAOBgNVBAgM
+  B05vd2hlcmUxEDAOBgNVBAcMB05vd2hlcmUxDDAKBgNVBAoMA0FXWDEMMAoGA1UE
+  CwwDQVdYMRQwEgYDVQQDDAtleGFtcGxlLmNvbTCCAiIwDQYJKoZIhvcNAQEBBQAD
+  ggIPADCCAgoCggIBAPMhABmglwjIhSTLCo+yXvTUKBApDdwG5OAAVLWTQ/N2QemM
+  fs9aPAOVhF273U+8rzRGYyHOta/Kv2ZIT1xIZR8i0QBYprIOneXfEZS0gpE9MVuf
+  iPep6RRV3lcwemvJJxudB5VD/t0NqSk/QoYC4p8cuHAv4W7hkQ034Kr0pUq9JAL/
+  TvdTUy4/mAWHwbHk34UJUbjxTwC/8ty64LmRw4T5VEmQBaYemMqfGxMBIhceQau+
+  fpzd9/qISFn1/BYpHnlqQzoPNiFKJC6FrEv5W6nnJFTGivt4b8WYVR2ekRinHRBf
+  m+dHDddoZIzMRpOEqoItChCeJfUjUPAoQvj3+fLKtj2clxQMBGNPyaNPzIghS3gR
+  gQ77jV1m4p9Xx8Q5S2aNWK7HJ8IuUWpmFd6DAkhU9b3ui7CPj8OyaBDlqlRqWqDB
+  MJQC+IvwkFQdN9N6gRfSs+isdcYgjHGDh7hwGPpnOVYbI1STX+N55NuWizh9wjVl
+  XveF1TDkzXvX8AAF87j/F5K/9ULiEQtVXlK2I/EJsynnzTIvRy/OxqZ7rXeLPD/n
+  +HSo/uiUbspLWlTjxovshbHCBlWyQX9osf1JObjZD+UjM5gKEUqc5V8+7lRFkZf3
+  wvesktWOC3MCzgzwBh6J2CTqnJEDs0yPsy4ZmGtp9ffm7ouLdkH1wWu6yg8jAgMB
+  AAEwDQYJKoZIhvcNAQELBQADggIBAIGLLCc197y4HJDcs89eenGx95EkC0prAjm2
+  Rc38sMj4eqiuUfDI08K+9gJp9Icfz2tXHwnBmUiNVyOjych3Fm/RPqzqXXLDrMsS
+  XjD7Rw7UWQncjtZoSLX84Iol9a1Fzo78pSI0AEms+M5CrgU0EG5Epu1dy72twj4Y
+  seSh7FI8SOgjAqlJRc6JYxXfiwmxNI4f5Owl7CVMo/4uVH5+PyhjD7sdK3dgUqu+
+  kjLdk6qqQaEyiywC/rksoHPphieiijLBlKfFvWMEXjIEcX8xVXuKtr+JHjprM2u9
+  riRJfcfsbWIFvnhFNFUQr+T8v6/kkxowQ3wqE3NThpzChZSbRRn+nYG1mk07196/
+  pTAfQASEMqCH6Es9MHxRrhcyynIZe7o2p+uFjoMybRPPEbmKZpS8IyYTrhcd7v2Z
+  uQF+O6GPKEoFfia8LalRzE0MTIa3IObzqdK+Yt+s75FriVBh5ALS7bgwgfYsJhei
+  pVWveTVexBkvZU9mPkP5TD9hmi4q7u42QKgzk+iiBBtdaNXCrGLZusBf19+8bUkb
+  0Wd6IbkolbSRHMh/W3DiC+6+7wBzvrLgE9/iVjJLGaUxTxXUvnp/Z0Q2bXUrntUx
+  GKY/556ruB9PXZo3uaH0rfSpc/FyY2KR4rhwpr6CiO27XJgBZYaugo8BYVkM8Y5e
+  7Wxgbzwh
+  -----END CERTIFICATE-----
+
+ssl_key: |
+  -----BEGIN PRIVATE KEY-----
+  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
+  pQfRTLAGDt7v9moKdthXxXjcZshgzA==
+  -----END PRIVATE KEY-----
+
 awx_isolated_nodes: false
 awx_isolated_ssh_keys_external: false
+awx_isolated_ssh_keys_private:
+  key1: |
+    -----BEGIN OPENSSH PRIVATE KEY-----
+    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
+    Ga6Aow1eZCMAAAAIYXd4LWRlbW8BAgM=
+    -----END OPENSSH PRIVATE KEY-----
+
+#  When awx_isolated_ssh_keys_external: false - put 'docker exec -ti awx_task awx-manage generate_isolated_key' output here. And comment out awx_isolated_ssh_keys_private variable.
+awx_isolated_ssh_keys_public: |
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCaM9GL+vN5/B9EyEVqUkVhMahCYNjSp9JCK9qJSq4WxWRSmaI48ONWmtJhuEaScXQ8rkZF/ZfDoMt61pLM7hpAWIcQf3f8z5AKRhnP7b9GQ++cj3hKlFPvtMfdpWi5oFIcwdyPlCO2JpN73LSAe00umdJ+LurHucUqvxFRL4h8AJf2WXJzonRqQBHud+5i6PLy3aKTQP2MHgwu8V8rms7x5iNdh7V6tvBAujhrhILnVaxPZnXYoQ0bFjTrwJFFY6otjGhgyhX+WCvLCNopUT6NKeEAStSp6guySetlDM0JEoSlUq2kti9HIgBI8SyEH1romN8oeInVwdFEhGT3hv3PSKESePjds8AyoFZVdD01yw6uUIk0TseSq5drlt+/XqpsRgwUdMJLMQ69QsLXReZJqc8DZm4qJwccvdHhkJvYn+ANrUYWlKyQe5TfblyyIIBlWsviyJ7wXu+6+V93sviXCUPUixMbqg0NGWS6Ws+kNVBCQT3xOd5byh4gg+mXigj4iS8FwmwduqkDasa2WP5mmM+qhqP4cPqzPzCxX6T0DSB8QqeSEg13oKCswl7+dh8TLJahHGvKW2EHJvajf3t4QIJdEr5y/atXZ6GM7iXHcTZFcO2XjkXRynaBgV+1DvQ7qcTekDTTAYOCqEswavvEi4NgXPVTPBuVC+k3/wituQ== pub@key1
+
+awx_isolated_ssh_config:
+  awxn001iso.domain:
+    HostName: 10.13.55.161
+    Port: 2022
+    IdentityFile: /root/.ssh/key1
 
 ### Postgres DB details
 pg_version: "11"
@@ -43,3 +193,29 @@ redis_version: "6"
 
 ### Webhook default settings
 webhook_version: "2.6.9-1"
+
+# https://awx.hostname:9000/hooks/awx-project-{{ name }}
+webhook_awx_projects:
+  - id: 11
+    name: sample-handbook
+    secret: "{{ github_secret }}"
+  - id: 13
+    name: magic-repo
+    secret: "{{ github_secret }}"
+  - id: 41
+    name: test-project
+    secret: "{{ github_secret }}"
+  - id: 56
+    name: test-product
+    secret: "{{ github_secret }}"
+
+# https://awx.hostname:9000/hooks/awx-job-{{ name }}
+webhook_awx_jobs:
+  - id: 700
+    name: test-job
+    branch: test_branch
+    secret: test-secret-word
+  - id: 34
+    name: test-job2
+    branch: master
+    secret: "{{ github_secret }}"

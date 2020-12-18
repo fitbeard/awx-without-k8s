@@ -14,15 +14,18 @@ if [ -z "$AWX_SKIP_MIGRATIONS" ]; then
     awx-manage migrate --noinput
 fi
 
+if [ -z "$AWX_SKIP_PROVISION_INSTANCE" ]; then
+    awx-manage provision_instance --hostname={{ ansible_fqdn }}
+fi
+
+if [ -z "$AWX_SKIP_REGISTERQUEUE" ]; then
+    awx-manage register_queue --queuename=tower --instance_percent=100 --hostnames={{ ansible_fqdn }}
+fi
+
 if [ ! -z "$AWX_ADMIN_USER" ]&&[ ! -z "$AWX_ADMIN_PASSWORD" ]; then
     echo "from django.contrib.auth.models import User; User.objects.create_superuser('$AWX_ADMIN_USER', 'root@localhost', '$AWX_ADMIN_PASSWORD')" | awx-manage shell
-    {% if create_preload_data %}
-    awx-manage create_preload_data
-    {% endif %}
 fi
 echo 'from django.conf import settings; x = settings.AWX_TASK_ENV; x["HOME"] = "/var/lib/awx"; settings.AWX_TASK_ENV = x' | awx-manage shell
-awx-manage provision_instance --hostname={{ ansible_fqdn }}
-awx-manage register_queue --queuename=tower --instance_percent=100 --hostnames={{ ansible_fqdn }}
 
 unset $(cut -d = -f -1 /etc/tower/conf.d/environment.sh)
 

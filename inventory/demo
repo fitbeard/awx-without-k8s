@@ -3,13 +3,15 @@ ansible_ssh_user=ansible
 ansible_become=true
 
 [postgres]
-awxn001dc1.domain ansible_ssh_host=10.55.55.76
+awxn001dc1.domain ansible_host=10.55.55.76
 
 [awx_instance_group_main]
-awxn001dc1.domain ansible_ssh_host=10.55.55.76 node=primary
-awxn001dc12.domain ansible_ssh_host=10.13.55.76
-awxn001dc13.domain ansible_ssh_host=10.3.55.76
+awxn001dc1.domain ansible_host=10.55.55.76 node=primary
+awxn001dc12.domain ansible_host=10.13.55.76
+awxn001dc13.domain ansible_host=10.3.55.76
 
 [awx_instance_group_isolated_one]
+#awxn001iso.domain ansible_host=10.12.55.161
 
 [awx_instance_group_isolated_two]
+#awxn002iso.domain ansible_host=10.17.56.164

@@ -85,3 +85,4 @@
     - awx_isolated_nodes | bool
     - awx_isolated_ssh_keys_external | bool
   register: ssh_id_state
+  no_log: true

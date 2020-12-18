@@ -4,12 +4,13 @@
 
 ## AWX configuration and deployment
 
-Compatible with AWX __14.1.0__
+Compatible with AWX __16.0.0__
 |Date|Change|
 |---|---|
 |2020 04 27|Updated to support AWX version __11.x__|
 |2020 05 12|[Added support for Isolated nodes](/ISOLATED.md)|
 |2020 08 27|Updated to support AWX version __14.x__|
+|2020 12 18|Updated to support AWX version __16.x__|
 After upgrading from previous version (__11.x__) remove memcached containers. They are not needed anymore.
 
 ## Dependencies
@@ -22,18 +23,18 @@ After upgrading from previous version (__11.x__) remove memcached containers. Th
 ### Install
 
 ```bash
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=setup awx.yml --diff
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run awx.yml --skip-tags awx --diff
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=run --tags awx --limit primary_awx_node awx.yml --diff
-ansible-playbook -i inventory/demo -e @vars/demo.yml awx.yml --diff
+ansible-playbook -i inventory/demo -e task=setup awx.yml --diff
+ansible-playbook -i inventory/demo -e task=run awx.yml --skip-tags awx --diff
+ansible-playbook -i inventory/demo -e task=run --tags awx --limit primary_awx_node awx.yml --diff
+ansible-playbook -i inventory/demo awx.yml --diff
 ```
 
 ### Upgrade
 
 ```bash
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=setup --tags awx awx.yml --diff
-ansible-playbook -i inventory/demo -e @vars/demo.yml -e task=upgrade --tags awx awx.yml --diff
-ansible-playbook -i inventory/demo -e @vars/demo.yml --tags awx awx.yml --diff
+ansible-playbook -i inventory/demo -e task=setup --tags awx awx.yml --diff
+ansible-playbook -i inventory/demo -e task=upgrade --tags awx awx.yml --diff
+ansible-playbook -i inventory/demo --tags awx awx.yml --diff
 ```
 
 ### Remove old Docker images
