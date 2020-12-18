@@ -7,10 +7,10 @@
 Compatible with AWX __16.0.0__
 |Date|Change|
 |---|---|
-|2020 04 27|Updated to support AWX version __11.x__|
-|2020 05 12|[Added support for Isolated nodes](/ISOLATED.md)|
-|2020 08 27|Updated to support AWX version __14.x__|
 |2020 12 18|Updated to support AWX version __16.x__|
+|2020 08 27|Updated to support AWX version __14.x__|
+|2020 05 12|[Added support for Isolated nodes](/ISOLATED.md)|
+|2020 04 27|Updated to support AWX version __11.x__|
 After upgrading from previous version (__11.x__) remove memcached containers. They are not needed anymore.
 
 ## Dependencies
