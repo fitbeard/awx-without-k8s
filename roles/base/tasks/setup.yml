@@ -8,6 +8,9 @@
     mode: 0644
   notify: Clear Yum cache
 
+- name: Enable EPEL
+  yum: name: epel-release state: present
+
 - name: Install YUM dependencies
   yum:
     name: "{{ dependencies.pkg }}"
