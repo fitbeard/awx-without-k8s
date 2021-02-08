@@ -11,7 +11,7 @@ github_secret: "webhook_secret"
 
 ### Docker default settings
 docker_registry: "dockerhost"
-awx_version: "16.0.0"
+awx_version: "17.0.1"
 docker_registry_namespace: "ansible"
 awx_image: "awx"
 awx_isolated_image: "awx_isolated"
@@ -181,7 +181,7 @@ awx_isolated_ssh_config:
     IdentityFile: /root/.ssh/key1
 
 ### Postgres DB details
-pg_version: "11"
+pg_version: "12"
 pg_hostname: "set_database_hostname"
 pg_password: "awxpass"
 pg_port: "5432"
