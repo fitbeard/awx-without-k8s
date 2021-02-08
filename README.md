@@ -4,9 +4,10 @@
 
 ## AWX configuration and deployment
 
-Compatible with AWX __16.0.0__
+Master branch compatible with AWX __17.0.1__ Use git tag with desired version.
 |Date|Change|
 |---|---|
+|2021 02 08|Updated to support AWX version __17.x__ [You must upgrade to Postgres 12 before this version](/POSTGRES-11-to-12.md)|
 |2020 12 18|Updated to support AWX version __16.x__|
 |2020 08 27|Updated to support AWX version __14.x__|
 |2020 05 12|[Added support for Isolated nodes](/ISOLATED.md)|
@@ -40,5 +41,5 @@ ansible-playbook -i inventory/demo --tags awx awx.yml --diff
 ### Remove old Docker images
 
 ```bash
-ansible -i inventory/demo all -a "docker rmi awx_web_img_id awx_task_img_id"
+ansible -i inventory/demo all -a "docker rmi awx_img_id"
 ```
