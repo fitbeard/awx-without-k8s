@@ -4,12 +4,17 @@ services:
   webhook:
     image: {{ awx_webhook_docker_actual_image }}
     container_name: webhook
-    ports:
-      - "9000:9000"
     hostname: webhook
     restart: unless-stopped
+{% if not docker_network_host_mode | bool %}
+    ports:
+      - "9000:9000"
     networks:
       - local
+{% endif %}
+{% if docker_network_host_mode | bool %}
+    network_mode: host
+{% endif %}
     volumes:
       - "{{ webhook_compose_dir }}/data:/etc/webhook"
     environment:
@@ -18,7 +23,9 @@ services:
       no_proxy:
     command: ["-verbose", "--hooks=/etc/webhook/hooks.json", "-hotreload", "-secure", "-cert=/etc/webhook/cert.pem", "-key=/etc/webhook/cert.key"]
 
+{% if not docker_network_host_mode | bool %}
 networks:
   local:
     external:
       name: {{ docker_network_name }}
+{% endif %}

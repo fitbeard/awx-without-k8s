@@ -8,6 +8,7 @@ webhook_compose_dir: "{{ compose_dir}}/webhook"
 external_database: "no"
 enable_webhooks: "no"
 github_secret: "webhook_secret"
+python_executable: /usr/bin/python
 
 ### Docker default settings
 docker_registry: "dockerhost"
@@ -19,6 +20,7 @@ awx_docker_actual_image: "{{ docker_registry_namespace }}/{{ awx_image }}:{{ awx
 awx_isolated_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}/{{ awx_isolated_image }}:{{ awx_version }}"
 awx_webhook_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}-webhook:{{ webhook_version }}"
 docker_network_name: "awx"
+docker_network_host_mode: false
 
 ### AWX Default Settings
 admin_user: "admin"

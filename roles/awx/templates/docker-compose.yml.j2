@@ -6,14 +6,19 @@ services:
     container_name: awx_web
     depends_on:
       - redis
-    ports:
-      - "80:8052"
-      - "443:8053"
     hostname: awxweb
     user: root
     restart: unless-stopped
+{% if not docker_network_host_mode | bool %}
+    ports:
+      - "80:8052"
+      - "443:8053"
     networks:
       - local
+{% endif %}
+{% if docker_network_host_mode | bool %}
+    network_mode: host
+{% endif %}
     volumes:
       - supervisor-socket:/var/run/supervisor
       - rsyslog-socket:/var/run/awx-rsyslog/
@@ -42,8 +47,13 @@ services:
     hostname: awx
     user: root
     restart: unless-stopped
+{% if not docker_network_host_mode | bool %}
     networks:
       - local
+{% endif %}
+{% if docker_network_host_mode | bool %}
+    network_mode: host
+{% endif %}
     volumes:
       - supervisor-socket:/var/run/supervisor
       - rsyslog-socket:/var/run/awx-rsyslog/
@@ -77,15 +87,22 @@ services:
     volumes:
       - "{{ awx_compose_dir }}/redis.conf:/usr/local/etc/redis/redis.conf:ro"
       - "{{ awx_compose_dir }}/redis_socket:/var/run/redis/:rw"
+{% if not docker_network_host_mode | bool %}
     networks:
       - local
+{% endif %}
+{% if docker_network_host_mode | bool %}
+    network_mode: host
+{% endif %}
 
 volumes:
   supervisor-socket:
   rsyslog-socket:
   rsyslog-config:
 
+{% if not docker_network_host_mode | bool %}
 networks:
   local:
     external:
       name: {{ docker_network_name }}
+{% endif %}

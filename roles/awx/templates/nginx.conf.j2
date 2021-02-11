@@ -37,7 +37,12 @@ http {
     }
 
     server {
+{% if not docker_network_host_mode | bool %}
         listen 8052 default_server;
+{% endif %}
+{% if docker_network_host_mode | bool %}
+        listen 80 default_server;
+{% endif %}
         server_name _;
 
         # Redirect all HTTP links to the matching HTTPS page
@@ -45,7 +50,12 @@ http {
     }
 
     server {
+{% if not docker_network_host_mode | bool %}
         listen 8053 ssl;
+{% endif %}
+{% if docker_network_host_mode | bool %}
+        listen 443 ssl;
+{% endif %}
 
         ssl_certificate /etc/nginx/awxweb.pem;
         ssl_certificate_key /etc/nginx/awxweb.pem;
