@@ -16,7 +16,7 @@
     mode: 0777
   
 - name: Define system UUID
-  shell: "echo 'import uuid; print(uuid.uuid4())' | python; touch {{ awx_compose_dir }}/system_uuid_generated.txt"
+  shell: "echo 'import uuid; print(uuid.uuid4())' | {{ python_executable }}; touch {{ awx_compose_dir }}/system_uuid_generated.txt"
   args:
     chdir: "{{ awx_compose_dir }}"
     creates: system_uuid_generated.txt
