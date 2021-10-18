@@ -33,7 +33,7 @@ services:
       - "{{ awx_compose_dir }}/awxweb.pem:/etc/nginx/awxweb.pem:ro"
       - "{{ awx_compose_dir }}/projects:/var/lib/awx/projects:rw"
 {% if ca_trust_dir is defined %}
-      - "{{ ca_trust_dir +':/etc/pki/ca-trust:ro' }}"
+      - "{{ ca_trust_dir }}:/etc/pki/ca-trust:ro"
 {% endif %}
     environment:
       http_proxy:
