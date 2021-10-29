@@ -23,7 +23,7 @@
 - name: Install Python dependencies
   pip:
     name: "{{ dependencies.pip }}"
-    executable: pip
+    executable: "{{ executable }}"
 
 - name: Starting Docker services
   systemd:
