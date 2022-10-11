@@ -21,6 +21,7 @@ awx_isolated_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_name
 awx_webhook_docker_actual_image: "{{ docker_registry }}/{{ docker_registry_namespace }}-webhook:{{ webhook_version }}"
 docker_network_name: "awx"
 docker_network_host_mode: false
+# ca_trust_dir: "/etc/pki/ca-trust" ## Uncomment to bind to host's CA Trust directory.
 
 ### AWX Default Settings
 admin_user: "admin"
