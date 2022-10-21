@@ -1,0 +1,16 @@
+version: '2'
+services:
+
+  postgres:
+    image: postgres:{{ awx_pg_version }}
+    container_name: postgres
+    hostname: postgres
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - "{{ awx_pg_directory }}/data:/var/lib/postgresql/data:Z"
+    environment:
+      POSTGRES_DB: {{ awx_pg_database }}
+      POSTGRES_USER: {{ awx_pg_username }}
+      POSTGRES_PASSWORD: {{ awx_pg_password }}
+      PGDATA: /var/lib/postgresql/data/pgdata

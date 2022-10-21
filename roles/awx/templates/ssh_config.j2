@@ -1,7 +1,0 @@
-{% for (host_entry,cfg) in awx_isolated_ssh_config.items() %}
-Host {{host_entry}}
-  {% for (k,v) in cfg.items() %}
-  {{k}} {{v}}
-  {% endfor %}
-
-{% endfor %}

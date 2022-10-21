@@ -1,0 +1,18 @@
+docker_install: true
+
+docker_daemon_options:
+# Only "--network host" will work after that. To bind containers to TCP 80 and 443 ports you need
+# "awx_rootful_containers: true" + "awx_external_frontend: false" scenario.
+  bridge: "none"
+  ip-forward: false
+  iptables: false
+  live-restore: true
+  log-opts:
+    max-file: "5"
+    max-size: "50m"
+
+#docker_daemon_options:
+#  live-restore: true
+#  log-opts:
+#    max-file: "5"
+#    max-size: "50m"

@@ -1,0 +1,49 @@
+---
+- name: Create AWX directories
+  file:
+    name: "{{ directory.name }}"
+    mode: "{{ directory.mode }}"
+    owner: "{{ directory.owner | default('root') }}"
+    group: "{{ directory.group | default('root') }}"
+    state: directory
+  with_items:
+    - {name: "{{ awx_directory }}", mode: "0o755"}
+    - {name: "{{ awx_directory }}/projects", mode: "0o775", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_node_role_type == 'execution' }}"}
+    - {name: "{{ awx_directory }}/receptor", mode: "0o770", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {name: "{{ awx_directory }}/containers", mode: "0o775", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_node_role_type == 'execution' }}"}
+    - {name: "{{ awx_directory }}/receptor_socket", mode: "0o750", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+  loop_control:
+    loop_var: directory
+  when: config.create | default(True) | bool
+
+- name: Template AWX configuration files
+  template:
+    src: "{{ config.src }}"
+    dest: "{{ awx_directory }}/{{ config.dst }}"
+    mode: "{{ config.mode }}"
+    owner: "{{ config.owner | default('root') }}"
+    group: "{{ config.group | default('root') }}"
+  with_items:
+    - {src: docker-compose-receptor.yml.j2, dst: docker-compose.yml, mode: "0o600", create: "{{ awx_node_role_type == 'execution' }}"}
+    - {src: work-public-key.pem.j2, dst: work-public-key.pem, mode: "0o644", group: "{{ awx_gid }}", create: "{{ awx_node_role_type == 'execution' }}"}
+    - {src: receptor-ca.crt.j2, dst: receptor-ca.crt, mode: "0o644", group: "{{ awx_gid }}"}
+    - {src: receptor-execution.conf.j2, dst: receptor-execution.conf, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_node_role_type == 'execution' }}"}
+    - {src: receptor.crt.j2, dst: receptor.crt, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: receptor.key.j2, dst: receptor.key, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+  loop_control:
+    loop_var: config
+  no_log: "{{ awx_no_log }}"
+  register: receptor_configs
+  when: config.create | default(True) | bool
+
+- name: Pull AWX EE image
+  docker_image:
+    name: "{{ awx_ee_image_url }}"
+    source: pull
+  when: awx_tasks == 'upgrade'
+
+- name: Start || Restart AWX containers
+  docker_compose:
+    project_name: awx
+    project_src: "{{ awx_directory }}"
+    restarted: "{{ receptor_configs is changed | bool }}"

@@ -1,9 +1,12 @@
 ---
-- import_tasks: setup.yml
-  when: task == "all" or task == "setup"
+- name: Include AWX control node tasks
+  include_tasks: "awx_{{ awx_tasks }}.yml"
+  when:
+    - awx_cluster_node_type == 'primary' or awx_cluster_node_type == 'secondary'
+    - awx_node_role_type == 'control' or awx_node_role_type == 'hybrid'
 
-- import_tasks: run.yml
-  when: task == "all" or task == "run"
-
-- import_tasks: upgrade.yml
-  when: task == "upgrade"
+- name: Include AWX receptor node tasks
+  include_tasks: "receptor_{{ awx_tasks }}.yml"
+  when:
+# TODO add hop node role type
+    - awx_node_role_type == 'execution' or awx_node_role_type == 'hop'

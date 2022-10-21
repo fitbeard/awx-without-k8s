@@ -1,0 +1,16 @@
+---
+- import_tasks: awx_configure.yml
+
+- name: Start || Restart Postgres containers
+  docker_compose:
+    project_name: postgres
+    project_src: "{{ awx_pg_directory }}"
+    restarted: "{{ postgres_configs is changed | bool }}"
+  when:
+    - awx_cluster_node_type == 'primary' and not awx_external_database
+
+- name: Start || Restart AWX containers
+  docker_compose:
+    project_name: awx
+    project_src: "{{ awx_directory }}"
+    restarted: "{{ awx_configs is changed | bool }}"

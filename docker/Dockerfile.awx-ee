@@ -1,0 +1,31 @@
+FROM quay.io/ansible/awx-ee:latest
+
+USER root
+
+RUN dnf -y update && \
+    yum -y install podman crun procps && \
+    rm -rf /var/cache /var/log/dnf* /var/log/yum.*
+
+# This user is already created in a lower image layer: https://github.com/ansible/ansible-runner/blob/devel/utils/entrypoint.sh and final image entrypoint will do right UID/GID mapping.
+# In RedHat type of distros first available UID always is 1000. Adding again just for steps of this layer.
+RUN useradd runner -u 1000 -g 0
+
+ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
+ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/podman-containers.conf /home/runner/.config/containers/containers.conf
+
+# chmod containers.conf and adjust storage.conf to enable Fuse storage.
+RUN chmod 644 /etc/containers/containers.conf && sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
+RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers /var/lib/shared/vfs-images /var/lib/shared/vfs-layers; \
+    touch /var/lib/shared/overlay-images/images.lock; touch /var/lib/shared/overlay-layers/layers.lock; touch /var/lib/shared/vfs-images/images.lock; \
+    touch /var/lib/shared/vfs-layers/layers.lock
+
+RUN chown -R 1000:0 /home/runner/.config
+
+# Ensure we must use fully qualified image names
+# This prevents podman prompt that hangs when trying to pull unqualified images
+RUN mkdir -p /etc/containers/registries.conf.d/ && echo "unqualified-search-registries = []" >> /etc/containers/registries.conf.d/force-fully-qualified-images.conf && \
+    chmod 644 /etc/containers/registries.conf.d/force-fully-qualified-images.conf
+
+ENV _CONTAINERS_USERNS_CONFIGURED=""
+
+USER 1000

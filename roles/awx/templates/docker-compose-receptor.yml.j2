@@ -1,0 +1,31 @@
+version: '2'
+services:
+
+  awx-ee:
+    image: {{ awx_ee_image_url }}
+    container_name: awx-ee
+{% if awx_rootful_containers | bool %}
+    user: root
+{% endif %}
+    privileged: true
+    command: ["receptor", "--config", "/etc/receptor/receptor.conf"]
+    hostname: "{{ awx_cluster_node_host_id }}"
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - "{{ awx_directory }}/receptor_socket:/var/run/receptor:rw"
+      - "{{ awx_directory }}/projects:/var/lib/awx/projects:rw"
+      - "{{ awx_directory }}/receptor:/etc/receptor/:rw"
+{% if awx_rootful_containers | bool %}
+      - "{{ awx_directory }}/containers:/var/lib/containers/:rw"
+{% else %}
+      - "{{ awx_directory }}/containers:/home/runner/.local/share/containers/:rw"
+{% endif %}
+      - "{{ awx_directory }}/receptor-ca.crt:/etc/receptor/tls/ca/receptor-ca.crt:ro"
+      - "{{ awx_directory }}/receptor-execution.conf:/etc/receptor/receptor.conf:ro"
+      - "{{ awx_directory }}/work-public-key.pem:/etc/receptor/work-public-key.pem:ro"
+      - "{{ awx_directory }}/receptor.crt:/etc/receptor/tls/receptor.crt:ro"
+      - "{{ awx_directory }}/receptor.key:/etc/receptor/tls/receptor.key:ro"
+{% if awx_ca_trust_dir is defined %}
+      - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
+{% endif %}
