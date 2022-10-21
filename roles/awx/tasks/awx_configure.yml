@@ -1,0 +1,81 @@
+---
+- name: Create AWX directories
+  file:
+    name: "{{ directory.name }}"
+    mode: "{{ directory.mode }}"
+    owner: "{{ directory.owner | default('root') }}"
+    group: "{{ directory.group | default('root') }}"
+    state: directory
+  with_items:
+    - {name: "{{ awx_directory }}", mode: "0o755"}
+    - {name: "{{ awx_directory }}/projects", mode: "0o775", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {name: "{{ awx_directory }}/receptor", mode: "0o770", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {name: "{{ awx_directory }}/containers", mode: "0o775", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {name: "{{ awx_directory }}/receptor_socket", mode: "0o750", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {name: "{{ awx_directory }}/supervisor-socket", mode: "0o750", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {name: "{{ awx_directory }}/rsyslog-socket", mode: "0o750", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {name: "{{ awx_directory }}/rsyslog-config", mode: "0o750", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {name: "{{ awx_directory }}/redis_socket", mode: "0o777"}
+  loop_control:
+    loop_var: directory
+
+- name: Template AWX configuration files
+  template:
+    src: "{{ config.src }}"
+    dest: "{{ awx_directory }}/{{ config.dst }}"
+    mode: "{{ config.mode }}"
+    owner: "{{ config.owner | default('root') }}"
+    group: "{{ config.group | default('root') }}"
+  with_items:
+    - {src: docker-compose.yml.j2, dst: docker-compose.yml, mode: "0o600"}
+    - {src: settings.py.j2, dst: settings.py, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: credentials.py.j2, dst: credentials.py, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: redis.conf.j2, dst: redis.conf, mode: "0o664"}
+    - {src: awx-nginx.conf.j2, dst: awx-nginx.conf, mode: "0o640", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: nginx.conf.j2, dst: nginx.conf, mode: "0o640", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ not awx_rootful_containers | bool and not awx_external_frontend | bool }}"}
+    - {src: awx-nginx.pem.j2, dst: awx-nginx.pem, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ not awx_external_frontend | bool }}"}
+    - {src: environment.sh.j2, dst: environment.sh, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_cluster_node_type == 'primary' }}"}
+    - {src: SECRET_KEY.j2, dst: SECRET_KEY, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: execution_environments.py.j2, dst: execution_environments.py, mode: "0o644", group: "{{ awx_gid }}"}
+    - {src: work-private-key.pem.j2, dst: work-private-key.pem, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: work-public-key.pem.j2, dst: work-public-key.pem, mode: "0o644", group: "{{ awx_gid }}"}
+    - {src: receptor-ca.crt.j2, dst: receptor-ca.crt, mode: "0o644", group: "{{ awx_gid }}"}
+    - {src: receptor-ca.key.j2, dst: receptor-ca.key, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: launch_awx_task.sh.j2, dst: launch_awx_task.sh, mode: "0o744", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: launch_awx.sh.j2, dst: launch_awx.sh, mode: "0o744", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: receptor-default.conf.j2, dst: receptor-default.conf, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: receptor.sh.j2, dst: receptor.sh, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: receptor.crt.j2, dst: receptor.crt, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: receptor.key.j2, dst: receptor.key, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+  loop_control:
+    loop_var: config
+  no_log: "{{ awx_no_log }}"
+  register: awx_configs
+  when: config.create | default(True) | bool
+
+- name: Create Postgres directories
+  file:
+    name: "{{ pg_directory }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ awx_pg_directory }}"
+    - "{{ awx_pg_directory }}/data"
+  loop_control:
+    loop_var: pg_directory
+  when:
+    - awx_cluster_node_type == 'primary' and not awx_external_database
+
+- name: Template Postgres configuration files
+  template:
+    src: "{{ pg_config.src }}"
+    dest: "{{ awx_pg_directory }}/{{ pg_config.dst }}"
+    mode: 0600
+  with_items:
+    - {src: docker-compose-postgres.yml.j2, dst: docker-compose.yml}
+  loop_control:
+    loop_var: pg_config
+  no_log: "{{ awx_no_log }}"
+  register: postgres_configs
+  when:
+    - awx_cluster_node_type == 'primary' and not awx_external_database

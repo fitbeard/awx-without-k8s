@@ -1,0 +1,21 @@
+---
+docker_edition: 'ce'
+docker_package: "docker-{{ docker_edition }}"
+docker_package_state: present
+
+docker_repo_url: https://download.docker.com/linux
+
+docker_apt_repository: "deb [arch=amd64] {{ docker_repo_url }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+docker_apt_ignore_key_error: true
+docker_apt_gpg_key: "{{ docker_repo_url }}/{{ ansible_distribution | lower }}/gpg"
+
+docker_yum_repo_url: "{{ docker_repo_url }}/centos/docker-{{ docker_edition }}.repo"
+docker_yum_gpg_key: "{{ docker_repo_url }}/centos/gpg"
+
+docker_daemon_options: {}
+
+docker_group_members: []
+
+docker_registries: {}
+
+docker_reauthorize: true

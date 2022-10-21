@@ -1,2 +1,0 @@
-#!/bin/sh
-curl -qsk -X POST -H 'Content-type: application/json' -u '{{ automation_user }}':'{{ automation_password }}' 'https://{{ awx_host }}/api/v2/projects/{{ item.id }}/update/'

@@ -1,114 +1,126 @@
 version: '2'
 services:
 
-  web:
-    image: {{ awx_docker_actual_image }}
-    container_name: awx_web
-    depends_on:
-      - redis
-    hostname: awxweb
+{% if not awx_rootful_containers | bool and not awx_external_frontend | bool %}
+  nginx:
+    image: nginx:stable
+    container_name: nginx
+    hostname: "{{ awx_cluster_node_host_id }}"
     user: root
     restart: unless-stopped
-{% if not docker_network_host_mode | bool %}
-    ports:
-      - "80:8052"
-      - "443:8053"
-    networks:
-      - local
-{% endif %}
-{% if docker_network_host_mode | bool %}
     network_mode: host
-{% endif %}
     volumes:
-      - supervisor-socket:/var/run/supervisor
-      - rsyslog-socket:/var/run/awx-rsyslog/
-      - rsyslog-config:/var/lib/awx/rsyslog/
-      - "{{ awx_compose_dir }}/SECRET_KEY:/etc/tower/SECRET_KEY"
-      - "{{ awx_compose_dir }}/launch_awx.sh:/usr/bin/launch_awx.sh"
-      - "{{ awx_compose_dir }}/settings.py:/etc/tower/settings.py"
-      - "{{ awx_compose_dir }}/credentials.py:/etc/tower/conf.d/credentials.py"
-      - "{{ awx_compose_dir }}/environment.sh:/etc/tower/conf.d/environment.sh"
-      - "{{ awx_compose_dir }}/redis_socket:/var/run/redis/:rw"
-      - "{{ awx_compose_dir }}/nginx.conf:/etc/nginx/nginx.conf:ro"
-      - "{{ awx_compose_dir }}/awxweb.pem:/etc/nginx/awxweb.pem:ro"
-      - "{{ awx_compose_dir }}/projects:/var/lib/awx/projects:rw"
-{% if ca_trust_dir is defined %}
-      - "{{ ca_trust_dir }}:/etc/pki/ca-trust:ro"
+      - "{{ awx_directory }}/nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "{{ awx_directory }}/awx-nginx.pem:/etc/nginx/awx-nginx.pem:ro"
 {% endif %}
-    environment:
-      http_proxy:
-      https_proxy:
-      no_proxy:
 
-  task:
-    image: {{ awx_docker_actual_image }}
-    container_name: awx_task
+  awx-web:
+    image: {{ awx_image_url }}
+    container_name: awx-web
     depends_on:
       - redis
-      - web
-    command: /usr/bin/launch_awx_task.sh
-    hostname: awx
+    command: /usr/bin/launch_awx.sh
+    hostname: "{{ awx_cluster_node_host_id }}"
+{% if awx_rootful_containers | bool %}
     user: root
+{% endif %}
     restart: unless-stopped
-{% if not docker_network_host_mode | bool %}
-    networks:
-      - local
-{% endif %}
-{% if docker_network_host_mode | bool %}
     network_mode: host
-{% endif %}
     volumes:
-      - supervisor-socket:/var/run/supervisor
-      - rsyslog-socket:/var/run/awx-rsyslog/
-      - rsyslog-config:/var/lib/awx/rsyslog/
-      - "{{ awx_compose_dir }}/SECRET_KEY:/etc/tower/SECRET_KEY"
-      - "{{ awx_compose_dir }}/launch_awx_task.sh:/usr/bin/launch_awx_task.sh"
-      - "{{ awx_compose_dir }}/settings.py:/etc/tower/settings.py"
-      - "{{ awx_compose_dir }}/credentials.py:/etc/tower/conf.d/credentials.py"
-      - "{{ awx_compose_dir }}/environment.sh:/etc/tower/conf.d/environment.sh"
-      - "{{ awx_compose_dir }}/redis_socket:/var/run/redis/:rw"
-      - "{{ awx_compose_dir }}/projects:/var/lib/awx/projects:rw"
-{% if ca_trust_dir is defined %}
-      - "{{ ca_trust_dir }}:/etc/pki/ca-trust:ro"
-{% endif %}
-{% if awx_isolated_nodes | bool %}
-      - "{{ awx_compose_dir }}/ssh_config:/root/.ssh/config"
-{% endif %}
-{% if awx_isolated_ssh_keys_external | bool %}
-{% for (name,ssh_key) in awx_isolated_ssh_keys_private.items() %}
-      - "{{ awx_compose_dir }}/{{ name }}:/root/.ssh/{{ name }}"
-{% endfor %}
+      - "{{ awx_directory }}/supervisor-socket:/var/run/supervisor:rw"
+      - "{{ awx_directory }}/rsyslog-socket:/var/run/awx-rsyslog:rw"
+      - "{{ awx_directory }}/rsyslog-config:/var/lib/awx/rsyslog:rw"
+      - "{{ awx_directory }}/execution_environments.py:/etc/tower/conf.d/execution_environments.py:ro"
+      - "{{ awx_directory }}/launch_awx.sh:/usr/bin/launch_awx.sh:ro"
+      - "{{ awx_directory }}/work-public-key.pem:/etc/receptor/signing/work-public-key.pem:ro"
+      - "{{ awx_directory }}/receptor-ca.crt:/etc/receptor/tls/ca/receptor-ca.crt:ro"
+      - "{{ awx_directory }}/receptor-ca.key:/etc/receptor/tls/ca/receptor-ca.key:ro"
+      - "{{ awx_directory }}/credentials.py:/etc/tower/conf.d/credentials.py:ro"
+      - "{{ awx_directory }}/awx-nginx.pem:/etc/nginx/awx-nginx.pem:ro"
+      - "{{ awx_directory }}/SECRET_KEY:/etc/tower/SECRET_KEY:ro"
+      - "{{ awx_directory }}/settings.py:/etc/tower/settings.py:ro"
+      - "{{ awx_directory }}/awx-nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "{{ awx_directory }}/redis_socket:/var/run/redis/:rw"
+      - "{{ awx_directory }}/projects:/var/lib/awx/projects:rw"
+{% if awx_ca_trust_dir is defined %}
+      - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
 {% endif %}
     environment:
-      http_proxy:
-      https_proxy:
-      no_proxy:
+      UWSGI_MOUNT_PATH: '/'
+
+  awx-task:
+    image: {{ awx_image_url }}
+    container_name: awx-task
+    depends_on:
+      - redis
+      - awx-web
+      - awx-ee
+    command: /usr/bin/launch_awx_task.sh
+    hostname: "{{ awx_cluster_node_host_id }}"
+{% if awx_rootful_containers | bool %}
+    user: root
+{% endif %}
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - "{{ awx_directory }}/supervisor-socket:/var/run/supervisor:rw"
+      - "{{ awx_directory }}/rsyslog-socket:/var/run/awx-rsyslog:rw"
+      - "{{ awx_directory }}/rsyslog-config:/var/lib/awx/rsyslog:rw"
+      - "{{ awx_directory }}/receptor_socket:/var/run/receptor:rw"
+      - "{{ awx_directory }}/execution_environments.py:/etc/tower/conf.d/execution_environments.py:ro"
+      - "{{ awx_directory }}/work-private-key.pem:/etc/receptor/signing/work-private-key.pem:ro"
+      - "{{ awx_directory }}/SECRET_KEY:/etc/tower/SECRET_KEY:ro"
+      - "{{ awx_directory }}/launch_awx_task.sh:/usr/bin/launch_awx_task.sh:ro"
+      - "{{ awx_directory }}/settings.py:/etc/tower/settings.py:ro"
+      - "{{ awx_directory }}/credentials.py:/etc/tower/conf.d/credentials.py:ro"
+{% if awx_cluster_node_type == 'primary' %}
+      - "{{ awx_directory }}/environment.sh:/etc/tower/conf.d/environment.sh:ro"
+{% endif %}
+      - "{{ awx_directory }}/redis_socket:/var/run/redis/:rw"
+      - "{{ awx_directory }}/projects:/var/lib/awx/projects:rw"
+      - "{{ awx_directory }}/receptor:/etc/receptor/:rw"
+{% if awx_ca_trust_dir is defined %}
+      - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
+{% endif %}
+    environment:
       SUPERVISOR_WEB_CONFIG_PATH: '/etc/supervisord.conf'
 
+  awx-ee:
+    image: {{ awx_ee_image_url }}
+    container_name: awx-ee
+{% if awx_rootful_containers | bool %}
+    user: root
+{% endif %}
+    privileged: true
+    command: ["/bin/sh", "/receptor.sh"]
+    hostname: "{{ awx_cluster_node_host_id }}"
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - "{{ awx_directory }}/receptor_socket:/var/run/receptor/:rw"
+      - "{{ awx_directory }}/projects:/var/lib/awx/projects:rw"
+      - "{{ awx_directory }}/receptor:/etc/receptor/:rw"
+{% if awx_rootful_containers | bool %}
+      - "{{ awx_directory }}/containers:/var/lib/containers/:rw"
+{% else %}
+      - "{{ awx_directory }}/containers:/home/runner/.local/share/containers/:rw"
+{% endif %}
+      - "{{ awx_directory }}/receptor.sh:/receptor.sh:ro"
+      - "{{ awx_directory }}/receptor-ca.crt:/etc/receptor/tls/ca/receptor-ca.crt:ro"
+      - "{{ awx_directory }}/receptor-default.conf:/etc/receptor/receptor-default.conf:ro"
+      - "{{ awx_directory }}/work-private-key.pem:/etc/receptor/signing/work-private-key.pem:ro"
+      - "{{ awx_directory }}/receptor.crt:/etc/receptor/tls/receptor.crt:ro"
+      - "{{ awx_directory }}/receptor.key:/etc/receptor/tls/receptor.key:ro"
+{% if awx_ca_trust_dir is defined %}
+      - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
+{% endif %}
+
   redis:
-    image: redis:{{ redis_version }}
+    image: redis:{{ awx_redis_version }}
     container_name: redis
     restart: unless-stopped
     command: ["/usr/local/etc/redis/redis.conf"]
     volumes:
-      - "{{ awx_compose_dir }}/redis.conf:/usr/local/etc/redis/redis.conf:ro"
-      - "{{ awx_compose_dir }}/redis_socket:/var/run/redis/:rw"
-{% if not docker_network_host_mode | bool %}
-    networks:
-      - local
-{% endif %}
-{% if docker_network_host_mode | bool %}
+      - "{{ awx_directory }}/redis.conf:/usr/local/etc/redis/redis.conf:ro"
+      - "{{ awx_directory }}/redis_socket:/var/run/redis/:rw"
     network_mode: host
-{% endif %}
-
-volumes:
-  supervisor-socket:
-  rsyslog-socket:
-  rsyslog-config:
-
-{% if not docker_network_host_mode | bool %}
-networks:
-  local:
-    external:
-      name: {{ docker_network_name }}
-{% endif %}
