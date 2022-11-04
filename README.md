@@ -5,7 +5,7 @@ Ideas from [awx](https://github.com/ansible/awx), [awx-operator](https://github.
 
 ## AWX configuration and deployment
 
-Master branch compatible with AWX __21.7.0__ Use git tag with desired version.
+Master branch compatible with AWX __21.8.0__ Use git tag with desired version.
 |Date|Changes|
 |---|---|
 |2022 10 21|Updated to support AWX version __21.7.0__|
