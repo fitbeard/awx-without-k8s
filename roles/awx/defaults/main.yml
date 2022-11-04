@@ -24,7 +24,7 @@ awx_hop_peers: ""
 awx_receptor_peers: ""
 
 # AWX
-awx_image_tag: 21.7.0
+awx_image_tag: 21.8.0
 awx_image: awx
 awx_image_registry: quay.io
 awx_image_url: "{{ awx_image_registry }}/ansible/{{ awx_image }}:{{ awx_image_tag }}"
