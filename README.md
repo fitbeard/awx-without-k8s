@@ -5,16 +5,9 @@ Ideas from [awx](https://github.com/ansible/awx), [awx-operator](https://github.
 
 ## AWX configuration and deployment
 
-Master branch compatible with AWX __21.8.0__ Use git tag with desired version.
-|Date|Changes|
-|---|---|
-|2022 10 21|Updated to support AWX version __21.7.0__|
-|2021 02 08|Updated to support AWX version __17.x__ [You must upgrade to Postgres 12 before this version](/POSTGRES-11-to-12.md)|
-|2020 12 18|Updated to support AWX version __16.x__|
-|2020 08 27|Updated to support AWX version __14.x__|
-|2020 05 12|[Added support for Isolated nodes](/ISOLATED.md)|
-|2020 04 27|Updated to support AWX version __11.x__|
-After upgrading from previous version (__11.x__) remove memcached containers. They are not needed anymore.
+Master branch is compatible with AWX version __21.8.0__. Use git tag with desired version.
+
+[`CHANGELOG`](./CHANGELOG.md)
 
 ## Dependencies
 
