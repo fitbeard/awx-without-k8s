@@ -1,3 +1,14 @@
+## (Not released yet)
+
+FEATURES
+
+* Added manual peering scenario (Ansible Automation Platform style)
+* Added hop node support
+
+IMPROVEMENTS
+
+* Now new execution and hop nodes are added automatically during configuration
+
 ## 21.8.0 (04 November, 2022)
 
 FEATURES

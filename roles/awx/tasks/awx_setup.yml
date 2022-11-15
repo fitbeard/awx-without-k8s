@@ -9,6 +9,12 @@
   when:
     - awx_cluster_node_type == 'primary' and not awx_external_database
 
+- name: Remove receptor.conf
+  file:
+    path: "{{ awx_directory }}/receptor/receptor.conf"
+    state: absent
+  when: awx_configs is changed | bool
+
 - name: Start || Restart AWX containers
   docker_compose:
     project_name: awx

@@ -71,7 +71,7 @@ Create [`custom Docker image`](./docker/Dockerfile.awx-ee) for execution nodes a
 
 Or use `docker.io/t42x/awx-ha-cluster-ee:latest` image which is based on the [`same Dockerfile`](./docker/Dockerfile.awx-ee).
 
-#### Start installation
+#### Start installation (K8S-like with auto peering)
 
 Before actually running playbook, take a look at the role defaults, `demo/inventory` and `demo/host_vars|group_vars` and make changes accordingly.
 
@@ -80,7 +80,9 @@ cd ../demo
 ansible-playbook -i inventory demo.yml --diff
 ```
 
-#### Add execution nodes to the AWX cluster
+#### Add execution nodes to the AWX cluster (manually)
+
+Ansible will do it automatically but in case you need re-add it again.
 
 Repeat for every execution node in cluster
 
@@ -94,6 +96,17 @@ awx-manage provision_instance --hostname=awx-receptor-1.demo.io --node_type=exec
 <img width="936" src="https://user-images.githubusercontent.com/18698204/197206815-92c8440d-e90b-4ef9-a2d7-39304b6af9a0.png">
 
 
+#### Start installation (AAP-like with manual peering)
+
+Before actually running playbook, take a look at the role defaults, `demo/inventory-with-hop` and `demo/host_vars|group_vars` and make changes accordingly.
+
+```bash
+cd ../demo
+ansible-playbook -i inventory-with-hop demo.yml --diff
+```
+
+<img width="936" src="https://user-images.githubusercontent.com/18698204/201934400-a84d70f2-274a-4d82-8146-9eac19fef477.png">
+
 ### Upgrade
 
 ```bash
@@ -105,5 +118,5 @@ ansible-playbook -i inventory demo.yml --diff -e awx_tasks=upgrade
 
 ```bash
 cd demo
-ansible -i inventorydemo all -a "docker rmi awx_img_id"
+ansible -i inventory all -a "docker rmi awx_img_id"
 ```

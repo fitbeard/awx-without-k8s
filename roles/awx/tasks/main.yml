@@ -5,8 +5,14 @@
     - awx_cluster_node_type == 'primary' or awx_cluster_node_type == 'secondary'
     - awx_node_role_type == 'control' or awx_node_role_type == 'hybrid'
 
-- name: Include AWX receptor node tasks
-  include_tasks: "receptor_{{ awx_tasks }}.yml"
+- name: Include AWX executor node tasks
+  include_tasks: "executor_{{ awx_tasks }}.yml"
   when:
-# TODO add hop node role type
     - awx_node_role_type == 'execution' or awx_node_role_type == 'hop'
+
+- name: Register node peers
+  shell: docker exec -t awx-task awx-manage register_peers {{ awx_cluster_node_host_id }} --exact {{ hostvars[inventory_hostname]['awx_peers'] | default([]) | map('extract', hostvars, 'inventory_hostname') | join(' ') }}
+  delegate_to: "{{ awx_cluster_primary_node }}"
+  register: register_peers
+  changed_when: register_peers.stdout is search("[1-9]+")
+  when: not awx_auto_peers | bool

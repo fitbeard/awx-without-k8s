@@ -73,6 +73,9 @@ services:
       - "{{ awx_directory }}/launch_awx_task.sh:/usr/bin/launch_awx_task.sh:ro"
       - "{{ awx_directory }}/settings.py:/etc/tower/settings.py:ro"
       - "{{ awx_directory }}/credentials.py:/etc/tower/conf.d/credentials.py:ro"
+{% if not awx_auto_peers | bool %}
+      - "{{ awx_directory }}/awx_main_tasks_receptor.py:/var/lib/awx/venv/awx/lib/python3.9/site-packages/awx/main/tasks/receptor.py:ro"
+{% endif %}
 {% if awx_cluster_node_type == 'primary' %}
       - "{{ awx_directory }}/environment.sh:/etc/tower/conf.d/environment.sh:ro"
 {% endif %}
@@ -109,6 +112,7 @@ services:
       - "{{ awx_directory }}/receptor-ca.crt:/etc/receptor/tls/ca/receptor-ca.crt:ro"
       - "{{ awx_directory }}/receptor-default.conf:/etc/receptor/receptor-default.conf:ro"
       - "{{ awx_directory }}/work-private-key.pem:/etc/receptor/signing/work-private-key.pem:ro"
+      - "{{ awx_directory }}/work-public-key.pem:/etc/receptor/signing/work-public-key.pem:ro"
       - "{{ awx_directory }}/receptor.crt:/etc/receptor/tls/receptor.crt:ro"
       - "{{ awx_directory }}/receptor.key:/etc/receptor/tls/receptor.key:ro"
 {% if awx_ca_trust_dir is defined %}
