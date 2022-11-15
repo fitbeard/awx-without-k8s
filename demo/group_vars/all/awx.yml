@@ -3,6 +3,7 @@ awx_no_log: false
 awx_rootful_containers: false
 awx_external_database: false
 awx_external_frontend: false
+awx_cluster_primary_node: awx-1.demo.io
 awx_receptor_log_level: debug
 awx_admin_username: admin
 awx_admin_password: demopassword
