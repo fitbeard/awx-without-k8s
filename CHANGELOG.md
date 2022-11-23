@@ -1,7 +1,8 @@
-## (Not released yet)
+## 21.9.0 (23 November, 2022)
 
 FEATURES
 
+* Updated to support AWX version `21.9.0`
 * Added manual peering scenario (Ansible Automation Platform style)
 * Added hop node support
 
