@@ -16,6 +16,11 @@
     project_src: "{{ awx_directory }}"
     stopped: true
 
+- name: Remove receptor.conf
+  file:
+    path: "{{ awx_directory }}/receptor/receptor.conf"
+    state: absent
+
 - name: Start AWX containers (on primary)
   docker_compose:
     project_name: awx

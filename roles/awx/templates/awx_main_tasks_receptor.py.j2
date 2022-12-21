@@ -63,7 +63,7 @@ def read_receptor_config():
 
 def work_signing_enabled(config_data):
     for section in config_data:
-        if 'work-verification' in section:
+        if 'work-signing' in section:
             return True
     return False
 
@@ -307,7 +307,7 @@ class AWXReceptorJob:
             self.runner_params.update(execution_environment_params)
 
         # PATCHED HERE !!!
-        # 21.9.0
+        # 21.10.2
         # Let's make the AWX ALWAYS think it's a K8S
         # if not settings.IS_K8S and self.work_type == 'local' and 'only_transmit_kwargs' not in self.runner_params:
         #    self.runner_params['only_transmit_kwargs'] = True
