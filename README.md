@@ -5,7 +5,7 @@ Ideas from [awx](https://github.com/ansible/awx), [awx-operator](https://github.
 
 ## AWX configuration and deployment
 
-Master branch is compatible with AWX version __21.9.0__. Use git tag with desired version.
+Master branch is compatible with AWX version __21.10.2__. Use git tag with desired version.
 
 [`CHANGELOG`](./CHANGELOG.md)
 
