@@ -1,26 +1,28 @@
 ---
-- include_tasks: setup-RedHat.yml
+- name: Include RedHat tasks
+  ansible.builtin.include_tasks: setup-RedHat.yml
   when: ansible_os_family == 'RedHat'
 
-- include_tasks: setup-Debian.yml
+- name: Include Debian tasks
+  ansible.builtin.include_tasks: setup-Debian.yml
   when: ansible_os_family == 'Debian'
 
 - name: Install Docker
-  package:
+  ansible.builtin.package:
     name: "{{ docker_package }}"
     state: "{{ docker_package_state }}"
   notify: Restart Docker
   ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Create /etc/docker/ directory
-  file:
+  ansible.builtin.file:
     path: /etc/docker
     state: directory
     mode: 0755
   when: docker_daemon_options.keys() | length > 0
 
 - name: Configure Docker daemon options
-  copy:
+  ansible.builtin.copy:
     content: "{{ docker_daemon_options | to_nice_json }}"
     dest: /etc/docker/daemon.json
     mode: 0644
@@ -28,7 +30,7 @@
   notify: Restart Docker
 
 - name: Add users to Docker group
-  user:
+  ansible.builtin.user:
     name: "{{ item }}"
     groups:
       - docker
@@ -39,14 +41,15 @@
     - docker_group_members | length > 0
 
 - name: Start and enable Docker service
-  systemd:
+  ansible.builtin.systemd:
     name: docker
     state: started
     enabled: true
   ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Flush handlers
-  meta: flush_handlers
+  ansible.builtin.meta: flush_handlers
 
-- include_tasks: login.yml
+- name: Include login tasks
+  ansible.builtin.include_tasks: login.yml
   when: docker_registries | length > 0

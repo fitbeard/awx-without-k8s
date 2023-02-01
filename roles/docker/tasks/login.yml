@@ -1,6 +1,6 @@
 ---
 - name: Login to Docker registry
-  docker_login:
+  community.docker.docker_login:
     registry: "{{ item.registry }}"
     username: "{{ item.username }}"
     password: "{{ item.password }}"

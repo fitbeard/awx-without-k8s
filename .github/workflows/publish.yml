@@ -1,12 +1,35 @@
-name: publish-ee
+name: publish
 
 on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: false
+        default: 'warning'
 
 jobs:
-  image:
+  ansible-collection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v3
+
+      - name: Generate galaxy version
+        id: galaxy_version
+        run: |
+          echo version=$(echo ${{ github.event.release.tag_name }} | sed 's/^v//') >> $GITHUB_OUTPUT
+
+      - name: Build and publish collection
+        uses: artis3n/ansible_galaxy_collection@v2
+        with:
+          api_key: "${{ secrets.ANSIBLE_GALAXY_API_KEY }}"
+          galaxy_version: "${{ steps.galaxy_version.outputs.version }}"
+
+  ee-image:
     runs-on: ubuntu-latest
     steps:
       - name: Install QEMU static binaries
@@ -28,7 +51,7 @@ jobs:
       - name: Generate image tag
         id: image_tag
         run: |
-          echo ::set-output name=tag::$(echo ${{ github.event.release.tag_name }} | sed 's/^v//')
+          echo tag=$(echo ${{ github.event.release.tag_name }} | sed 's/^v//') >> $GITHUB_OUTPUT
 
       - name: Build image
         uses: docker/build-push-action@v4.0.0

@@ -1,29 +1,38 @@
-# awx-ha-cluster
+# awx-without-k8s
 
-[AWX](https://github.com/ansible/awx) is originally designed to run in a Kubernetes environment only. This code allows you to install and use AWX only using Docker without K8S.
-Ideas from [awx](https://github.com/ansible/awx), [awx-operator](https://github.com/ansible/awx-operator) and [awx-ee](https://github.com/ansible/awx-ee) code.
+[AWX](https://github.com/ansible/awx) is originally designed to run
+in a Kubernetes environment only.
+This code allows you to install and use AWX only using Docker without K8S.
+Ideas from [awx](https://github.com/ansible/awx), [awx-operator](https://github.com/ansible/awx-operator)
+and [awx-ee](https://github.com/ansible/awx-ee) code.
 
 ## AWX configuration and deployment
 
-Master branch is compatible with AWX version __21.10.2__. Use git tag with desired version.
+Master branch is compatible with AWX version __21.10.2__.
+Use git tag with desired version.
 
 [`CHANGELOG`](./CHANGELOG.md)
 
 ## Dependencies
 
-- Ansible 2.9+
-- Working hostname resolution mechanism (DNS records, Docker's `extra_hosts` values, `/etc/hosts`)
+- Ansible 4.0.0+
+- Working hostname resolution mechanism
+(DNS records, Docker's `extra_hosts` values, `/etc/hosts`)
 
 ### Install demo
 
-Befor installation please read about AWX in general, AWX node types (control, hybrid, hop, execution), [execution nodes](https://github.com/ansible/awx/blob/devel/docs/execution_nodes.md)
-and [receptor](https://github.com/ansible/receptor). ***These are beyond the scope of this guide.***
+Befor installation please read about AWX in general,
+AWX node types (control, hybrid, hop, execution),
+[execution nodes](https://github.com/ansible/awx/blob/devel/docs/execution_nodes.md)
+and [receptor](https://github.com/ansible/receptor).
+___These are beyond the scope of this guide.___
 
-Demo secrets, certs, keys are for test purpose ***ONLY***. please do not use in production.
+Demo secrets, certs, keys are for test purpose ___ONLY___. please do not use in production.
 
 #### Create secret data first
 
-This is not necessary as this demo contains all needed secrets. This is an example of how to create secret data for production.
+This is not necessary as this demo contains all needed secrets.
+This is an example of how to create secret data for production.
 
 ```bash
 mkdir secrets
@@ -93,8 +102,7 @@ docker exec -ti awx-task bash
 awx-manage provision_instance --hostname=awx-receptor-1.demo.io --node_type=execution
 ```
 
-<img width="936" src="https://user-images.githubusercontent.com/18698204/197206815-92c8440d-e90b-4ef9-a2d7-39304b6af9a0.png">
-
+![img1](https://user-images.githubusercontent.com/18698204/197206815-92c8440d-e90b-4ef9-a2d7-39304b6af9a0.png)
 
 #### Start installation (AAP-like with manual peering)
 
@@ -105,7 +113,7 @@ cd ../demo
 ansible-playbook -i inventory-with-hop demo.yml --diff
 ```
 
-<img width="936" src="https://user-images.githubusercontent.com/18698204/201934400-a84d70f2-274a-4d82-8146-9eac19fef477.png">
+![img2](https://user-images.githubusercontent.com/18698204/201934400-a84d70f2-274a-4d82-8146-9eac19fef477.png)
 
 ### Upgrade
 
@@ -120,3 +128,12 @@ ansible-playbook -i inventory demo.yml --diff -e awx_tasks=upgrade
 cd demo
 ansible -i inventory all -a "docker rmi awx_img_id"
 ```
+
+## Contributing
+
+You'll need to make sure that you have [`pre-commit`](https://pre-commit.com)
+setup and installed in your environment by running these commands:
+
+```console
+pre-commit install --hook-type commit-msg
+````

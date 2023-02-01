@@ -1,6 +1,6 @@
 ---
 - name: Create AWX directories
-  file:
+  ansible.builtin.file:
     name: "{{ directory.name }}"
     mode: "{{ directory.mode }}"
     owner: "{{ directory.owner | default('root') }}"
@@ -17,7 +17,7 @@
   when: directory.create | default(True) | bool
 
 - name: Template AWX configuration files
-  template:
+  ansible.builtin.template:
     src: "{{ config.src }}"
     dest: "{{ awx_directory }}/{{ config.dst }}"
     mode: "{{ config.mode }}"
@@ -38,19 +38,19 @@
   when: config.create | default(True) | bool
 
 - name: Pull AWX EE image
-  docker_image:
+  community.docker.docker_image:
     name: "{{ awx_ee_image_url }}"
     source: pull
   when: awx_tasks == 'upgrade'
 
 - name: Start || Restart AWX containers
-  docker_compose:
+  community.docker.docker_compose:
     project_name: awx
     project_src: "{{ awx_directory }}"
     restarted: "{{ receptor_configs is changed | bool }}"
 
 - name: Register node
-  shell: docker exec -t awx-task awx-manage provision_instance --hostname="{{ awx_cluster_node_host_id }}" --node_type="{{ awx_node_role_type }}"
+  ansible.builtin.command: docker exec -t awx-task awx-manage provision_instance --hostname="{{ awx_cluster_node_host_id }}" --node_type="{{ awx_node_role_type }}"
   register: provision_execution_node
   # TODO: Fix indempotency
   changed_when: "'changed: True' in provision_execution_node.stdout"

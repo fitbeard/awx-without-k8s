@@ -1,0 +1,23 @@
+namespace: fitbeard
+name: awx
+version: 0.1.0 # injected dynamically when publishing
+readme: README.md
+authors:
+  - Tadas Sutkaitis <tadasas@gmail.com>
+description: AWX clustering using Ansible and Docker
+license:
+  - GPL-3.0-or-later
+dependencies: {}
+repository: https://github.com/fitbeard/awx-without-k8s
+build_ignore:
+  - .github
+  - .vscode
+  - ansible-cache
+  - demo
+  - docker
+  - molecule
+  - .ansible-lint
+  - .gitignore
+  - .markdownlint.yml
+  - .pre-commit-config.yaml
+  - CHANGELOG.md

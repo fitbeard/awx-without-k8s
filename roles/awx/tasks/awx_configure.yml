@@ -1,6 +1,6 @@
 ---
 - name: Create AWX directories
-  file:
+  ansible.builtin.file:
     name: "{{ directory.name }}"
     mode: "{{ directory.mode }}"
     owner: "{{ directory.owner | default('root') }}"
@@ -20,7 +20,7 @@
     loop_var: directory
 
 - name: Template AWX configuration files
-  template:
+  ansible.builtin.template:
     src: "{{ config.src }}"
     dest: "{{ awx_directory }}/{{ config.dst }}"
     mode: "{{ config.mode }}"
@@ -56,7 +56,7 @@
   when: config.create | default(True) | bool
 
 - name: Create Postgres directories
-  file:
+  ansible.builtin.file:
     name: "{{ pg_directory }}"
     state: directory
     mode: 0755
@@ -69,7 +69,7 @@
     - awx_cluster_node_type == 'primary' and not awx_external_database
 
 - name: Template Postgres configuration files
-  template:
+  ansible.builtin.template:
     src: "{{ pg_config.src }}"
     dest: "{{ awx_pg_directory }}/{{ pg_config.dst }}"
     mode: 0600

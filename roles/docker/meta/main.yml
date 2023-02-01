@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: docker
+  author: Tadas Sutkaitis <tadasas@gmail.com>
+  description: Install and configures Docker
+  license: BSD
+  min_ansible_version: "4.0"
+  platforms:
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+dependencies: []

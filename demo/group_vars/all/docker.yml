@@ -11,7 +11,7 @@ docker_daemon_options:
     max-file: "5"
     max-size: "50m"
 
-#docker_daemon_options:
+# docker_daemon_options:
 #  live-restore: true
 #  log-opts:
 #    max-file: "5"
