@@ -1,19 +1,16 @@
 name: lint
-
 on:
   pull_request:
 
 jobs:
-  yaml-lint:
+  pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3.3.0
+      - name: Checkout project
+        uses: actions/checkout@v3
 
-      - name: Lint Yaml files
-        run: |
-          yamllint \
-          --config-file .yamllint \
-          --format github \
-          --no-warnings \
-          .
+      - name: Setup Python
+        uses: actions/setup-python@v4
+
+      - name: Setup pre-commit
+        uses: pre-commit/action@v3.0.0

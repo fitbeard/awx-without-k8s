@@ -1,6 +1,6 @@
 namespace: fitbeard
 name: awx
-version: 0.1.0 # x-release-please-version
+version: 0.1.0 # injected dynamically when publishing
 readme: README.md
 authors:
   - Tadas Sutkaitis <tadasas@gmail.com>
@@ -16,6 +16,8 @@ build_ignore:
   - demo
   - docker
   - molecule
+  - .ansible-lint
   - .gitignore
+  - .markdownlint.yml
   - .pre-commit-config.yaml
   - CHANGELOG.md
