@@ -5,5 +5,5 @@
     username: "{{ item.username }}"
     password: "{{ item.password }}"
     reauthorize: "{{ docker_reauthorize }}"
-  no_log: false
+  no_log: true
   with_items: "{{ docker_registries }}"
