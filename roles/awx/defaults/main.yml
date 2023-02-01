@@ -29,7 +29,7 @@ awx_image_tag: 21.10.2
 awx_image: awx
 awx_image_registry: quay.io
 awx_image_url: "{{ awx_image_registry }}/ansible/{{ awx_image }}:{{ awx_image_tag }}"
-awx_ee_image_url: "{{ 'set-to-custom-from-dockerfile-ee' if (awx_node_role_type=='hybrid' or not awx_auto_peers | bool) else 'quay.io/ansible/awx-ee:latest' }}"
+awx_ee_image_url: "{{ 'set-to-custom-from-dockerfile-ee' if (awx_node_role_type == 'hybrid' or not awx_auto_peers | bool) else 'quay.io/ansible/awx-ee:latest' }}"
 awx_directory: /opt/awx
 
 awx_admin_username: "xxx"

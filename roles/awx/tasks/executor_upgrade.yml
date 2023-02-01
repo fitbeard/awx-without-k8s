@@ -1,2 +1,3 @@
 ---
-- import_tasks: executor_configure.yml
+- name: Import executor configuration tasks
+  ansible.builtin.import_tasks: executor_configure.yml

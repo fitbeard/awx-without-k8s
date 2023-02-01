@@ -1,8 +1,9 @@
 ---
-- import_tasks: awx_configure.yml
+- name: Import AWX configuration tasks
+  ansible.builtin.import_tasks: awx_configure.yml
 
 - name: Start || Restart Postgres containers
-  docker_compose:
+  community.docker.docker_compose:
     project_name: postgres
     project_src: "{{ awx_pg_directory }}"
     restarted: "{{ postgres_configs is changed | bool }}"
@@ -10,13 +11,13 @@
     - awx_cluster_node_type == 'primary' and not awx_external_database
 
 - name: Remove receptor.conf
-  file:
+  ansible.builtin.file:
     path: "{{ awx_directory }}/receptor/receptor.conf"
     state: absent
   when: awx_configs is changed | bool
 
 - name: Start || Restart AWX containers
-  docker_compose:
+  community.docker.docker_compose:
     project_name: awx
     project_src: "{{ awx_directory }}"
     restarted: "{{ awx_configs is changed | bool }}"

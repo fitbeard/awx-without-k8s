@@ -1,35 +1,36 @@
 ---
-- import_tasks: awx_configure.yml
+- name: Import AWX configuration tasks
+  ansible.builtin.import_tasks: awx_configure.yml
 
 - name: Set AWX local API url
-  set_fact:
+  ansible.builtin.set_fact:
     awx_local_api_url: "{{ 'https://127.0.0.1/api/v2/ping' if awx_rootful_containers | bool and not awx_external_frontend | bool else 'http://127.0.0.1:8052/api/v2/ping' }}"
 
 - name: Pull AWX images
-  docker_image:
+  community.docker.docker_image:
     name: "{{ awx_image_url }}"
     source: pull
 
 - name: Stop AWX containers
-  docker_compose:
+  community.docker.docker_compose:
     project_name: awx
     project_src: "{{ awx_directory }}"
     stopped: true
 
 - name: Remove receptor.conf
-  file:
+  ansible.builtin.file:
     path: "{{ awx_directory }}/receptor/receptor.conf"
     state: absent
 
 - name: Start AWX containers (on primary)
-  docker_compose:
+  community.docker.docker_compose:
     project_name: awx
     project_src: "{{ awx_directory }}"
   when:
     - awx_cluster_node_type == 'primary'
 
 - name: Make sure AWX is reachable (on primary)
-  uri:
+  ansible.builtin.uri:
     url: "{{ awx_local_api_url }}"
     validate_certs: false
     status_code: 200
@@ -41,14 +42,14 @@
     - awx_cluster_node_type == 'primary'
 
 - name: Start AWX containers (on secondary)
-  docker_compose:
+  community.docker.docker_compose:
     project_name: awx
     project_src: "{{ awx_directory }}"
   when:
     - awx_cluster_node_type == 'secondary'
 
 - name: Make sure AWX is reachable (on secondary)
-  uri:
+  ansible.builtin.uri:
     url: "{{ awx_local_api_url }}"
     validate_certs: false
     status_code: 200
