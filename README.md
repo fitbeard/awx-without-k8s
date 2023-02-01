@@ -78,7 +78,7 @@ docker run --rm -v $PWD:/tmp --env-file <(env | grep receptor_hostname) quay.io/
 
 Create [`custom Docker image`](./docker/Dockerfile.awx-ee) for execution nodes and for management nodes (if `awx_node_role_type` variable is set to `hybrid`).
 
-Or use `quay.io/tadas/awx-ha-cluster-ee:latest` image which is based on the [`same Dockerfile`](./docker/Dockerfile.awx-ee).
+Or use `quay.io/tadas/awx-without-k8s-ee:latest` image which is based on the [`same Dockerfile`](./docker/Dockerfile.awx-ee).
 
 #### Start installation (K8S-like with auto peering)
 
