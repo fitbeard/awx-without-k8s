@@ -13,7 +13,11 @@ fi
 source /etc/tower/conf.d/environment.sh
 
 if [ ! -z "$AWX_ADMIN_USER" ]&&[ ! -z "$AWX_ADMIN_PASSWORD" ]; then
-    echo "from django.contrib.auth.models import User; User.objects.create_superuser('$AWX_ADMIN_USER', 'root@localhost', '$AWX_ADMIN_PASSWORD')" | awx-manage shell
+    echo "from django.contrib.auth.models import User; nsu = User.objects.filter(is_superuser=True, username=\"$AWX_ADMIN_USER\").count(); exit(0 if nsu > 0 else 1)" | awx-manage shell
+        if [ $? -ne 0 ]; then
+            awx-manage createsuperuser --username="${AWX_ADMIN_USER}" --email="root@localhost" --noinput
+        fi
+    awx-manage update_password --username="${AWX_ADMIN_USER}" --password="${AWX_ADMIN_PASSWORD}"
 fi
 
 unset $(cut -d = -f -1 /etc/tower/conf.d/environment.sh)
