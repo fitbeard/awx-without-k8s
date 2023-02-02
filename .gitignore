@@ -7,3 +7,5 @@ ansible-cache
 .DS_Store
 ansible_collections/
 secrets/
+*.tar.gz
+__pycache__
