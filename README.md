@@ -27,7 +27,7 @@ AWX node types (control, hybrid, hop, execution),
 and [receptor](https://github.com/ansible/receptor).
 ___These are beyond the scope of this guide.___
 
-Demo secrets, certs, keys are for test purpose ___ONLY___. please do not use in production.
+Demo secrets, certs, keys are for test purpose ___ONLY___. Please do not use for production.
 
 #### Create secret data first
 
@@ -102,7 +102,7 @@ docker exec -ti awx-task bash
 awx-manage provision_instance --hostname=awx-receptor-1.demo.io --node_type=execution
 ```
 
-![img1](https://user-images.githubusercontent.com/18698204/197206815-92c8440d-e90b-4ef9-a2d7-39304b6af9a0.png)
+<img width="936" src="https://user-images.githubusercontent.com/18698204/197206815-92c8440d-e90b-4ef9-a2d7-39304b6af9a0.png">
 
 #### Start installation (AAP-like with manual peering)
 
@@ -113,7 +113,7 @@ cd ../demo
 ansible-playbook -i inventory-with-hop demo.yml --diff
 ```
 
-![img2](https://user-images.githubusercontent.com/18698204/201934400-a84d70f2-274a-4d82-8146-9eac19fef477.png)
+<img width="936" src="https://user-images.githubusercontent.com/18698204/201934400-a84d70f2-274a-4d82-8146-9eac19fef477.png">
 
 ### Upgrade
 

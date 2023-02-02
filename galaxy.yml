@@ -9,11 +9,11 @@ license:
   - GPL-3.0-or-later
 dependencies: {}
 repository: https://github.com/fitbeard/awx-without-k8s
+homepage: https://github.com/fitbeard/awx-without-k8s
 build_ignore:
   - .github
   - .vscode
   - ansible-cache
-  - demo
   - docker
   - molecule
   - .ansible-lint
@@ -21,3 +21,6 @@ build_ignore:
   - .markdownlint.yml
   - .pre-commit-config.yaml
   - CHANGELOG.md
+tags:
+  - awx
+  - ansible_tower
