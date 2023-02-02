@@ -1,3 +1,25 @@
+## 21.11.0 (02 February, 2023)
+
+FEATURES
+
+* Updated to support AWX version `21.11.0`
+
+IMPROVEMENTS
+
+* Custom EE image is now available for both `linux/amd64` and `linux/arm64` architectures
+
+* Starting with this release the code is only compatible with Ansible version 4.0.0 and above
+
+* This code is now avaibale in an Ansible collection form.
+
+  It can be installed with the command:
+
+  `ansible-galaxy collection install fitbeard.awx`
+
+  or
+
+  `ansible-galaxy collection install fitbeard.awx:21.11.0`
+
 ## 21.10.2 (21 December, 2022)
 
 FEATURES
