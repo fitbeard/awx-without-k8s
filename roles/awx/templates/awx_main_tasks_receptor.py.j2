@@ -186,7 +186,6 @@ def run_until_complete(node, timing_data=None, **kwargs):
     stdout = ''
 
     try:
-
         resultfile = receptor_ctl.get_work_results(unit_id)
 
         while run_timing < 20.0:
@@ -206,7 +205,6 @@ def run_until_complete(node, timing_data=None, **kwargs):
         stdout = str(stdout, encoding='utf-8')
 
     finally:
-
         if settings.RECEPTOR_RELEASE_WORK:
             res = receptor_ctl.simple_command(f"work release {unit_id}")
             if res != {'released': unit_id}:
@@ -307,7 +305,7 @@ class AWXReceptorJob:
             self.runner_params.update(execution_environment_params)
 
         # PATCHED HERE !!!
-        # 21.11.0
+        # 21.12.0
         # Let's make the AWX ALWAYS think it's a K8S
         # if not settings.IS_K8S and self.work_type == 'local' and 'only_transmit_kwargs' not in self.runner_params:
         #    self.runner_params['only_transmit_kwargs'] = True
