@@ -1,3 +1,7 @@
+## 21.13.0 (10 March, 2023)
+
+* Updated to support AWX version `21.13.0`
+
 ## 21.12.0 (14 February, 2023)
 
 FEATURES
