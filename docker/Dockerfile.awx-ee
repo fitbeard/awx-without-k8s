@@ -26,6 +26,10 @@ RUN chown -R 1000:0 /home/runner/.config
 RUN mkdir -p /etc/containers/registries.conf.d/ && echo "unqualified-search-registries = []" >> /etc/containers/registries.conf.d/force-fully-qualified-images.conf && \
     chmod 644 /etc/containers/registries.conf.d/force-fully-qualified-images.conf
 
+# https://github.com/stackhpc/ansible-slurm-appliance/issues/234
+# https://github.com/containers/podman/issues/2788
+RUN chmod 4755 /usr/bin/newgidmap /usr/bin/newuidmap
+
 ENV _CONTAINERS_USERNS_CONFIGURED=""
 
 USER 1000
