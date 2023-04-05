@@ -1,4 +1,16 @@
+## 21.14.0 (05 Aprli, 2023)
+
+FEATURES
+
+* Updated to support AWX version `21.14.0`
+
+IMPROVEMENTS
+
+* Fix SELinux permission denied issue inside custom `awx-ee` container
+
 ## 21.13.0 (10 March, 2023)
+
+FEATURES
 
 * Updated to support AWX version `21.13.0`
 

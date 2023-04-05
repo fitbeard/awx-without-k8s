@@ -305,7 +305,7 @@ class AWXReceptorJob:
             self.runner_params.update(execution_environment_params)
 
         # PATCHED HERE !!!
-        # 21.13.0
+        # 21.14.0
         # Let's make the AWX ALWAYS think it's a K8S
         # if not settings.IS_K8S and self.work_type == 'local' and 'only_transmit_kwargs' not in self.runner_params:
         #    self.runner_params['only_transmit_kwargs'] = True
@@ -528,6 +528,10 @@ class AWXReceptorJob:
 
         pod_spec['spec']['containers'][0]['image'] = ee.image
         pod_spec['spec']['containers'][0]['args'] = ['ansible-runner', 'worker', '--private-data-dir=/runner']
+
+        if settings.AWX_RUNNER_KEEPALIVE_SECONDS:
+            pod_spec['spec']['containers'][0].setdefault('env', [])
+            pod_spec['spec']['containers'][0]['env'].append({'name': 'ANSIBLE_RUNNER_KEEPALIVE_SECONDS', 'value': str(settings.AWX_RUNNER_KEEPALIVE_SECONDS)})
 
         # Enforce EE Pull Policy
         pull_options = {"always": "Always", "missing": "IfNotPresent", "never": "Never"}
