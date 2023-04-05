@@ -8,7 +8,7 @@ and [awx-ee](https://github.com/ansible/awx-ee) code.
 
 ## AWX configuration and deployment
 
-Master branch is compatible with AWX version __21.13.0__.
+Master branch is compatible with AWX version __21.14.0__.
 Use git tag with desired version.
 
 [`CHANGELOG`](./CHANGELOG.md)
