@@ -18,7 +18,7 @@
     key: /etc/receptor/tls/receptor.key
     clientcas: /etc/receptor/tls/ca/receptor-ca.crt
     requireclientcert: true
-    mintls13: False
+    mintls13: false
 
 - tls-client:
     name: tls_client
@@ -26,7 +26,7 @@
     key: /etc/receptor/tls/receptor.key
     rootcas: /etc/receptor/tls/ca/receptor-ca.crt
     insecureskipverify: false
-    mintls13: False
+    mintls13: false
 
 - tcp-listener:
     port: 27199
@@ -36,5 +36,5 @@
     worktype: ansible-runner
     command: ansible-runner
     params: worker
-    allowruntimeparams: True
-    verifysignature: True
+    allowruntimeparams: true
+    verifysignature: true

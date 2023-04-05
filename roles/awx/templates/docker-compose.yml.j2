@@ -19,7 +19,8 @@ services:
     container_name: awx-web
     depends_on:
       - redis
-    command: /usr/bin/launch_awx.sh
+      - awx-rsyslog
+    command: /usr/bin/launch_awx_web.sh
     hostname: "{{ awx_cluster_node_host_id }}"
 {% if awx_rootful_containers | bool %}
     user: root
@@ -27,11 +28,9 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - "{{ awx_directory }}/supervisor-socket:/var/run/supervisor:rw"
       - "{{ awx_directory }}/rsyslog-socket:/var/run/awx-rsyslog:rw"
-      - "{{ awx_directory }}/rsyslog-config:/var/lib/awx/rsyslog:rw"
       - "{{ awx_directory }}/execution_environments.py:/etc/tower/conf.d/execution_environments.py:ro"
-      - "{{ awx_directory }}/launch_awx.sh:/usr/bin/launch_awx.sh:ro"
+      - "{{ awx_directory }}/launch_awx_web.sh:/usr/bin/launch_awx_web.sh:ro"
       - "{{ awx_directory }}/work-public-key.pem:/etc/receptor/signing/work-public-key.pem:ro"
       - "{{ awx_directory }}/receptor-ca.crt:/etc/receptor/tls/ca/receptor-ca.crt:ro"
       - "{{ awx_directory }}/receptor-ca.key:/etc/receptor/tls/ca/receptor-ca.key:ro"
@@ -46,6 +45,8 @@ services:
       - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
 {% endif %}
     environment:
+      AWX_COMPONENT: 'web'
+      SUPERVISOR_CONFIG_PATH: '/etc/supervisor_web.conf'
       UWSGI_MOUNT_PATH: '/'
 
   awx-task:
@@ -53,6 +54,7 @@ services:
     container_name: awx-task
     depends_on:
       - redis
+      - awx-rsyslog
       - awx-web
       - awx-ee
     command: /usr/bin/launch_awx_task.sh
@@ -63,9 +65,7 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - "{{ awx_directory }}/supervisor-socket:/var/run/supervisor:rw"
       - "{{ awx_directory }}/rsyslog-socket:/var/run/awx-rsyslog:rw"
-      - "{{ awx_directory }}/rsyslog-config:/var/lib/awx/rsyslog:rw"
       - "{{ awx_directory }}/receptor_socket:/var/run/receptor:rw"
       - "{{ awx_directory }}/execution_environments.py:/etc/tower/conf.d/execution_environments.py:ro"
       - "{{ awx_directory }}/work-private-key.pem:/etc/receptor/signing/work-private-key.pem:ro"
@@ -86,7 +86,33 @@ services:
       - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
 {% endif %}
     environment:
-      SUPERVISOR_WEB_CONFIG_PATH: '/etc/supervisord.conf'
+      AWX_COMPONENT: 'task'
+      SUPERVISOR_CONFIG_PATH: '/etc/supervisord_task.conf'
+
+  awx-rsyslog:
+    image: {{ awx_image_url }}
+    container_name: awx-rsyslog
+    depends_on:
+      - redis
+    command: /usr/bin/launch_awx_rsyslog.sh
+    hostname: "{{ awx_cluster_node_host_id }}"
+{% if awx_rootful_containers | bool %}
+    user: root
+{% endif %}
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - "{{ awx_directory }}/launch_awx_rsyslog.sh:/usr/bin/launch_awx_rsyslog.sh:ro"
+      - "{{ awx_directory }}/SECRET_KEY:/etc/tower/SECRET_KEY:ro"
+      - "{{ awx_directory }}/credentials.py:/etc/tower/conf.d/credentials.py:ro"
+      - "{{ awx_directory }}/settings.py:/etc/tower/settings.py:ro"
+      - "{{ awx_directory }}/rsyslog-socket:/var/run/awx-rsyslog:rw"
+      - "{{ awx_directory }}/redis_socket:/var/run/redis/:rw"
+{% if awx_ca_trust_dir is defined %}
+      - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
+{% endif %}
+    environment:
+      SUPERVISOR_CONFIG_PATH: '/etc/supervisor_rsyslog.conf'
 
   awx-ee:
     image: {{ awx_ee_image_url }}
