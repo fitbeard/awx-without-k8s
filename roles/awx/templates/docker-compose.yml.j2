@@ -46,7 +46,7 @@ services:
 {% endif %}
     environment:
       AWX_COMPONENT: 'web'
-      SUPERVISOR_CONFIG_PATH: '/etc/supervisor_web.conf'
+      SUPERVISOR_CONFIG_PATH: '/etc/supervisord_web.conf'
       UWSGI_MOUNT_PATH: '/'
 
   awx-task:
@@ -112,7 +112,7 @@ services:
       - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
 {% endif %}
     environment:
-      SUPERVISOR_CONFIG_PATH: '/etc/supervisor_rsyslog.conf'
+      SUPERVISOR_CONFIG_PATH: '/etc/supervisord_rsyslog.conf'
 
   awx-ee:
     image: {{ awx_ee_image_url }}

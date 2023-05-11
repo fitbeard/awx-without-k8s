@@ -1,3 +1,9 @@
+## 22.2.0 (11 May, 2023)
+
+FEATURES
+
+* Updated to support AWX version `22.2.0`
+
 ## 22.0.0 (05 April, 2023)
 
 FEATURES
