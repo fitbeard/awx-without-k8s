@@ -4,7 +4,7 @@ awx_rootful_containers: false
 awx_external_database: false
 awx_external_frontend: false
 awx_cluster_primary_node: awx-1.demo.io
-awx_receptor_log_level: debug
+awx_receptor_log_level: info
 awx_admin_username: admin
 awx_admin_password: demopassword
 awx_secret_key: nd8izpcQWWaoK48skXctpV23ZBxi2f
