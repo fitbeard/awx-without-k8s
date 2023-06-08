@@ -10,6 +10,7 @@ license:
 dependencies: {}
 repository: https://github.com/fitbeard/awx-without-k8s
 homepage: https://github.com/fitbeard/awx-without-k8s
+issues: https://github.com/fitbeard/awx-without-k8s/issues
 build_ignore:
   - .github
   - .vscode
@@ -22,5 +23,10 @@ build_ignore:
   - .pre-commit-config.yaml
   - CHANGELOG.md
 tags:
+  - application
+  - cloud
+  - infrastructure
+  - linux
+  - tools
   - awx
   - ansible_tower
