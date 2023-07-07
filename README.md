@@ -13,6 +13,18 @@ Use git tag with desired version.
 
 [`CHANGELOG`](./CHANGELOG.md)
 
+This code can also be used as an Ansible collection and installed from Ansible Galaxy:
+
+```shell
+ansible-galaxy collection install fitbeard.awx
+```
+
+or desired version
+
+```shell
+ansible-galaxy collection install fitbeard.awx:22.4.0
+```
+
 ## Dependencies
 
 - Ansible 4.0.0+
