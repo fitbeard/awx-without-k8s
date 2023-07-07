@@ -25,7 +25,7 @@ awx_auto_peers: true
 awx_peers: []
 
 # AWX
-awx_image_tag: 22.2.0
+awx_image_tag: 22.4.0
 awx_image: awx
 awx_image_registry: quay.io
 awx_image_url: "{{ awx_image_registry }}/ansible/{{ awx_image }}:{{ awx_image_tag }}"
@@ -52,6 +52,11 @@ awx_pg_database: awx
 awx_pg_port: 5432
 # Must be one of ['required', 'prefer']
 awx_pg_sslmode: prefer
+# Configure postgres connection keepalive
+awx_pg_keepalives: true
+awx_pg_keepalives_idle: 5
+awx_pg_keepalives_interval: 5
+awx_pg_keepalives_count: 5
 
 # Redis
 awx_redis_version: 7
@@ -62,7 +67,7 @@ awx_web_cert_crt: ""
 awx_web_cert_key: ""
 awx_receptor_signing_public_key: ""
 awx_receptor_signing_private_key: ""
-awx_receptor_ca_crt: ""
-awx_receptor_ca_key: ""
+awx_mesh_ca_crt: ""
+awx_mesh_ca_key: ""
 awx_receptor_crt: ""
 awx_receptor_key: ""

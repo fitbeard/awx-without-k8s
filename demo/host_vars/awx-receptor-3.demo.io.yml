@@ -1,5 +1,7 @@
 ansible_host: 10.13.55.207
 awx_node_role_type: execution
+# Generate unique value with `echo 'import uuid; print(uuid.uuid4())' | /usr/bin/python3`
+awx_cluster_node_system_uuid: 1ad10f3c-93fd-402a-ba94-66ae02dc90a0
 
 awx_receptor_crt: |
   -----BEGIN CERTIFICATE-----

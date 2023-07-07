@@ -32,8 +32,8 @@
     cert: /etc/receptor/tls/receptor.crt
     key: /etc/receptor/tls/receptor.key
     name: tlsclient
-    rootcas: /etc/receptor/tls/ca/receptor-ca.crt
+    rootcas: /etc/receptor/tls/ca/mesh-CA.crt
     mintls13: false
 - work-signing:
-    privatekey: /etc/receptor/signing/work-private-key.pem
+    privatekey: /etc/receptor/work_private_key.pem
     tokenexpiration: 1m

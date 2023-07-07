@@ -26,11 +26,12 @@
   with_items:
     - {src: docker-compose-executor.yml.j2, dst: docker-compose.yml, mode: "0o600"}
     - {src: work-public-key.pem.j2, dst: work-public-key.pem, mode: "0o644", group: "{{ awx_gid }}", create: "{{ awx_node_role_type == 'execution' }}"}
-    - {src: receptor-ca.crt.j2, dst: receptor-ca.crt, mode: "0o644", group: "{{ awx_gid }}"}
+    - {src: mesh-CA.crt.j2, dst: mesh-CA.crt, mode: "0o644", group: "{{ awx_gid }}"}
     - {src: receptor-execution.conf.j2, dst: receptor-execution.conf, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_node_role_type == 'execution' and awx_auto_peers | bool }}"}
     - {src: receptor-default-manual-peers.conf.j2, dst: receptor-execution.conf, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ not awx_auto_peers | bool }}"}
     - {src: receptor.crt.j2, dst: receptor.crt, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: receptor.key.j2, dst: receptor.key, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: ansible_runner_uuid.j2, dst: ansible_runner_uuid, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
   loop_control:
     loop_var: config
   no_log: "{{ awx_no_log }}"
