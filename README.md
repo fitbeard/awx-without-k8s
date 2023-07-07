@@ -8,7 +8,7 @@ and [awx-ee](https://github.com/ansible/awx-ee) code.
 
 ## AWX configuration and deployment
 
-Master branch is compatible with AWX version __22.2.0__.
+Master branch is compatible with AWX version __22.4.0__.
 Use git tag with desired version.
 
 [`CHANGELOG`](./CHANGELOG.md)
@@ -45,8 +45,8 @@ cd secrets
 openssl genrsa -out awx_receptor_signing_private_key 4096
 openssl rsa -in awx_receptor_signing_private_key -out awx_receptor_signing_public_key -outform PEM -pubout
 
-openssl genrsa -out awx_receptor_ca_key 4096
-openssl req -x509 -new -nodes -key awx_receptor_ca_key -subj "CN=AWX Demo Receptor Root CA" -sha256 -days 3650 -out awx_receptor_ca_crt
+openssl genrsa -out awx_mesh_ca_key 4096
+openssl req -x509 -new -nodes -key awx_mesh_ca_key -subj "CN=AWX Demo Receptor Root CA" -sha256 -days 3650 -out awx_mesh_ca_crt
 ```
 
 ##### 2. Create self-signed SSL for AWX web
@@ -71,7 +71,7 @@ Repeat for every node in cluster
 docker pull quay.io/ansible/receptor:latest
 export receptor_hostname=awx-1.demo.io
 docker run --rm -v $PWD:/tmp --env-file <(env | grep receptor_hostname) quay.io/ansible/receptor:latest receptor --cert-makereq bits=2048 commonname=$receptor_hostname dnsname=$receptor_hostname nodeid=$receptor_hostname outreq=/tmp/$receptor_hostname.req outkey=/tmp/$receptor_hostname.key
-docker run --rm -v $PWD:/tmp --env-file <(env | grep receptor_hostname) quay.io/ansible/receptor:latest receptor --cert-signreq req=/tmp/$receptor_hostname.req cacert=/tmp/awx_receptor_ca_crt cakey=/tmp/awx_receptor_ca_key notbefore=$(date --iso-8601=seconds) notafter=$(date --date="+2 years" --iso-8601=seconds) outcert=/tmp/$receptor_hostname.crt verify=yes
+docker run --rm -v $PWD:/tmp --env-file <(env | grep receptor_hostname) quay.io/ansible/receptor:latest receptor --cert-signreq req=/tmp/$receptor_hostname.req cacert=/tmp/awx_mesh_ca_crt cakey=/tmp/awx_mesh_ca_key notbefore=$(date --iso-8601=seconds) notafter=$(date --date="+2 years" --iso-8601=seconds) outcert=/tmp/$receptor_hostname.crt verify=yes
 ```
 
 #### Modify `awx_ee_image_url` variable

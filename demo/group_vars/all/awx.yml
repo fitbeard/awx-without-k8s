@@ -171,7 +171,7 @@ awx_receptor_signing_private_key: |
   BNVoynTKy5/2YjOwH8yPGXI+0hO09gPwYj7g3AfgCCsDFpNf/0I5wUFHEv8=
   -----END RSA PRIVATE KEY-----
 
-awx_receptor_ca_crt: |
+awx_mesh_ca_crt: |
   -----BEGIN CERTIFICATE-----
   MIIExDCCAqwCCQCYQ4+UA66wizANBgkqhkiG9w0BAQsFADAkMSIwIAYDVQQDDBlB
   V1ggRGVtbyBSZWNlcHRvciBSb290IENBMB4XDTIyMTAxMjE0MjcyN1oXDTMyMTAw
@@ -201,7 +201,7 @@ awx_receptor_ca_crt: |
   QdT4JY77M0v+tu0lRHuaujl9myqpI8HP
   -----END CERTIFICATE-----
 
-awx_receptor_ca_key: |
+awx_mesh_ca_key: |
   -----BEGIN RSA PRIVATE KEY-----
   MIIJKQIBAAKCAgEApDmXOBSFwLH4DwlUcn13w5r/sw2mHycuniCvgBI21DNE22cf
   pvsKrbijfIKCNg7SS4AHgK3SLr9r2uhcnxjSD3xe1ZtPB7+M7aZPhBU6DZUa6v7X

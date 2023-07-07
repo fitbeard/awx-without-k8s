@@ -2,7 +2,7 @@
     id: {{ awx_cluster_node_host_id }}
 
 - work-verification:
-    publickey: /etc/receptor/signing/work-public-key.pem
+    publickey: /etc/receptor/work_public_key.pem
 
 - log-level: {{ awx_receptor_log_level }}
 
@@ -16,7 +16,7 @@
     name: tls_server
     cert: /etc/receptor/tls/receptor.crt
     key: /etc/receptor/tls/receptor.key
-    clientcas: /etc/receptor/tls/ca/receptor-ca.crt
+    clientcas: /etc/receptor/tls/ca/mesh-CA.crt
     requireclientcert: true
     mintls13: false
 
@@ -24,7 +24,7 @@
     name: tls_client
     cert: /etc/receptor/tls/receptor.crt
     key: /etc/receptor/tls/receptor.key
-    rootcas: /etc/receptor/tls/ca/receptor-ca.crt
+    rootcas: /etc/receptor/tls/ca/mesh-CA.crt
     insecureskipverify: false
     mintls13: false
 

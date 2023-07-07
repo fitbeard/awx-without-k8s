@@ -1,6 +1,24 @@
-## 22.2.0 (11 May, 2023)
+# Changelog
 
-FEATURES
+## [22.4.0](https://github.com/fitbeard/awx-without-k8s/compare/v22.2.0...v22.4.0) (2023-07-07)
+
+### Features
+
+* Updated to support AWX version `22.4.0`
+* Renamed variables:
+
+  `awx_receptor_ca_crt` to `awx_mesh_ca_crt`
+
+  `awx_receptor_ca_key` to `awx_mesh_ca_key`
+
+### Improvements
+
+* Make workers uuids static
+* Make Postgres keepalives options configurable
+
+## [22.2.0](https://github.com/fitbeard/awx-without-k8s/compare/v22.0.0...v22.2.0) (2023-05-11)
+
+### Features
 
 * Updated to support AWX version `22.2.0`
 

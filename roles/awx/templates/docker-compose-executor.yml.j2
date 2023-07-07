@@ -25,10 +25,11 @@ services:
       - "{{ awx_directory }}/containers:/home/runner/.local/share/containers/:rw"
 {% endif %}
 {% endif %}
-      - "{{ awx_directory }}/receptor-ca.crt:/etc/receptor/tls/ca/receptor-ca.crt:ro"
+      - "{{ awx_directory }}/mesh-CA.crt:/etc/receptor/tls/ca/mesh-CA.crt:ro"
       - "{{ awx_directory }}/receptor-execution.conf:/etc/receptor/receptor.conf:ro"
+      - "{{ awx_directory }}/ansible_runner_uuid:/home/runner/.ansible_runner_uuid:rw"
 {% if awx_node_role_type == 'execution'%}
-      - "{{ awx_directory }}/work-public-key.pem:/etc/receptor/signing/work-public-key.pem:ro"
+      - "{{ awx_directory }}/work-public-key.pem:/etc/receptor/work_public_key.pem:ro"
 {% endif %}
       - "{{ awx_directory }}/receptor.crt:/etc/receptor/tls/receptor.crt:ro"
       - "{{ awx_directory }}/receptor.key:/etc/receptor/tls/receptor.key:ro"
