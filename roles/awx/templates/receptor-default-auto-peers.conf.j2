@@ -1,6 +1,6 @@
 {# https://github.com/ansible/awx/commit/9b034ad5742930f1122846edb5d27cb7ecdf17f0#diff-ba8d8c5299b47eb401b3b983b48f30d2778509c7812c594511f7a90569d06353R601 #}
 {# https://github.com/ansible/awx/commit/45c13c25a416421cd0736214787717e98c21c946 #}
-- log-level: info
+- log-level: {{ awx_receptor_log_level }}
 - local-only: null
 - node:
    firewallrules:
