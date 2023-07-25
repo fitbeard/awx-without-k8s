@@ -1,5 +1,11 @@
 # Changelog
 
+## [22.5.0](https://github.com/fitbeard/awx-without-k8s/compare/v22.4.0...v22.5.0) (2023-07-25)
+
+### Features
+
+* Updated to support AWX version `22.5.0`
+
 ## [22.4.0](https://github.com/fitbeard/awx-without-k8s/compare/v22.2.0...v22.4.0) (2023-07-07)
 
 ### Features
