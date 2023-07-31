@@ -12,5 +12,15 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
 
+      - name: Get Python info
+        id: python_info
+        run: echo info=$(python -VV | sha256sum | cut -d' ' -f1) >> $GITHUB_OUTPUT
+
+      - name: Create pre-commit cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ steps.python_info.outputs.info }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
       - name: Setup pre-commit
         uses: pre-commit/action@v3.0.0
