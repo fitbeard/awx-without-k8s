@@ -25,7 +25,7 @@ awx_auto_peers: true
 awx_peers: []
 
 # AWX
-awx_image_tag: 22.5.0
+awx_image_tag: 22.7.0
 awx_image: awx
 awx_image_registry: quay.io
 awx_image_url: "{{ awx_image_registry }}/ansible/{{ awx_image }}:{{ awx_image_tag }}"
@@ -60,6 +60,16 @@ awx_pg_keepalives_count: 5
 
 # Redis
 awx_redis_version: 7
+
+# UWSGI default values
+awx_uwsgi_processes: 5
+# NOTE: to increase this value, net.core.somaxconn must also be increased
+awx_uwsgi_listen_queue_size: 128
+
+awx_nginx_worker_processes: 1
+awx_nginx_worker_connections: "{{ awx_uwsgi_listen_queue_size }}"
+awx_nginx_worker_cpu_affinity: 'auto'
+awx_nginx_listen_queue_size: "{{ awx_uwsgi_listen_queue_size }}"
 
 # Certs
 awx_web_cert_bundle: ""

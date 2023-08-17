@@ -39,6 +39,7 @@ services:
       - "{{ awx_directory }}/SECRET_KEY:/etc/tower/SECRET_KEY:ro"
       - "{{ awx_directory }}/settings.py:/etc/tower/settings.py:ro"
       - "{{ awx_directory }}/awx-nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "{{ awx_directory }}/awx-uwsgi.ini:/etc/tower/uwsgi.ini:ro"
       - "{{ awx_directory }}/redis_socket:/var/run/redis/:rw"
       - "{{ awx_directory }}/projects:/var/lib/awx/projects:rw"
 {% if awx_ca_trust_dir is defined %}

@@ -31,6 +31,7 @@
     - {src: credentials.py.j2, dst: credentials.py, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: redis.conf.j2, dst: redis.conf, mode: "0o664"}
     - {src: awx-nginx.conf.j2, dst: awx-nginx.conf, mode: "0o640", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: awx-uwsgi.ini.j2, dst: awx-uwsgi.ini, mode: "0o644"}
     - {src: nginx.conf.j2, dst: nginx.conf, mode: "0o640", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ not awx_rootful_containers | bool and not awx_external_frontend | bool }}"}
     - {src: awx-nginx.pem.j2, dst: awx-nginx.pem, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ not awx_external_frontend | bool }}"}
     - {src: environment.sh.j2, dst: environment.sh, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_cluster_node_type == 'primary' }}"}
