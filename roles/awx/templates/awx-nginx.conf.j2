@@ -1,11 +1,10 @@
-#user awx;
-
-worker_processes  1;
+worker_processes  {{ awx_nginx_worker_processes }};
+worker_cpu_affinity  {{ awx_nginx_worker_cpu_affinity }};
 
 pid        /tmp/nginx.pid;
 
 events {
-    worker_connections  1024;
+    worker_connections {% if awx_nginx_worker_connections > 1024 %}{{ awx_nginx_worker_connections }}{% else %}1024{% endif %};
 }
 
 http {
@@ -39,8 +38,8 @@ http {
 
 {% if awx_rootful_containers | bool and not awx_external_frontend | bool %}
     server {
-        listen 80 default_server;
-        listen [::]:80 default_server;
+        listen 80 default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
+        listen [::]:80 default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
         server_name _;
 
         # Redirect all HTTP links to the matching HTTPS page
@@ -50,8 +49,8 @@ http {
 
     server {
 {% if awx_rootful_containers | bool and not awx_external_frontend | bool %}
-        listen 443 ssl;
-        listen [::]:443 ssl;
+        listen 443 ssl{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
+        listen [::]:443 ssl{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
 
         ssl_certificate /etc/nginx/awx-nginx.pem;
         ssl_certificate_key /etc/nginx/awx-nginx.pem;
@@ -61,8 +60,8 @@ http {
         ssl_ciphers PROFILE=SYSTEM;
         ssl_prefer_server_ciphers on;
 {% else %}
-        listen 8052 default_server;
-        listen [::]:8052 default_server;
+        listen 8052 default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
+        listen [::]:8052 default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
 {% endif %}
 
         # If you have a domain name, this is where to add it

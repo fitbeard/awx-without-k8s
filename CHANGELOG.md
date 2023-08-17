@@ -1,5 +1,16 @@
 # Changelog
 
+## [22.7.0](https://github.com/fitbeard/awx-without-k8s/compare/v22.5.0...v22.7.0) (2023-08-17)
+
+### Features
+
+* Updated to support AWX version `22.7.0`
+
+### Improvements
+
+* Make more Nginx params configurable
+* Make more Uwsgi params configurable
+
 ## [22.5.0](https://github.com/fitbeard/awx-without-k8s/compare/v22.4.0...v22.5.0) (2023-07-25)
 
 ### Features

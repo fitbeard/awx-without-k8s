@@ -8,7 +8,7 @@ and [awx-ee](https://github.com/ansible/awx-ee) code.
 
 ## AWX configuration and deployment
 
-Master branch is compatible with AWX version __22.5.0__.
+Master branch is compatible with AWX version __22.7.0__.
 Use git tag with desired version.
 
 [`CHANGELOG`](./CHANGELOG.md)
@@ -22,7 +22,7 @@ ansible-galaxy collection install fitbeard.awx
 or desired version
 
 ```shell
-ansible-galaxy collection install fitbeard.awx:22.5.0
+ansible-galaxy collection install fitbeard.awx:22.7.0
 ```
 
 ## Dependencies
