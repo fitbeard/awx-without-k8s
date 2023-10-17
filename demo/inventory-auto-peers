@@ -8,3 +8,5 @@ awx-2.demo.io
 awx-receptor-1.demo.io
 awx-receptor-2.demo.io
 awx-receptor-3.demo.io
+awx-receptor-hop-1.demo.io awx_peers='["awx-receptor-behind-hop-1.demo.io"]'
+awx-receptor-behind-hop-1.demo.io awx_peers_from_control_nodes=false

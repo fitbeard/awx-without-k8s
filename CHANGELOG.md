@@ -1,5 +1,17 @@
 # Changelog
 
+## [23.3.0](https://github.com/fitbeard/awx-without-k8s/compare/v22.7.0...v23.3.0) (2023-10-17)
+
+### Features
+
+* Updated to support AWX version `23.3.0`
+* Added role `awx_settings` for AWX settings configuration. Initial version.
+* Added meta role `defaults` for variables used by more then one role
+
+### Improvements
+
+* Fixed code indempotency in some tasks by switching to `awx.awx` collection
+
 ## [22.7.0](https://github.com/fitbeard/awx-without-k8s/compare/v22.5.0...v22.7.0) (2023-08-17)
 
 ### Features
