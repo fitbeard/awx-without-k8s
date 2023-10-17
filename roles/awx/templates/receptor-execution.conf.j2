@@ -1,8 +1,11 @@
+---
 - node:
     id: {{ awx_cluster_node_host_id }}
 
+{% if awx_node_role_type == 'execution' %}
 - work-verification:
     publickey: /etc/receptor/work_public_key.pem
+{% endif %}
 
 - log-level: {{ awx_receptor_log_level }}
 
@@ -18,7 +21,6 @@
     key: /etc/receptor/tls/receptor.key
     clientcas: /etc/receptor/tls/ca/mesh-CA.crt
     requireclientcert: true
-    mintls13: false
 
 - tls-client:
     name: tls_client
@@ -26,15 +28,26 @@
     key: /etc/receptor/tls/receptor.key
     rootcas: /etc/receptor/tls/ca/mesh-CA.crt
     insecureskipverify: false
-    mintls13: false
 
 - tcp-listener:
     port: 27199
     tls: tls_server
 
+{% if hostvars[inventory_hostname]['awx_peers'] is defined and hostvars[inventory_hostname]['awx_peers'] | length %}
+{% for peer in hostvars[inventory_hostname]['awx_peers'] %}
+- tcp-peer:
+    address: {{ peer }}:27199
+    redial: true
+    tls: tls_client
+
+{% endfor %}
+{% endif %}
+
+{% if awx_node_role_type == 'execution' %}
 - work-command:
     worktype: ansible-runner
     command: ansible-runner
     params: worker
-    allowruntimeparams: true
     verifysignature: true
+    allowruntimeparams: true
+{% endif %}

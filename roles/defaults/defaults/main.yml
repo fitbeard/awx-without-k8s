@@ -1,0 +1,88 @@
+---
+awx_no_log: true
+
+awx_rootful_containers: false
+awx_external_frontend: false
+
+awx_uid: 1000
+awx_gid: "{{ '0' if awx_rootful_containers | bool else '1000' }}"
+
+# Must be one of ['setup', 'upgrade']
+awx_tasks: setup
+
+awx_hostname: "{{ undef(hint='You must specify a AWX frontend address with protocol e.g. https://awx.demo.io') }}"
+
+# Must be one of ['secondary', 'primary']
+awx_cluster_node_type: primary
+awx_cluster_primary_node: "{{ groups['awx'][0] }}"
+awx_cluster_node_host_id: "{{ ansible_fqdn }}"
+# Generate with `echo 'import uuid; print(uuid.uuid4())' | /usr/bin/python3`
+awx_cluster_node_system_uuid: ""
+# Must be one of ['control', 'hybrid', 'hop', 'execution']
+awx_node_role_type: control
+# Must be one of ['info', 'debug']
+awx_receptor_log_level: info
+# https://github.com/ansible/awx/commit/301807466d03365af471a2f1d98b2bfd8ca2397b
+awx_auto_peers: true
+awx_peers: []
+awx_peers_from_control_nodes: true
+
+# AWX
+awx_image_tag: 23.3.0
+awx_image: awx
+awx_image_registry: quay.io
+awx_image_url: "{{ awx_image_registry }}/ansible/{{ awx_image }}:{{ awx_image_tag }}"
+awx_ee_image_url: "{{ 'set-to-custom-from-dockerfile-ee' if (awx_node_role_type == 'hybrid' or not awx_auto_peers | bool) else 'quay.io/ansible/awx-ee:latest' }}"
+awx_directory: /opt/awx
+
+awx_admin_username: "xxx"
+awx_admin_password: "xxx"
+awx_secret_key: "xxx"
+awx_broadcast_websocket_secret: ""
+# Must be one of ['443', '8052']
+awx_broadcast_websocket_port: 443
+# Must be one of ['https', 'http']
+awx_broadcast_websocket_protocol: https
+
+# Postgres
+awx_external_database: false
+awx_pg_directory: /opt/postgres
+awx_pg_version: 13
+awx_pg_hostname: 127.0.0.1
+awx_pg_username: awx
+awx_pg_password: awx
+awx_pg_database: awx
+awx_pg_port: 5432
+# Must be one of ['required', 'prefer']
+awx_pg_sslmode: prefer
+# Configure postgres connection keepalive
+awx_pg_keepalives: true
+awx_pg_keepalives_idle: 5
+awx_pg_keepalives_interval: 5
+awx_pg_keepalives_count: 5
+
+# Redis
+awx_redis_version: 7
+
+# UWSGI default values
+awx_uwsgi_processes: 5
+# NOTE: to increase this value, net.core.somaxconn must also be increased
+awx_uwsgi_listen_queue_size: 128
+
+awx_nginx_worker_processes: 1
+awx_nginx_worker_connections: "{{ awx_uwsgi_listen_queue_size }}"
+awx_nginx_worker_cpu_affinity: 'auto'
+awx_nginx_listen_queue_size: "{{ awx_uwsgi_listen_queue_size }}"
+
+# Certs
+awx_web_cert_bundle: ""
+awx_web_cert_crt: ""
+awx_web_cert_key: ""
+awx_receptor_signing_public_key: ""
+awx_receptor_signing_private_key: ""
+awx_mesh_ca_crt: ""
+awx_mesh_ca_key: ""
+awx_receptor_crt: ""
+awx_receptor_key: ""
+
+awx_validate_certs: false

@@ -1,8 +1,8 @@
 ---
 galaxy_info:
-  role_name: awx
+  role_name: awx_settings
   author: Tadas Sutkaitis <tadasas@gmail.com>
-  description: Install and configures AWX
+  description: Configure settings for AWX
   license: BSD
   min_ansible_version: "4.0"
   platforms:

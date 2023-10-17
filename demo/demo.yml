@@ -1,8 +1,13 @@
 ---
-- name: Playbook for AWX install
+- name: AWX install
   hosts: all
   become: true
   roles:
     - {role: pip, when: pip_install_packages is defined and (pip_install_packages | length>0), tags: pip, base}
     - {role: docker, when: docker_install | bool, tags: docker, base}
     - {role: awx, tags: awx}
+
+- name: AWX settings
+  hosts: all
+  roles:
+    - {role: awx_settings, tags: [awx, awx_settings]}

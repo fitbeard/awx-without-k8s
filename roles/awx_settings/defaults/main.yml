@@ -1,0 +1,3 @@
+---
+awx_username: "{{ awx_admin_username }}"
+awx_password: "{{ awx_admin_password }}"
