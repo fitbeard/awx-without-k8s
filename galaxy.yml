@@ -22,7 +22,6 @@ build_ignore:
   - .gitignore
   - .markdownlint.yml
   - .pre-commit-config.yaml
-  - CHANGELOG.md
 tags:
   - application
   - cloud
