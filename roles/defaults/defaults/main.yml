@@ -28,7 +28,7 @@ awx_peers: []
 awx_peers_from_control_nodes: true
 
 # AWX
-awx_image_tag: 23.3.0
+awx_image_tag: 23.5.1
 awx_image: awx
 awx_image_registry: quay.io
 awx_image_url: "{{ awx_image_registry }}/ansible/{{ awx_image }}:{{ awx_image_tag }}"

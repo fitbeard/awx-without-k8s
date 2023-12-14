@@ -306,7 +306,7 @@ class AWXReceptorJob:
             self.runner_params.update(execution_environment_params)
 
         # PATCHED HERE !!!
-        # 23.3.0
+        # 23.5.1
         # Let's make the AWX ALWAYS think it's a K8S
         # if not settings.IS_K8S and self.work_type == 'local' and 'only_transmit_kwargs' not in self.runner_params:
         #    self.runner_params['only_transmit_kwargs'] = True
