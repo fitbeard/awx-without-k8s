@@ -25,9 +25,6 @@ SECRET_KEY = get_secret()
 
 ALLOWED_HOSTS = ['*']
 
-# Sets Ansible Collection path
-AWX_ANSIBLE_COLLECTIONS_PATHS = '/var/lib/awx/vendor/awx_ansible_collections'
-
 # Container environments don't like chroots
 AWX_PROOT_ENABLED = False
 

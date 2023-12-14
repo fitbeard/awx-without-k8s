@@ -8,7 +8,7 @@ and [awx-ee](https://github.com/ansible/awx-ee) code.
 
 ## AWX configuration and deployment
 
-Master branch is compatible with AWX version __23.3.0__.
+Master branch is compatible with AWX version __23.5.1__.
 Use git tag with desired version.
 
 [`CHANGELOG`](./CHANGELOG.md)
@@ -22,13 +22,13 @@ ansible-galaxy collection install fitbeard.awx
 or desired version
 
 ```shell
-ansible-galaxy collection install fitbeard.awx:23.3.1
+ansible-galaxy collection install fitbeard.awx:23.5.1
 ```
 
 ## Dependencies
 
 - Ansible 4.0.0+
-- Ansible collection `awx.awx` 23.2.0+
+- Ansible collection `awx.awx` 23.5.1+
 - Working hostname resolution mechanism
 (DNS records, Docker's `extra_hosts` values, `/etc/hosts`)
 
