@@ -1,5 +1,15 @@
 # Changelog
 
+## [23.7.0](https://github.com/fitbeard/awx-without-k8s/compare/v23.5.1...v23.7.0) (2024-02-13)
+
+### Features
+
+* Updated to support AWX version `23.7.0`
+
+### Improvements
+
+* Bootstrap dependencies are now tracked using `poetry`
+
 ## [23.5.1](https://github.com/fitbeard/awx-without-k8s/compare/v23.3.0...v23.5.1) (2023-12-14)
 
 ### Features
