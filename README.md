@@ -27,8 +27,7 @@ ansible-galaxy collection install fitbeard.awx:23.5.1
 
 ## Dependencies
 
-- Ansible 4.0.0+
-- Ansible collection `awx.awx` 23.5.1+
+- Ansible
 - Working hostname resolution mechanism
 (DNS records, Docker's `extra_hosts` values, `/etc/hosts`)
 

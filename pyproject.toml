@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "awx-without-k8s"
+version = "0.1.0"
+description = ""
+authors = ["Tadas Sutkaitis <tadasas@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+ansible-core = "2.15.9"
+pre-commit = "^3.6.1"
+jmespath = "^1.0.1"
+netaddr = "^1.0.0"
+docker = "^7.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
