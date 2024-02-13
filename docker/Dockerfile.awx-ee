@@ -10,8 +10,8 @@ RUN dnf -y update && \
 # In RedHat type of distros first available UID always is 1000. Adding again just for steps of this layer.
 RUN useradd runner -u 1000 -g 0
 
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/podman-containers.conf /home/runner/.config/containers/containers.conf
+ADD https://raw.githubusercontent.com/containers/libpod/main/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
+ADD https://raw.githubusercontent.com/containers/libpod/main/contrib/podmanimage/stable/podman-containers.conf /home/runner/.config/containers/containers.conf
 
 # chmod containers.conf and adjust storage.conf to enable Fuse storage.
 RUN chmod 644 /etc/containers/containers.conf && sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
