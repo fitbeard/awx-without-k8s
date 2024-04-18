@@ -44,9 +44,7 @@
     - {src: launch_awx_task.sh.j2, dst: launch_awx_task.sh, mode: "0o744", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: launch_awx_web.sh.j2, dst: launch_awx_web.sh, mode: "0o744", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: launch_awx_rsyslog.sh.j2, dst: launch_awx_rsyslog.sh, mode: "0o744", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
-    - {src: receptor-default-auto-peers.conf.j2, dst: receptor-default.conf, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_auto_peers | bool }}"}
-    - {src: receptor-default-manual-peers.conf.j2, dst: receptor-default.conf, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ not awx_auto_peers | bool }}"}
-    - {src: awx_main_tasks_receptor.py.j2, dst: awx_main_tasks_receptor.py, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ not awx_auto_peers | bool }}"}
+    - {src: receptor-default.conf.j2, dst: receptor-default.conf, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: receptor.sh.j2, dst: receptor.sh, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: receptor.crt.j2, dst: receptor.crt, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: receptor.key.j2, dst: receptor.key, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}

@@ -1,5 +1,28 @@
 # Changelog
 
+## [24.2.0](https://github.com/fitbeard/awx-without-k8s/compare/v23.7.0...v24.2.0) (2024-04-18)
+
+### Features
+
+* Updated to support AWX version `24.2.0`
+* Due to changes upstream dropped manual peering support which relied on AWX code patching.
+  Please consider to change your deployment topology.
+  This will only impact interconnection between AWX control plane nodes which from now is always needed.
+
+### *** Breaking changes ***
+
+* All instances including management nodes must be deprovisioned before upgrade:
+
+  `awx-manage deprovision_instance --hostname=XXXX`
+
+* Postgres backend should be migrated/updated to version 15 before upgrading to this release
+
+  As a safeguard special flag is introduced:
+
+  `awx_pg_is_on_supported_version: false`
+
+* Short upgrade instruction for setup with dockerized Postgres database [`UPGRADE`](./UPGRADE.md)
+
 ## [23.7.0](https://github.com/fitbeard/awx-without-k8s/compare/v23.5.1...v23.7.0) (2024-02-13)
 
 ### Features

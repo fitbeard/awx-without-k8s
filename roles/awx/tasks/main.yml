@@ -1,4 +1,15 @@
 ---
+- name: Fail if not confirmed that Postgres is on v15
+  ansible.builtin.fail:
+    msg: >-
+      ⚠️
+      Please manually migrate/upgrade Postgres to major version 15 !!!
+      Update 'awx' user database password to change Postgres host_auth_method !!!
+      Please deprovision all AWX instances including management nodes
+      before upgrade !!!
+      ⚠️
+  when: not awx_pg_is_on_supported_version | bool
+
 - name: Include AWX control node tasks
   ansible.builtin.include_tasks: "awx_{{ awx_tasks }}.yml"
   when:

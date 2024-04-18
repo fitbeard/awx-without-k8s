@@ -1,0 +1,20 @@
+[all:vars]
+#ansible_ssh_user=ansible
+ansible_ssh_user=root
+
+[awx]
+awx-1.demo.io
+awx-2.demo.io
+awx-receptor-1.demo.io awx_peers='["awx-receptor-2.demo.io", "awx-receptor-3.demo.io"]'
+# YAML syntax for inventory or host_vars:
+# awx_peers:
+#   - awx-receptor-2.demo.io
+#   - awx-receptor-3.demo.io
+#
+awx-receptor-2.demo.io awx_peers_from_control_nodes=false
+# YAML syntax for inventory or host_vars:
+# awx_peers_from_control_nodes: false
+#
+awx-receptor-3.demo.io awx_peers_from_control_nodes=false
+awx-receptor-hop-1.demo.io awx_peers='["awx-receptor-behind-hop-1.demo.io"]'
+awx-receptor-behind-hop-1.demo.io awx_peers_from_control_nodes=false
