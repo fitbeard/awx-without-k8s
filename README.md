@@ -8,7 +8,7 @@ and [awx-ee](https://github.com/ansible/awx-ee) code.
 
 ## AWX configuration and deployment
 
-Main branch is compatible with AWX version __23.7.0__.
+Main branch is compatible with AWX version __24.2.0__.
 Use git tag with desired version.
 
 [`CHANGELOG`](./CHANGELOG.md)
@@ -22,7 +22,7 @@ ansible-galaxy collection install fitbeard.awx
 or desired version
 
 ```shell
-ansible-galaxy collection install fitbeard.awx:23.7.0
+ansible-galaxy collection install fitbeard.awx:24.2.0
 ```
 
 ## Dependencies
@@ -92,13 +92,13 @@ Create [`custom Docker image`](./docker/Dockerfile.awx-ee) for execution nodes a
 
 Or use `quay.io/tadas/awx-without-k8s-ee:latest` image which is based on the [`same Dockerfile`](./docker/Dockerfile.awx-ee).
 
-#### Start installation (K8S-like with auto peering)
+#### Start installation
 
-Before actually running playbook, take a look at the role defaults, `demo/inventory-auto-peers` and `demo/host_vars|group_vars` and make changes accordingly.
+Before actually running playbook, take a look at the role defaults, `demo/inventory` and `demo/host_vars|group_vars` and make changes accordingly.
 
 ```bash
 cd ../demo
-ansible-playbook -i inventory-auto-peers demo.yml --diff
+ansible-playbook -i inventory demo.yml --diff
 ```
 
 #### Add execution nodes to the AWX cluster (manually)
@@ -114,31 +114,20 @@ docker exec -ti awx-task bash
 awx-manage provision_instance --hostname=awx-receptor-1.demo.io --node_type=execution
 ```
 
-<img width="936" src="https://user-images.githubusercontent.com/18698204/197206815-92c8440d-e90b-4ef9-a2d7-39304b6af9a0.png">
-
-#### Start installation (AAP-like with manual peering)
-
-Before actually running playbook, take a look at the role defaults, `demo/inventory-manual-peers` and `demo/host_vars|group_vars` and make changes accordingly.
-
-```bash
-cd ../demo
-ansible-playbook -i inventory-manual-peers demo.yml --diff
-```
-
-<img width="936" src="https://user-images.githubusercontent.com/18698204/201934400-a84d70f2-274a-4d82-8146-9eac19fef477.png">
+<img width="936" src="https://github.com/fitbeard/awx-without-k8s/assets/18698204/176cb25a-44e1-4f13-870a-8dbf0954dbc8" alt="Topology" />
 
 ### Upgrade
 
 ```bash
 cd demo
-ansible-playbook -i inventory-auto-peers demo.yml --diff -e awx_tasks=upgrade
+ansible-playbook -i inventory demo.yml --diff -e awx_tasks=upgrade
 ```
 
 ### Remove old Docker images
 
 ```bash
 cd demo
-ansible -i inventory-auto-peers all -a "docker rmi awx_img_id"
+ansible -i inventory all -a "docker rmi awx_img_id"
 ```
 
 ## Contributing

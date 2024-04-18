@@ -1,9 +1,9 @@
 ---
-- name: Register nodes (auto peers)
+- name: Register nodes
   delegate_to: localhost
-  when: ((awx_node_role_type == 'execution' or awx_node_role_type == 'hop') and (awx_auto_peers | bool))
+  when: awx_node_role_type == 'execution' or awx_node_role_type == 'hop'
   block:
-    - name: Register execution and hop nodes (auto peers)
+    - name: Register execution and hop nodes
       awx.awx.instance:
         hostname: "{{ awx_cluster_node_host_id }}"
         node_type: "{{ awx_node_role_type }}"
@@ -16,7 +16,7 @@
         controller_oauthtoken: "{{ awx_oauthtoken | default(omit, true) }}"
         validate_certs: "{{ awx_validate_certs | default(omit) }}"
 
-    - name: Create peers (auto peers)
+    - name: Create peers
       awx.awx.instance:
         hostname: "{{ awx_cluster_node_host_id }}"
         peers: "{{ hostvars[inventory_hostname]['awx_peers'] | default([]) }}"
@@ -27,29 +27,3 @@
         controller_username: "{{ awx_username | default(omit, true) }}"
         controller_oauthtoken: "{{ awx_oauthtoken | default(omit, true) }}"
         validate_certs: "{{ awx_validate_certs | default(omit) }}"
-
-- name: Register nodes (manual peers)
-  when: not awx_auto_peers | bool
-  block:
-    - name: Register execution and hop nodes (manual peers)
-      awx.awx.instance:
-        hostname: "{{ awx_cluster_node_host_id }}"
-        node_type: "{{ awx_node_role_type }}"
-        managed_by_policy: true
-        listener_port: 27199
-        peers_from_control_nodes: false
-        controller_config_file: "{{ awx_config_file | default(omit, true) }}"
-        controller_host: "{{ awx_hostname | default(omit, true) }}"
-        controller_password: "{{ awx_password | default(omit, true) }}"
-        controller_username: "{{ awx_username | default(omit, true) }}"
-        controller_oauthtoken: "{{ awx_oauthtoken | default(omit, true) }}"
-        validate_certs: "{{ awx_validate_certs | default(omit) }}"
-      delegate_to: localhost
-      when: ((awx_node_role_type == 'execution' or awx_node_role_type == 'hop') and (not awx_auto_peers | bool))
-
-    - name: Create peers (manual peers)
-      ansible.builtin.command: docker exec -t awx-task awx-manage register_peers {{ awx_cluster_node_host_id }} --exact {{ hostvars[inventory_hostname]['awx_peers'] | default([]) | map('extract', hostvars, 'inventory_hostname') | join(' ') }}
-      delegate_to: "{{ awx_cluster_primary_node }}"
-      # TODO: Switch to awx.awx module when it possible
-      register: register_peers
-      changed_when: register_peers.stdout is search("[1-9]+")

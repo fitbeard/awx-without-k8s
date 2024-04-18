@@ -22,17 +22,15 @@ awx_cluster_node_system_uuid: ""
 awx_node_role_type: control
 # Must be one of ['info', 'debug']
 awx_receptor_log_level: info
-# https://github.com/ansible/awx/commit/301807466d03365af471a2f1d98b2bfd8ca2397b
-awx_auto_peers: true
 awx_peers: []
 awx_peers_from_control_nodes: true
 
 # AWX
-awx_image_tag: 23.7.0
+awx_image_tag: 24.2.0
 awx_image: awx
 awx_image_registry: quay.io
 awx_image_url: "{{ awx_image_registry }}/ansible/{{ awx_image }}:{{ awx_image_tag }}"
-awx_ee_image_url: "{{ 'set-to-custom-from-dockerfile-ee' if (awx_node_role_type == 'hybrid' or not awx_auto_peers | bool) else 'quay.io/ansible/awx-ee:latest' }}"
+awx_ee_image_url: "{{ 'set-to-custom-from-dockerfile-ee' if awx_node_role_type == 'hybrid' else 'quay.io/ansible/awx-ee:latest' }}"
 awx_directory: /opt/awx
 
 awx_admin_username: "xxx"
@@ -47,7 +45,13 @@ awx_broadcast_websocket_protocol: https
 # Postgres
 awx_external_database: false
 awx_pg_directory: /opt/postgres
-awx_pg_version: 13
+awx_pg_version: 15
+awx_pg_initdb_args: '--auth-host=scram-sha-256'
+awx_pg_host_auth_method: scram-sha-256
+# Must be set to 'true' in a fresh installations and switched
+# to 'true' in an upgraded installations only after successful
+# Postgres upgrade to v15 and data migration
+awx_pg_is_on_supported_version: false
 awx_pg_hostname: 127.0.0.1
 awx_pg_username: awx
 awx_pg_password: awx

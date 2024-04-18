@@ -13,4 +13,6 @@ services:
       POSTGRES_DB: {{ awx_pg_database }}
       POSTGRES_USER: {{ awx_pg_username }}
       POSTGRES_PASSWORD: {{ awx_pg_password }}
+      POSTGRES_INITDB_ARGS: {{ awx_pg_initdb_args }}
+      POSTGRES_HOST_AUTH_METHOD: {{ awx_pg_host_auth_method }}
       PGDATA: /var/lib/postgresql/data/pgdata

@@ -14,12 +14,8 @@ STATIC_ROOT = '/var/lib/awx/public/static'
 PROJECTS_ROOT = '/var/lib/awx/projects'
 JOBOUTPUT_ROOT = '/var/lib/awx/job_status'
 
-{% if awx_auto_peers | bool  %}
 # Let's make the AWX think it's a K8S
 IS_K8S = True
-{% else %}
-IS_K8S = False
-{% endif %}
 
 SECRET_KEY = get_secret()
 

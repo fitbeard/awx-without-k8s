@@ -2,6 +2,7 @@ awx_no_log: false
 # Remove all created folders and files in /opt/awx before switching rootful/rootless mode.
 awx_rootful_containers: false
 awx_external_database: false
+awx_pg_is_on_supported_version: true
 awx_external_frontend: false
 awx_hostname: "https://awx.demo.io"
 awx_cluster_primary_node: awx-1.demo.io
@@ -16,7 +17,7 @@ awx_broadcast_websocket_secret: hYGRJzMykZY68A3NFiPJQVgCop9J8z
 # In cases where all nodes are configured as backends for the same frontend (load balancer) this must be set to 8052 and http respectively.
 awx_broadcast_websocket_port: 443
 awx_broadcast_websocket_protocol: https
-awx_ee_image_url: quay.io/tadas/awx-without-k8s-ee:23.7.0
+awx_ee_image_url: quay.io/tadas/awx-without-k8s-ee:24.2.0
 
 awx_web_cert_crt: |
   -----BEGIN CERTIFICATE-----
