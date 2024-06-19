@@ -29,7 +29,7 @@ jobs:
           password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
       - name: Build image
-        uses: docker/build-push-action@v6.0.0
+        uses: docker/build-push-action@v6.0.1
         with:
           context: docker
           file: docker/Dockerfile.awx-ee
