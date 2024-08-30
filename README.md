@@ -54,9 +54,6 @@ cd secrets
 ##### 1. Create AWX CA
 
 ```bash
-openssl genrsa -out awx_receptor_signing_private_key 4096
-openssl rsa -in awx_receptor_signing_private_key -out awx_receptor_signing_public_key -outform PEM -pubout
-
 openssl genrsa -out awx_mesh_ca_key 4096
 openssl req -x509 -new -nodes -key awx_mesh_ca_key -subj "CN=AWX Demo Receptor Root CA" -sha256 -days 3650 -out awx_mesh_ca_crt
 ```
@@ -77,13 +74,10 @@ openssl rsa -in awx_receptor_signing_private_key -out awx_receptor_signing_publi
 
 ##### 4. Create receptor key pair
 
-Repeat for every node in cluster
+Repeat for every node in a cluster
 
 ```bash
-docker pull quay.io/ansible/receptor:latest
-export receptor_hostname=awx-1.demo.io
-docker run --rm -v $PWD:/tmp --env-file <(env | grep receptor_hostname) quay.io/ansible/receptor:latest receptor --cert-makereq bits=2048 commonname=$receptor_hostname dnsname=$receptor_hostname nodeid=$receptor_hostname outreq=/tmp/$receptor_hostname.req outkey=/tmp/$receptor_hostname.key
-docker run --rm -v $PWD:/tmp --env-file <(env | grep receptor_hostname) quay.io/ansible/receptor:latest receptor --cert-signreq req=/tmp/$receptor_hostname.req cacert=/tmp/awx_mesh_ca_crt cakey=/tmp/awx_mesh_ca_key notbefore=$(date --iso-8601=seconds) notafter=$(date --date="+2 years" --iso-8601=seconds) outcert=/tmp/$receptor_hostname.crt verify=yes
+bash ../scripts/receptor_keypair.sh -n awx-1.demo.io
 ```
 
 #### Modify `awx_ee_image_url` variable
