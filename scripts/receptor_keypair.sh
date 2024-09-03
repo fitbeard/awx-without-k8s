@@ -55,11 +55,11 @@ done
 # Detect the OS
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Linux system
-    ISSE_DATE=$(date --iso-8601=seconds)
+    ISSE_DATE=$(date --iso-8601=seconds --utc)
     EXPIRATION_DATE=$(date --iso-8601=seconds --utc --date "${EXPIRATION_AFTER_YEARS} years")
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS system
-    ISSE_DATE=$(date +"%Y-%m-%dT%H:%M:%S+00:00")
+    ISSE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S+00:00")
     EXPIRATION_DATE=$(date -u -v+${EXPIRATION_AFTER_YEARS}y +"%Y-%m-%dT%H:%M:%S+00:00")
 else
     echo "Unsupported OS: $OSTYPE"
