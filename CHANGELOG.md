@@ -1,5 +1,15 @@
 # Changelog
 
+## [24.6.1](https://github.com/fitbeard/awx-without-k8s/compare/v24.2.0...v24.6.1) (2024-09-03)
+
+### Features
+
+* Updated to support AWX version `24.6.1`
+
+### Improvements
+
+* Added script for mesh key pair generation
+
 ## [24.2.0](https://github.com/fitbeard/awx-without-k8s/compare/v23.7.0...v24.2.0) (2024-04-18)
 
 ### Features

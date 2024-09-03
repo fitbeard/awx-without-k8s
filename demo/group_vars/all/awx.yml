@@ -17,7 +17,7 @@ awx_broadcast_websocket_secret: hYGRJzMykZY68A3NFiPJQVgCop9J8z
 # In cases where all nodes are configured as backends for the same frontend (load balancer) this must be set to 8052 and http respectively.
 awx_broadcast_websocket_port: 443
 awx_broadcast_websocket_protocol: https
-awx_ee_image_url: quay.io/tadas/awx-without-k8s-ee:24.2.0
+awx_ee_image_url: quay.io/tadas/awx-without-k8s-ee:24.6.1
 
 awx_web_cert_crt: |
   -----BEGIN CERTIFICATE-----

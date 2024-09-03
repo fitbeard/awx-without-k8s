@@ -83,11 +83,17 @@ http {
           deny all;
         }
 
-        location /static/ {
+        location /static {
             alias /var/lib/awx/public/static/;
         }
 
-        location /favicon.ico { alias /var/lib/awx/public/static/favicon.ico; }
+        location /locales { 
+            alias /var/lib/awx/public/static/awx/locales;
+        }
+
+        location /favicon.ico { 
+            alias /var/lib/awx/public/static/media/favicon.ico;
+        }
 
         location ~ ^(/websocket/|/api/websocket/) {
             # Pass request to the upstream alias
