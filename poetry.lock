@@ -2,13 +2,13 @@
 
 [[package]]
 name = "ansible-core"
-version = "2.15.9"
+version = "2.17.7"
 description = "Radically simple IT automation"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 files = [
-    {file = "ansible-core-2.15.9.tar.gz", hash = "sha256:25f9b1b5a5af3c0986bd3928ed086eaddb867527fb5c83afef1a03cfad34f345"},
-    {file = "ansible_core-2.15.9-py3-none-any.whl", hash = "sha256:5b6a4b12aa5358f60933e79d86763e3558862282fb1dc563a29b9999e5849fc3"},
+    {file = "ansible_core-2.17.7-py3-none-any.whl", hash = "sha256:64d4f0a006687a5621aa80dca54fd0c5ae75145b7aac8c1b8d7f07a1399c4705"},
+    {file = "ansible_core-2.17.7.tar.gz", hash = "sha256:3aaab735d6c4e2d6239bc326800dc0ecda2a1490caa8455b41084ec0bc54dacf"},
 ]
 
 [package.dependencies]
@@ -681,4 +681,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "81627207188c99272d59dc7fe081f947d2c472fff7ed8732667d216d40fc68d7"
+content-hash = "2ca3c4fe2c93326c4b95bbfcd096af3bca792c1b024feb85de53272bacac5898"
