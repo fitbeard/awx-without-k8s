@@ -56,7 +56,7 @@ services:
       - redis
       - awx-rsyslog
       - awx-web
-      - awx-ee
+      - awx-receptor
     command: /usr/bin/launch_awx_task.sh
     hostname: "{{ awx_cluster_node_host_id }}"
 {% if awx_rootful_containers | bool %}
@@ -111,9 +111,9 @@ services:
     environment:
       SUPERVISOR_CONFIG_PATH: '/etc/supervisord_rsyslog.conf'
 
-  awx-ee:
+  awx-receptor:
     image: {{ awx_ee_image_url }}
-    container_name: awx-ee
+    container_name: awx-receptor
 {% if awx_rootful_containers | bool %}
     user: root
 {% endif %}
