@@ -32,6 +32,11 @@ services:
 {% endif %}
       - "{{ awx_directory }}/receptor.crt:/etc/receptor/tls/receptor.crt:ro"
       - "{{ awx_directory }}/receptor.key:/etc/receptor/tls/receptor.key:ro"
+{% if awx_receptor_additional_volumes is defined and awx_receptor_additional_volumes | length %}
+{% for volume in awx_receptor_additional_volumes %}
+      - "{{ volume }}"
+{% endfor %}
+{% endif %}
 {% if awx_ca_trust_dir is defined %}
       - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
 {% endif %}

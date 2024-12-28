@@ -22,6 +22,7 @@ awx_cluster_node_system_uuid: ""
 awx_node_role_type: control
 # Must be one of ['info', 'debug']
 awx_receptor_log_level: info
+awx_receptor_additional_volumes: []
 awx_peers: []
 awx_peers_from_control_nodes: true
 
