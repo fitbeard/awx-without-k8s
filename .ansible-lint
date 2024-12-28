@@ -4,5 +4,6 @@ exclude_paths:
 
 warn_list:
   - no-handler
-  - yaml[line-length]
+
+skip_list:
   - var-naming[no-role-prefix]
