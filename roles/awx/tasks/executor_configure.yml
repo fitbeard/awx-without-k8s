@@ -24,7 +24,7 @@
     owner: "{{ config.owner | default('root') }}"
     group: "{{ config.group | default('root') }}"
   with_items:
-    - {src: docker-compose-executor.yml.j2, dst: docker-compose.yml, mode: "0o600"}
+    - {src: docker-compose-receptor.yml.j2, dst: docker-compose.yml, mode: "0o600"}
     - {src: work-public-key.pem.j2, dst: work-public-key.pem, mode: "0o644", group: "{{ awx_gid }}", create: "{{ awx_node_role_type == 'execution' }}"}
     - {src: mesh-CA.crt.j2, dst: mesh-CA.crt, mode: "0o644", group: "{{ awx_gid }}"}
     - {src: receptor-execution.conf.j2, dst: receptor-execution.conf, mode: "0o644", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
@@ -37,7 +37,7 @@
   register: receptor_configs
   when: config.create | default(True) | bool
 
-- name: Pull AWX EE image
+- name: Pull AWX receptor image
   community.docker.docker_image:
     name: "{{ awx_ee_image_url }}"
     source: pull
@@ -49,6 +49,31 @@
     project_src: "{{ awx_directory }}"
     state: absent
   when: receptor_configs is changed | bool
+
+- name: Remove folders
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ awx_directory }}/projects"
+    - "{{ awx_directory }}/receptor"
+    - "{{ awx_directory }}/containers"
+  when: receptor_configs is changed | bool
+
+- name: Ensure folders exists
+  ansible.builtin.file:
+    name: "{{ directory.name }}"
+    mode: "{{ directory.mode }}"
+    owner: "{{ directory.owner | default('root') }}"
+    group: "{{ directory.group | default('root') }}"
+    state: directory
+  with_items:
+    - {name: "{{ awx_directory }}/projects", mode: "0o775", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_node_role_type == 'execution' }}"} # noqa: yaml[line-length]
+    - {name: "{{ awx_directory }}/receptor", mode: "0o770", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {name: "{{ awx_directory }}/containers", mode: "0o775", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_node_role_type == 'execution' }}"} # noqa: yaml[line-length]
+  loop_control:
+    loop_var: directory
+  when: (receptor_configs is changed | bool) and (directory.create | default(True) | bool)
 
 - name: Start AWX containers
   community.docker.docker_compose_v2:
