@@ -1,9 +1,7 @@
 ---
 - name: Remove old Docker versions
   ansible.builtin.package:
-    name:
-      - docker
-      - docker-engine
+    name: "{{ docker_obsolete_packages }}"
     state: absent
 
 - name: Install dependencies
@@ -11,15 +9,33 @@
     name:
       - apt-transport-https
       - ca-certificates
-      - gnupg
-      - gnupg2
     state: present
 
+- name: Ensure apt key is not present in trusted.gpg.d
+  ansible.builtin.file:
+    path: /etc/apt/trusted.gpg.d/docker.asc
+    state: absent
+
+- name: Ensure the repo referencing the previous trusted.gpg.d key is not present
+  ansible.builtin.apt_repository:
+    repo: "deb [arch={{ docker_apt_arch }} signed-by=/etc/apt/trusted.gpg.d/docker.asc] {{ docker_repo_url }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable" # noqa: yaml[line-length]
+    state: absent
+    filename: "{{ docker_apt_filename }}"
+    update_cache: true
+
+- name: Ensure directory exists for /etc/apt/keyrings
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0o755"
+
 - name: Add Docker apt key
-  ansible.builtin.apt_key:
+  ansible.builtin.get_url:
     url: "{{ docker_apt_gpg_key }}"
-    id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
-    state: present
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0o644"
+    force: false
+    checksum: "{{ docker_apt_gpg_key_checksum | default(omit) }}"
   register: add_repository_key
   ignore_errors: "{{ docker_apt_ignore_key_error }}"
 
@@ -27,4 +43,5 @@
   ansible.builtin.apt_repository:
     repo: "{{ docker_apt_repository }}"
     state: present
+    filename: "{{ docker_apt_filename }}"
     update_cache: true

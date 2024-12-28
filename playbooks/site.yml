@@ -3,7 +3,6 @@
   hosts: all
   become: true
   roles:
-    - {role: fitbeard.awx.pip, when: pip_install_packages is defined and (pip_install_packages | length>0), tags: pip, base}
     - {role: fitbeard.awx.docker, when: docker_install | bool, tags: docker, base}
     - {role: fitbeard.awx.awx, tags: awx}
 

@@ -1,13 +1,32 @@
 ---
 docker_edition: 'ce'
-docker_package: "docker-{{ docker_edition }}"
-docker_package_state: present
+
+docker_packages:
+  - "docker-{{ docker_edition }}"
+  - "docker-{{ docker_edition }}-cli"
+  - "docker-{{ docker_edition }}-rootless-extras"
+  - "containerd.io"
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+docker_packages_state: present
+
+docker_obsolete_packages:
+  - docker
+  - docker.io
+  - docker-engine
+  - podman-docker
+  - containerd
+  - runc
 
 docker_repo_url: https://download.docker.com/linux
 
-docker_apt_repository: "deb [arch=amd64] {{ docker_repo_url }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+docker_apt_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'armhf' if ansible_architecture == 'armv7l' else 'amd64' }}"
+docker_apt_repository: "deb [arch={{ docker_apt_arch }} signed-by=/etc/apt/keyrings/docker.asc] {{ docker_repo_url }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable" # noqa: yaml[line-length]
 docker_apt_ignore_key_error: true
 docker_apt_gpg_key: "{{ docker_repo_url }}/{{ ansible_distribution | lower }}/gpg"
+docker_apt_gpg_key_checksum: "sha256:1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570"
+docker_apt_filename: "docker"
 
 docker_yum_repo_url: "{{ docker_repo_url }}/centos/docker-{{ docker_edition }}.repo"
 docker_yum_gpg_key: "{{ docker_repo_url }}/centos/gpg"
@@ -16,6 +35,13 @@ docker_daemon_options: {}
 
 docker_group_members: []
 
-docker_registries: {}
+docker_user_name: root
+docker_user_home: /root
+docker_user_config: {}
 
+docker_user_config_directory_mode: "0o700"
+docker_user_config_file_mode: "0o600"
+
+# You can use 'docker_user_config' or 'docker_registries' but not both at the same time.
+docker_registries: {}
 docker_reauthorize: true
