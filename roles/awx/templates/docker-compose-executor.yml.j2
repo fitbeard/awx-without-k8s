@@ -1,8 +1,8 @@
 services:
 
-  awx-ee:
+  awx-receptor:
     image: {{ awx_ee_image_url }}
-    container_name: awx-ee
+    container_name: awx-receptor
 {% if awx_rootful_containers | bool %}
     user: root
 {% endif %}
