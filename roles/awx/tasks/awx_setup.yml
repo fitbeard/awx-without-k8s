@@ -2,11 +2,19 @@
 - name: Import AWX configuration tasks
   ansible.builtin.import_tasks: awx_configure.yml
 
-- name: Start || Restart Postgres containers
-  community.docker.docker_compose:
+- name: Destroy Postgres container
+  community.docker.docker_compose_v2:
     project_name: postgres
     project_src: "{{ awx_pg_directory }}"
-    restarted: "{{ postgres_configs is changed | bool }}"
+    state: absent
+  when:
+    - (postgres_configs is changed | bool) and awx_cluster_node_type == 'primary' and not awx_external_database # noqa: yaml[line-length]
+
+- name: Start Postgres containers
+  community.docker.docker_compose_v2:
+    project_name: postgres
+    project_src: "{{ awx_pg_directory }}"
+    state: present
   when:
     - awx_cluster_node_type == 'primary' and not awx_external_database
 

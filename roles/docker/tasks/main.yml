@@ -9,8 +9,8 @@
 
 - name: Install Docker
   ansible.builtin.package:
-    name: "{{ docker_package }}"
-    state: "{{ docker_package_state }}"
+    name: "{{ docker_packages }}"
+    state: "{{ docker_packages_state }}"
   notify: Restart Docker
   ignore_errors: "{{ ansible_check_mode }}"
 
@@ -18,14 +18,14 @@
   ansible.builtin.file:
     path: /etc/docker
     state: directory
-    mode: "0755"
+    mode: "0o755"
   when: docker_daemon_options.keys() | length > 0
 
 - name: Configure Docker daemon options
   ansible.builtin.copy:
     content: "{{ docker_daemon_options | to_nice_json }}"
     dest: /etc/docker/daemon.json
-    mode: "0644"
+    mode: "0o644"
   when: docker_daemon_options.keys() | length > 0
   notify: Restart Docker
 
@@ -50,6 +50,28 @@
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
 
-- name: Include login tasks
-  ansible.builtin.include_tasks: login.yml
-  when: docker_registries | length > 0
+- name: Login to Docker registries
+  community.docker.docker_login:
+    registry: "{{ item.registry }}"
+    username: "{{ item.username }}"
+    password: "{{ item.password }}"
+    reauthorize: "{{ docker_reauthorize }}"
+  no_log: true
+  with_items: "{{ docker_registries }}"
+  when: docker_registries | length > 0 and docker_user_config.keys() | length == 0
+
+- name: Create Docker config directory for user "{{ docker_user_name }}"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ docker_user_home }}/.docker"
+    owner: "{{ docker_user_name }}"
+    mode: "{{ docker_user_config_directory_mode }}"
+  when: docker_user_config.keys() | length > 0 and docker_registries | length == 0
+
+- name: Create Docker config for user "{{ docker_user_name }}"
+  ansible.builtin.copy:
+    content: "{{ docker_user_config | to_nice_json }}"
+    dest: "{{ docker_user_home }}/.docker/config.json"
+    mode: "{{ docker_user_config_file_mode }}"
+  no_log: true
+  when: docker_user_config.keys() | length > 0 and docker_registries | length == 0
