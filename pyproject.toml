@@ -4,14 +4,15 @@ version = "0.1.0"
 description = ""
 authors = ["Tadas Sutkaitis <tadasas@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.11"
-ansible-core = "2.15.9"
-pre-commit = "^3.6.1"
+python = "^3.12"
+ansible-core = "<2.18.0"
+ansible-lint = { version = "24.12.2", markers = "platform_system != 'Windows'" }
+pre-commit = "^3.8.0"
 jmespath = "^1.0.1"
 netaddr = "^1.0.0"
-docker = "^7.0.0"
 
 [build-system]
 requires = ["poetry-core"]

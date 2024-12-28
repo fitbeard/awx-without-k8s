@@ -4,7 +4,7 @@
 
 - name: Set AWX local API url
   ansible.builtin.set_fact:
-    awx_local_api_url: "{{ 'https://127.0.0.1/api/v2/ping' if awx_rootful_containers | bool and not awx_external_frontend | bool else 'http://127.0.0.1:8052/api/v2/ping' }}"
+    awx_local_api_url: "{{ 'https://127.0.0.1/api/v2/ping' if awx_rootful_containers | bool and not awx_external_frontend | bool else 'http://127.0.0.1:8052/api/v2/ping' }}" # noqa: yaml[line-length]
 
 - name: Pull AWX images
   community.docker.docker_image:
