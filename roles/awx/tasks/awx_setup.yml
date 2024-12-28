@@ -18,14 +18,21 @@
   when:
     - awx_cluster_node_type == 'primary' and not awx_external_database
 
+- name: Destroy AWX containers
+  community.docker.docker_compose_v2:
+    project_name: awx
+    project_src: "{{ awx_directory }}"
+    state: absent
+  when: awx_configs is changed | bool
+
 - name: Remove receptor.conf
   ansible.builtin.file:
     path: "{{ awx_directory }}/receptor/receptor.conf"
     state: absent
   when: awx_configs is changed | bool
 
-- name: Start || Restart AWX containers
-  community.docker.docker_compose:
+- name: Start AWX containers
+  community.docker.docker_compose_v2:
     project_name: awx
     project_src: "{{ awx_directory }}"
-    restarted: "{{ awx_configs is changed | bool }}"
+    state: present

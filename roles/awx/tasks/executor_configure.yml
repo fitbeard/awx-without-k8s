@@ -43,8 +43,15 @@
     source: pull
   when: awx_tasks == 'upgrade'
 
-- name: Start || Restart AWX containers
-  community.docker.docker_compose:
+- name: Destroy AWX containers
+  community.docker.docker_compose_v2:
     project_name: awx
     project_src: "{{ awx_directory }}"
-    restarted: "{{ receptor_configs is changed | bool }}"
+    state: absent
+  when: receptor_configs is changed | bool
+
+- name: Start AWX containers
+  community.docker.docker_compose_v2:
+    project_name: awx
+    project_src: "{{ awx_directory }}"
+    state: present
