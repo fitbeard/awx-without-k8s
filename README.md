@@ -22,7 +22,7 @@ ansible-galaxy collection install fitbeard.awx
 or desired version
 
 ```shell
-ansible-galaxy collection install fitbeard.awx:24.6.1
+ansible-galaxy collection install fitbeard.awx:24.6.2
 ```
 
 ## Dependencies

@@ -1,5 +1,11 @@
 # Changelog
 
+## [24.6.2](https://github.com/fitbeard/awx-without-k8s/compare/v24.6.1...v24.6.2) (2024-12-29)
+
+### Features
+
+* Code cleanup and dependency update
+
 ## [24.6.1](https://github.com/fitbeard/awx-without-k8s/compare/v24.2.0...v24.6.1) (2024-09-03)
 
 ### Features
