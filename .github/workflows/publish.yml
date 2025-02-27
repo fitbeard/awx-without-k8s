@@ -48,7 +48,7 @@ jobs:
           echo tag=$(echo ${{ github.event.release.tag_name }} | sed 's/^v//') >> $GITHUB_OUTPUT
 
       - name: Build image
-        uses: docker/build-push-action@v6.14.0
+        uses: docker/build-push-action@v6.15.0
         with:
           context: docker
           file: docker/Dockerfile.awx-ee
