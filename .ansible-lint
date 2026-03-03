@@ -1,6 +1,7 @@
 ---
 exclude_paths:
   - .github
+  - ee
 
 warn_list:
   - no-handler

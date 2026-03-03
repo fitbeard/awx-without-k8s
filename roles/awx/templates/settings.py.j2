@@ -51,3 +51,7 @@ BROADCAST_WEBSOCKET_PROTOCOL = '{{ awx_broadcast_websocket_protocol }}'
 BROADCAST_WEBSOCKET_VERIFY_CERT = False
 
 RECEPTOR_LOG_LEVEL = '{{ awx_receptor_log_level }}'
+
+# ui_next is disabled in AAP 2.6.1 (ansible/awx@d5388b3c).
+# Hide the "tech preview" banner on the Dashboard.
+UI_NEXT = False

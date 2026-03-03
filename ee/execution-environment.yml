@@ -1,0 +1,86 @@
+---
+# This config is based on the awx-ee image build config, with some modifications to support podman and other dependencies needed for awx without k8s.
+# See https://github.com/ansible/awx-ee/blob/devel/execution-environment.yml
+# All dependencies related to SVN, Kerberos and Windows are removed to reduce the image size and attack surface.
+# The base image is switched to Rocky Linux 9 to provide a more up to date system libraries.
+
+version: 3
+images:
+  base_image:
+    name: quay.io/rockylinux/rockylinux:9
+dependencies:
+  python_interpreter:
+    package_system: python3.12
+    python_path: /usr/bin/python3.12
+  ansible_core:
+    package_pip: ansible-core>=2.15.0,<2.19.0
+  ansible_runner:
+    package_pip: ansible-runner==2.4.2
+  galaxy: |
+    ---
+    collections:
+      - name: awx.awx
+        version: "24.6.1"
+      - name: azure.azcollection
+        version: ">=2.1.0"
+      - name: amazon.aws
+      - name: theforeman.foreman
+      - name: google.cloud
+      - name: openstack.cloud
+      - name: community.vmware
+      - name: ovirt.ovirt
+      - name: kubernetes.core
+      - name: ansible.posix
+      - name: redhatinsights.insights
+      - name: kubevirt.core
+  system: |
+    git-core [platform:rpm]
+    python3.12-devel [platform:rpm compile]
+    libcurl-devel [platform:rpm compile]
+    git-lfs [platform:rpm]
+    sshpass [platform:rpm]
+    rsync [platform:rpm]
+    epel-release [platform:rpm]
+    unzip [platform:rpm]
+    podman-remote [platform:rpm]
+    cmake [platform:rpm compile]
+    gcc [platform:rpm compile]
+    gcc-c++ [platform:rpm compile]
+    make [platform:rpm compile]
+    openssl-devel [platform:rpm compile]
+  python: |
+    git+https://github.com/ansible/ansible-sign
+    ncclient
+    paramiko
+    pyOpenSSL
+    toml
+    pexpect>=4.5
+    python-daemon
+    pyyaml
+    six
+    receptorctl==1.5.7
+additional_build_steps:
+  append_base:
+    - RUN $PYCMD -m pip install -U pip
+  append_final:
+    - RUN dnf update -y && dnf -y install podman crun procps && dnf clean all && rm -rf /var/cache /var/log/dnf* /var/log/yum.*
+    - COPY --from=quay.io/ansible/receptor:devel /usr/bin/receptor /usr/bin/receptor
+    - RUN mkdir -p /var/run/receptor
+    - RUN git lfs install --system
+    # SymLink `python` -> `python3.12`
+    - RUN alternatives --install /usr/bin/python python /usr/bin/python3.12 312
+    - RUN useradd runner -u 1000 -g 0
+    - ADD https://raw.githubusercontent.com/containers/image_build/main/podman/containers.conf /etc/containers/containers.conf
+    - ADD https://raw.githubusercontent.com/containers/image_build/main/podman/podman-containers.conf /home/runner/.config/containers/containers.conf
+    # chmod containers.conf and adjust storage.conf to enable Fuse storage.
+    - RUN chmod 644 /etc/containers/containers.conf && sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
+    - RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers /var/lib/shared/vfs-images /var/lib/shared/vfs-layers
+    - RUN touch /var/lib/shared/overlay-images/images.lock && touch /var/lib/shared/overlay-layers/layers.lock && touch /var/lib/shared/vfs-images/images.lock && touch /var/lib/shared/vfs-layers/layers.lock
+    - RUN chown -R 1000:0 /home/runner/.config
+    # Ensure we must use fully qualified image names
+    # This prevents podman prompt that hangs when trying to pull unqualified images
+    - RUN mkdir -p /etc/containers/registries.conf.d/ && echo "unqualified-search-registries = []" >> /etc/containers/registries.conf.d/force-fully-qualified-images.conf && chmod 644 /etc/containers/registries.conf.d/force-fully-qualified-images.conf
+    # https://github.com/stackhpc/ansible-slurm-appliance/issues/234
+    # https://github.com/containers/podman/issues/2788
+    - RUN chmod u-s /usr/bin/newgidmap && chmod u-s /usr/bin/newuidmap && setcap cap_setuid+eip /usr/bin/newuidmap && setcap cap_setgid+eip /usr/bin/newgidmap
+    - ENV _CONTAINERS_USERNS_CONFIGURED=""

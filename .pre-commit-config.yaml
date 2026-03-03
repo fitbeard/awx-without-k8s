@@ -1,26 +1,19 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
-  - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v3.2.0
-    hooks:
-      - id: conventional-pre-commit
-        stages:
-          - commit-msg
-
   - repo: https://github.com/ansible/ansible-lint
-    rev: v24.12.2
+    rev: v25.6.1
     hooks:
       - id: ansible-lint
         additional_dependencies:
-          - ansible-core>2.17.0,<2.18.0
+          - ansible-core>2.17.0,<2.19.0
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.39.0
+    rev: v0.48.0
     hooks:
       - id: markdownlint
         args: ["--ignore=CHANGELOG.md"]

@@ -82,9 +82,9 @@ bash ../scripts/receptor_keypair.sh -n awx-1.demo.io
 
 #### Modify `awx_ee_image_url` variable
 
-Create [`custom Docker image`](./docker/Dockerfile.awx-ee) for execution nodes and for management nodes (if `awx_node_role_type` variable is set to `hybrid`).
+Create [`custom EE image`](./ee/execution-environment.yml) for execution nodes and for management nodes (if `awx_node_role_type` variable is set to `hybrid`).
 
-Or use `quay.io/tadas/awx-without-k8s-ee:latest` image which is based on the [`same Dockerfile`](./docker/Dockerfile.awx-ee).
+Or use `quay.io/tadas/awx-ee:24.6.1.post281` image which is based on the [`EE config`](./ee/execution-environment.yml).
 
 #### Start installation
 
