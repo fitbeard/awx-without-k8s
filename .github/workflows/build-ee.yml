@@ -1,4 +1,4 @@
-name: build-images
+name: build-ee
 
 on:
   workflow_dispatch:
@@ -9,32 +9,7 @@ on:
         default: 'test'
 
 jobs:
-  awx-image:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install QEMU static binaries
-        uses: docker/setup-qemu-action@v3.6.0
-
-      - name: Configure Buildkit
-        uses: docker/setup-buildx-action@v3.11.1
-
-      - name: Checkout project
-        uses: actions/checkout@v5
-
-      - name: Authenticate with Quay.io
-        uses: docker/login-action@v3.6.0
-        with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
-
-      - name: Build image
-        run: |
-          cd build && \
-          chmod +x build.sh && \
-          IMAGE_TAG=${{ github.event.inputs.tag }} ./build.sh --no-cache --push
-
-  ee-image:
+  image:
     runs-on: ubuntu-latest
     steps:
       - name: Install QEMU static binaries
@@ -53,7 +28,9 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Generate EE configs
-        run: ansible-builder create -v3 --file ee/execution-environment.yml --context ee/context --output-filename=Dockerfile
+        run: |
+          cd ee && \
+          ansible-builder create -v3 --file execution-environment.yml --context . --output-filename=Dockerfile
 
       - name: Authenticate with Quay.io
         uses: docker/login-action@v3.6.0
