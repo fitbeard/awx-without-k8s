@@ -1,5 +1,60 @@
 # Changelog
 
+## [24.6.281](https://github.com/fitbeard/awx-without-k8s/compare/v24.6.2...v24.6.281) (2026-03-03)
+
+### Features
+
+* Code cleanup and dependency update
+* New build scripts for AWX and EE
+* AWX and EE images for `linux/amd64` and `linux/arm64` platforms
+
+### *** AWX resurrection ***
+
+#### AWX 24.6.1 → AAP 2.6.1 (commit 05626248ce26)
+
+**281 commits** between tag `24.6.1` and commit `05626248ce26fda2d64f311e494cfd146e7e4f2e`.
+
+Source: [GitHub comparison](https://github.com/ansible/awx/compare/24.6.1...05626248ce26fda2d64f311e494cfd146e7e4f2e)
+
+### New AWX Features
+
+### GitHub App Authentication (Credential Plugin)
+- New credential plugin for GitHub App authentication (`9d9c125e470e`)
+- Allows `x-access-token@<github-access-token>` for git auth (`9d9c125e470e`)
+- Adds PyGithub and PyNaCl dependencies (`9d9c125e470e`)
+
+## Security Fixes
+
+- **CVE-2024-33663**: python-jose vulnerability (`467024bc54a8`)
+- **CVE-2024-21520**: stringview vulnerability (`bcd18e161cdb`)
+- **CVE-2024-37891**: urllib3 vulnerability (`eb4f3c2864d3`)
+- **CVE-2024-52304**: aiohttp vulnerability (`2c3b4ff5d786`)
+- **CVE-2024-53908**: Django vulnerability (`b361aef0fbc5`)
+- **CVE-2024-56201**: Jinja2 vulnerability (`a209751f22eb`)
+- **CVE-2024-56374**: Django vulnerability (`2e8114394b91`)
+- **CVE-2024-11407**: grpcio vulnerability (`df79fa4ae1a6`)
+- **CVE-2025-47273**: setuptools vulnerability (`8fe4223eaccd`)
+- **CVE-2025-48432**: Django vulnerability (`e3a9d9fbe8e8`)
+- **CVE-2025-57833**: Django 4.2.24 update (`9e1025ce84f8`)
+- Jinja2 additional CVE fix (`b5bc85e639c2`)
+- Django multiple CVE updates (`8b293e704687`, `d1c85dae4ded`, `a238c5dd09da`, `6a10e0ea5c2a`)
+- Prevent `automountServiceAccountToken` on K8s pods (`15e28371ebb3`)
+- Prevent system auditor from downloading install bundle (`1e6a7c074967`)
+- Django password validators now applied correctly (`e060e44b0503`)
+
+## Kubernetes Operator
+New images (both AWX and EE) can also be used with [awx-operator](https://docs.ansible.com/projects/awx-operator/en/latest/user-guide/advanced-configuration/extra-settings.html#add-extra-settings-with-extra_settings):
+
+```yaml
+spec:
+  image: quay.io/tadas/awx
+  image_version: 24.6.1.post281
+  control_plane_ee_image: quay.io/tadas/awx-ee:24.6.1.post281
+  extra_settings:
+    - setting: UI_NEXT
+      value: "'False'"
+```
+
 ## [24.6.2](https://github.com/fitbeard/awx-without-k8s/compare/v24.6.1...v24.6.2) (2024-12-29)
 
 ### Features
