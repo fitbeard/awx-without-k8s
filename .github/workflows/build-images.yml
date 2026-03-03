@@ -1,0 +1,76 @@
+name: build-images
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Set image tag'
+        required: true
+        default: 'test'
+
+jobs:
+  awx-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install QEMU static binaries
+        uses: docker/setup-qemu-action@v3.6.0
+
+      - name: Configure Buildkit
+        uses: docker/setup-buildx-action@v3.11.1
+
+      - name: Checkout project
+        uses: actions/checkout@v5
+
+      - name: Authenticate with Quay.io
+        uses: docker/login-action@v3.6.0
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+      - name: Build image
+        run: |
+          cd build && \
+          chmod +x build.sh && \
+          IMAGE_TAG=${{ github.event.inputs.tag }} ./build.sh --no-cache --push
+
+  ee-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install QEMU static binaries
+        uses: docker/setup-qemu-action@v3.6.0
+
+      - name: Configure Buildkit
+        uses: docker/setup-buildx-action@v3.11.1
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+
+      - name: Install Ansible Builder
+        run: pip install ansible-builder==3.1.1
+
+      - name: Checkout project
+        uses: actions/checkout@v5
+
+      - name: Generate EE configs
+        run: ansible-builder create -v3 --file ee/execution-environment.yml --context ee/context --output-filename=Dockerfile
+
+      - name: Authenticate with Quay.io
+        uses: docker/login-action@v3.6.0
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+      - name: Build image
+        uses: docker/build-push-action@v6.17.0
+        with:
+          context: ee
+          file: ee/Dockerfile
+          push: true
+          platforms: |
+            linux/amd64
+            linux/arm64
+          tags: |
+            quay.io/tadas/awx-ee:latest
+            quay.io/tadas/awx-ee:${{ github.event.inputs.tag }}
