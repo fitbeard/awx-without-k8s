@@ -8,10 +8,10 @@ description: AWX clustering using Ansible and Docker
 license:
   - GPL-3.0-or-later
 dependencies:
-  awx.awx: "24.6.1"
-  ansible.posix: ">=1.5.0"
-  community.docker: ">=3.12.0"
-  community.general: ">=9.4.0"
+  awx.awx: 24.6.1
+  ansible.posix: ">=2.0.0"
+  community.docker: ">=4.3.1"
+  community.general: ">=10.3.1"
 repository: https://github.com/fitbeard/awx-without-k8s
 homepage: https://github.com/fitbeard/awx-without-k8s
 issues: https://github.com/fitbeard/awx-without-k8s/issues
@@ -20,7 +20,7 @@ build_ignore:
   - .vscode
   - ansible-cache
   - demo
-  - docker
+  - ee
   - molecule
   - .ansible-lint
   - .gitignore
