@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build AWX container image from AAP 2.6.1 open-source sources.
+# Build AWX container image from AAP 2.6.5 open-source sources.
 #
 # Usage:
 #   ./build.sh                                     # Build for local platform
@@ -17,10 +17,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 AWX_REPO="https://github.com/ansible/awx.git"
-AWX_COMMIT="05626248ce26fda2d64f311e494cfd146e7e4f2e"
+AWX_COMMIT="03140796f620966cdc4ff5052978c80a51c94ca7"
+AWX_LOGOS_REPO="https://github.com/ansible/awx-logos.git"
+AWX_LOGOS_COMMIT="bae4e6cfd16f5e7b814ed873a2fef68b6d90a354"
+AWX_LOGOS_DIR="${AWX_LOGOS_DIR:-${SCRIPT_DIR}/awx-logos}"
+AAP_UI_SRPM_URL="https://ftp.redhat.com/redhat/linux/enterprise/9Base/en/AnsibleAutomationPlatform/SRPMS/automation-platform-ui-2.6.5-1.el9ap.src.rpm"
+AAP_UI_SRPM_DIR="${AAP_UI_SRPM_DIR:-${SCRIPT_DIR}/aap-ui-srpm}"
+AAP_UI_TARBALL_GLOB="aap-ui-*.tar.gz"
+AAP_UI_DIR="${AAP_UI_DIR:-${SCRIPT_DIR}/aap-ui}"
 # Python package version — must be PEP 440 compliant (no hyphens).
-# .post281 = 281 commits past the last public release 24.6.1
-VERSION="${VERSION:-24.6.1.post281}"
+# .post330 = 330 commits past the last public release 24.6.1
+VERSION="${VERSION:-24.6.1.post330}"
 IMAGE_NAME="${IMAGE_NAME:-quay.io/tadas/awx}"
 # Docker image tag — can use any format
 IMAGE_TAG="${IMAGE_TAG:-$VERSION}"
@@ -41,7 +48,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-echo "=== AWX Rebuild from AAP 2.6.1 sources ==="
+echo "=== AWX Rebuild from AAP 2.6.5 sources ==="
 echo "  Commit:    ${AWX_COMMIT}"
 echo "  Version:   ${VERSION}"
 echo "  Image:     ${IMAGE_NAME}:${IMAGE_TAG}"
@@ -57,7 +64,7 @@ echo "  No cache:  ${NO_CACHE}"
 echo ""
 
 # -------------------------------------------------------------------
-# 1. Clone AWX at the AAP 2.6.1 commit
+# 1. Clone AWX at the AAP 2.6.5 commit
 # -------------------------------------------------------------------
 if [ -d "${BUILD_DIR}" ]; then
     echo "=> Build directory already exists: ${BUILD_DIR}"
@@ -79,25 +86,39 @@ else
     git fetch origin "${AWX_COMMIT}"
     git checkout FETCH_HEAD
 fi
+echo "   Done."
 echo ""
 
 # -------------------------------------------------------------------
-# 2. Fix requirements_git.txt (replace private SSH URLs with public HTTPS)
+# 2. Fetch official AWX branding assets (logos, favicons)
+#    The repo ships "angry potato" dev logos. Official AWX releases use
+#    assets from ansible/awx-logos.
+# -------------------------------------------------------------------
+echo "=> Fetching official AWX logos from ${AWX_LOGOS_REPO} @ ${AWX_LOGOS_COMMIT}..."
+if [ ! -d "${AWX_LOGOS_DIR}" ]; then
+    git clone "${AWX_LOGOS_REPO}" "${AWX_LOGOS_DIR}"
+fi
+cd "${AWX_LOGOS_DIR}" && git fetch origin && git checkout "${AWX_LOGOS_COMMIT}" && cd "${BUILD_DIR}"
+echo "   Done."
+echo ""
+
+# -------------------------------------------------------------------
+# 3. Fix requirements_git.txt (replace private SSH URLs with public HTTPS)
 # -------------------------------------------------------------------
 echo "=> Patching requirements_git.txt..."
 cat > requirements/requirements_git.txt << 'REQUIREMENTS_GIT'
-certifi @ git+https://github.com/ansible/system-certifi.git@devel
+certifi @ git+https://github.com/ansible/system-certifi.git@5aa52ab91f9d579bfe52b5acf30ca799f1a563d9
 python3-saml @ git+https://github.com/ansible/python3-saml.git@f90824c4910e36c5a89dd295271be26691204ba3
-django-ansible-base[feature-flags,jwt-consumer,rbac,resource-registry,rest-filters] @ git+https://github.com/ansible/django-ansible-base.git@b8fe0b5c855686138f8ec27b1e69a944e4db4d44
+django-ansible-base[feature-flags,jwt-consumer,rbac,resource-registry,rest-filters] @ git+https://github.com/ansible/django-ansible-base.git@f60bf1e40832edee49832f1ce6f836e65c130b1d
+kubernetes @ git+https://github.com/kubernetes-client/python.git@df31d90d6c910d6b5c883b98011c93421cac067d
 REQUIREMENTS_GIT
 echo "   Done."
 echo ""
 
 # -------------------------------------------------------------------
-# 3. Patch CVEs — bump safe dependencies (patch/minor within same major)
+# 4. Patch CVEs — bump safe dependencies (patch/minor within same major)
 #    Only packages where the upgrade is backward-compatible.
-#    DO NOT bump: urllib3 (v1→v2 breaking), cryptography (42→46 breaking),
-#                 protobuf (4→5 breaking), pip/wheel (build-time only)
+#    DO NOT bump: cryptography (42→46 breaking), protobuf (4→5 breaking)
 # -------------------------------------------------------------------
 echo "=> Patching requirements.txt for CVE fixes..."
 REQFILE="requirements/requirements.txt"
@@ -105,11 +126,8 @@ REQFILE="requirements/requirements.txt"
 # Cross-platform sed in-place (macOS needs -i '', GNU/Linux needs -i)
 sedi() { if sed --version >/dev/null 2>&1; then sed -i "$@"; else sed -i '' "$@"; fi; }
 
-# Critical + High: Django 4.2.24 → 4.2.28 (LTS patch, 1 critical + 4 high SQLi/DoS)
-sedi 's/^django==4.2.24$/django==4.2.28/' "$REQFILE"
-
-# High: brotli 1.1.0 → 1.2.0 (DoS in decompression)
-sedi 's/^brotli==1.1.0$/brotli==1.2.0/' "$REQFILE"
+# Critical + High: Django 4.2.27 → 4.2.29 (LTS patch, SQLi/DoS fixes)
+sedi 's/^django==4.2.27$/django==4.2.29/' "$REQFILE"
 
 # High: wheel 0.42.0 → 0.46.2 (path traversal)
 sedi 's/^wheel==0.42.0$/wheel==0.46.2/' "$REQFILE"
@@ -117,8 +135,8 @@ sedi 's/^wheel==0.42.0$/wheel==0.46.2/' "$REQFILE"
 # Medium: python-ldap 3.4.4 → 3.4.5 (filter escape bypass)
 sedi 's/^python-ldap==3.4.4$/python-ldap==3.4.5/' "$REQFILE"
 
-# Medium: sqlparse 0.5.3 → 0.5.4 (Django dependency)
-sedi 's/^sqlparse==0.5.3$/sqlparse==0.5.4/' "$REQFILE"
+# Medium: sqlparse 0.5.3 → 0.5.5 (Django dependency)
+sedi 's/^sqlparse==0.5.3$/sqlparse==0.5.5/' "$REQFILE"
 
 # Medium: requests 2.32.3 → 2.32.4
 sedi 's/^requests==2.32.3$/requests==2.32.4/' "$REQFILE"
@@ -135,46 +153,138 @@ sedi 's/^filelock==3.13.1$/filelock==3.20.3/' "$REQFILE"
 # Medium: azure-identity 1.15.0 → 1.16.1 (privilege escalation)
 sedi 's/^azure-identity==1.15.0$/azure-identity==1.16.1/' "$REQFILE"
 
-# Medium: pycares 4.5.0 → 4.9.0 (use-after-free)
-sedi 's/^pycares==4.5.0$/pycares==4.9.0/' "$REQFILE"
-
 # Medium: msal 1.26.0 → 1.28.0 (privilege escalation CVE-2024-35255)
 sedi 's/^msal==1.26.0$/msal==1.28.0/' "$REQFILE"
 
+# High: azure-core 1.30.0 → 1.38.0 (GHSA-jm66-cg57-jjv5)
+# All azure-* packages require azure-core>=1.23.0,<2.0.0 — compatible.
+sedi 's/^azure-core==1.30.0$/azure-core==1.38.0/' "$REQFILE"
+
 echo "   Patched $(grep -c '==' "$REQFILE") packages in requirements.txt"
-echo ""
-
-# -------------------------------------------------------------------
-# 4. Fix UI settings mismatch (SUBSCRIPTIONS_USERNAME/PASSWORD → CLIENT_ID/SECRET)
-#    Backend registers SUBSCRIPTIONS_CLIENT_ID/CLIENT_SECRET but UI references
-#    SUBSCRIPTIONS_USERNAME/PASSWORD, causing TypeError on Settings > Misc System.
-# -------------------------------------------------------------------
-echo "=> Fixing UI settings field names..."
-UI_DETAIL="awx/ui/src/screens/Setting/MiscSystem/MiscSystemDetail/MiscSystemDetail.js"
-UI_EDIT="awx/ui/src/screens/Setting/MiscSystem/MiscSystemEdit/MiscSystemEdit.js"
-for f in "$UI_DETAIL" "$UI_EDIT"; do
-    sedi 's/SUBSCRIPTIONS_USERNAME/SUBSCRIPTIONS_CLIENT_ID/g' "$f"
-    sedi 's/SUBSCRIPTIONS_PASSWORD/SUBSCRIPTIONS_CLIENT_SECRET/g' "$f"
-done
 echo "   Done."
 echo ""
 
 # -------------------------------------------------------------------
-# 5. Replace dev logos with official AWX branding
-#    The repo ships "angry potato" dev logos. Official AWX releases use
-#    assets from ansible/awx-logos.
+# 5. Patch AWX metadata to expose content_type choices for role_definitions
+#    The new UI (aap-ui) fetches OPTIONS /api/v2/role_definitions/ and reads
+#    actions.GET.content_type.choices to populate the "Resource type" dropdown.
+#    AWX's Metadata class skips choices for RelatedField subclasses (by design),
+#    but DAB's RoleDefinitionSerializer uses SlugRelatedField for content_type.
+#    We patch get_field_info() to add choices for SlugRelatedField fields whose
+#    queryset is DABContentType.
 # -------------------------------------------------------------------
-echo "=> Fetching official AWX logos from ansible/awx-logos..."
-AWX_LOGOS_DIR="${SCRIPT_DIR}/.awx-logos"
-if [ ! -d "${AWX_LOGOS_DIR}" ]; then
-    git clone --depth 1 https://github.com/ansible/awx-logos.git "${AWX_LOGOS_DIR}"
+echo "=> Patching metadata.py to expose content_type choices..."
+python3 -c "
+f = 'awx/api/metadata.py'
+content = open(f).read()
+
+# Add import for DABContentType at the top of the file (after existing imports)
+import_line = 'from ansible_base.rbac.models import DABContentType'
+if import_line not in content:
+    # Insert after the last 'from ansible_base' import or before 'from awx'
+    import_anchor = 'from awx.'
+    idx = content.index(import_anchor)
+    content = content[:idx] + import_line + '\n' + content[idx:]
+
+# Patch get_field_info to add choices for SlugRelatedField with DABContentType queryset
+old = '''        if not isinstance(field, (RelatedField, ManyRelatedField)) and hasattr(field, 'choices'):'''
+new = '''        # Expose content_type choices for DAB RBAC SlugRelatedField (needed by ui_next)
+        if isinstance(field, RelatedField) and hasattr(field, 'get_queryset'):
+            qs = field.get_queryset()
+            if qs is not None and qs.model is DABContentType:
+                field_info['choices'] = [
+                    (ct.api_slug, ct.model_class()._meta.verbose_name.title())
+                    for ct in qs if ct.model_class() is not None
+                ]
+
+        if not isinstance(field, (RelatedField, ManyRelatedField)) and hasattr(field, 'choices'):'''
+
+content = content.replace(old, new, 1)
+open(f, 'w').write(content)
+"
+echo "   Done."
+echo ""
+
+# -------------------------------------------------------------------
+# 6. Prepare AAP UI source for Vite build (Apache-2.0 licensed)
+#    Downloads the AAP Platform UI SRPM, extracts the aap-ui tarball,
+#    and unpacks it for the Vite build. Replaces old CRA/webpack UI.
+# -------------------------------------------------------------------
+echo "=> Preparing AAP UI source for Vite build..."
+if [ ! -d "${AAP_UI_DIR}" ]; then
+    # Download SRPM if not cached
+    mkdir -p "${AAP_UI_SRPM_DIR}"
+    SRPM_FILE="${AAP_UI_SRPM_DIR}/$(basename "${AAP_UI_SRPM_URL}")"
+    if [ ! -f "${SRPM_FILE}" ]; then
+        echo "   Downloading AAP UI SRPM..."
+        curl -fSL -o "${SRPM_FILE}" "${AAP_UI_SRPM_URL}"
+    fi
+    # Extract SRPM contents (uses rpm2cpio + cpio)
+    echo "   Extracting SRPM..."
+    cd "${AAP_UI_SRPM_DIR}" && rpm2cpio "${SRPM_FILE}" | cpio -idm --quiet 2>/dev/null
+    # Find the aap-ui source tarball inside the extracted SRPM
+    AAP_UI_TARBALL=$(ls ${AAP_UI_SRPM_DIR}/${AAP_UI_TARBALL_GLOB} 2>/dev/null | head -1)
+    if [ -z "${AAP_UI_TARBALL}" ]; then
+        echo "   ERROR: Could not find ${AAP_UI_TARBALL_GLOB} in SRPM contents"
+        exit 1
+    fi
+    echo "   Found: $(basename "${AAP_UI_TARBALL}")"
+    # Unpack the aap-ui source
+    mkdir -p "${AAP_UI_DIR}"
+    tar xzf "${AAP_UI_TARBALL}" -C "${AAP_UI_DIR}" --strip-components=1
+    cd "${BUILD_DIR}"
 fi
-cp "${AWX_LOGOS_DIR}/awx/ui/client/assets/"* awx/ui/public/static/media/
+# Copy AWX logo assets into the frontend build source
+cp "${AWX_LOGOS_DIR}/awx/ui/client/assets/logo-login.svg" "${AAP_UI_DIR}/frontend/assets/awx-logo.svg" 2>/dev/null || true
+cp "${AWX_LOGOS_DIR}/awx/ui/client/assets/favicon.ico" "${AAP_UI_DIR}/frontend/awx/favicon.ico" 2>/dev/null || true
+cp "${AWX_LOGOS_DIR}/awx/ui/client/assets/favicon.svg" "${AAP_UI_DIR}/frontend/assets/awx-icon.svg" 2>/dev/null || true
+# Replace the angry potato icon in Vite's public/ dir — Vite copies public/ files
+# directly to dist/, so this is what browsers load via <link rel="icon" href="/awx-icon.svg">
+cp "${AWX_LOGOS_DIR}/awx/ui/client/assets/favicon.svg" "${AAP_UI_DIR}/frontend/awx/public/awx-icon.svg" 2>/dev/null || true
 echo "   Done."
 echo ""
 
 # -------------------------------------------------------------------
-# 6. Ensure credentials file is clean (no actual credentials)
+# 7. Make the new UI the default (replace old CRA/webpack UI)
+#    Note: working directory must be BUILD_DIR for relative paths below.
+#    - Patch the old UI's IndexView to serve index_awx.html (Vite build)
+#    - Re-add ui_next to STATICFILES_DIRS so collectstatic picks it up
+#    - Copy AWX logos into the static media dir for fallback
+#    Note: This commit already has ui_next in TEMPLATES['DIRS'] and UI_NEXT=True
+#    in defaults.py, but STATICFILES_DIRS still needs the entry.
+# -------------------------------------------------------------------
+echo "=> Patching AWX to serve new UI as default..."
+cd "${BUILD_DIR}"
+
+# 7a. Make the root IndexView serve the Vite-built index_awx.html
+sedi "s/template_name = 'index.html'/template_name = 'index_awx.html'/" awx/ui/urls.py
+
+# 7b. Fix STATICFILES_DIRS:
+#     - Ensure ui_next entry exists (for collectstatic to pick up Vite assets)
+#     - Remove old UI 'ui/build/static' entry (we don't build the old CRA UI,
+#       so this path doesn't exist at runtime → Django W004 warning)
+python3 -c "
+f = 'awx/settings/defaults.py'
+content = open(f).read()
+marker = \"('awx', os.path.join(BASE_DIR, 'ui_next', 'build', 'awx'))\"
+if marker not in content:
+    old = 'STATICFILES_DIRS = ['
+    new = \"\"\"STATICFILES_DIRS = [
+    ('awx', os.path.join(BASE_DIR, 'ui_next', 'build', 'awx')),\"\"\"
+    content = content.replace(old, new, 1)
+# Remove old CRA/webpack UI static dir (no longer built)
+content = content.replace(\"    os.path.join(BASE_DIR, 'ui', 'build', 'static'),\n\", '')
+open(f, 'w').write(content)
+"
+
+# 7c. Copy official AWX logos into static media (for old UI fallback paths)
+cp "${AWX_LOGOS_DIR}/awx/ui/client/assets/"* awx/ui/public/static/media/
+
+echo "   Done."
+echo ""
+
+# -------------------------------------------------------------------
+# 8. Ensure credentials file is clean (no actual credentials)
 # -------------------------------------------------------------------
 echo "=> Cleaning requirements_git.credentials.txt..."
 cat > requirements/requirements_git.credentials.txt << 'CREDENTIALS'
@@ -183,7 +293,7 @@ echo "   Done."
 echo ""
 
 # -------------------------------------------------------------------
-# 7. Create _build/ directory with rendered configs
+# 9. Create _build/ directory with rendered configs
 # -------------------------------------------------------------------
 echo "=> Installing rendered configs into _build/..."
 mkdir -p _build
@@ -195,7 +305,7 @@ echo "   Done."
 echo ""
 
 # -------------------------------------------------------------------
-# 8. Build the container image
+# 10. Build the container image
 # -------------------------------------------------------------------
 BUILDX_ARGS=(
     -f "${SCRIPT_DIR}/Dockerfile"

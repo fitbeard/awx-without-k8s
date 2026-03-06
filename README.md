@@ -8,7 +8,7 @@ and [awx-ee](https://github.com/ansible/awx-ee) code.
 
 ## AWX configuration and deployment
 
-Main branch is compatible with AWX versions __24.6.1__ and __24.6.281__
+Main branch is compatible with AWX versions __24.6.330__
 Use git tag with desired version.
 
 [`CHANGELOG`](./CHANGELOG.md)
@@ -22,7 +22,7 @@ ansible-galaxy collection install fitbeard.awx
 or desired version
 
 ```shell
-ansible-galaxy collection install fitbeard.awx:24.6.281
+ansible-galaxy collection install fitbeard.awx:24.6.330
 ```
 
 ## Dependencies
@@ -84,7 +84,7 @@ bash ../scripts/receptor_keypair.sh -n awx-1.demo.io
 
 Create [`custom EE image`](./ee/execution-environment.yml) for execution nodes and for management nodes (if `awx_node_role_type` variable is set to `hybrid`).
 
-Or use `quay.io/tadas/awx-ee:24.6.1.post281` image which is based on the [`EE config`](./ee/execution-environment.yml).
+Or use `quay.io/tadas/awx-ee:24.6.1.post330` image which is based on the [`EE config`](./ee/execution-environment.yml).
 
 #### Start installation
 

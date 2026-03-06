@@ -1,5 +1,5 @@
 ### Based on tools/ansible/roles/dockerfile/templates/Dockerfile.j2
-### with build_dev=false, kube_dev=false, headless=yes (ui_next disabled).
+### with build_dev=false, kube_dev=false.
 ###
 ### DO NOT EDIT — regenerate from the template if needed
 ###
@@ -7,11 +7,10 @@
 # Build container
 FROM docker.io/rockylinux/rockylinux:9 AS builder
 
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
-ENV AWX_LOGGING_MODE stdout
-
+ENV LANG="en_US.UTF-8"
+ENV LANGUAGE="en_US:en"
+ENV LC_ALL="en_US.UTF-8"
+ENV AWX_LOGGING_MODE="stdout"
 
 USER root
 
@@ -66,13 +65,14 @@ ADD requirements/requirements.txt \
 
 RUN git config --global credential.helper "store --file=/tmp/requirements/requirements_git.credentials.txt"
 # NOTE: --mount=type=ssh removed — all git deps use HTTPS now
-RUN cd /tmp && make requirements_awx
+# DAB needs its version set for setuptools_scm during install
+RUN SETUPTOOLS_SCM_PRETEND_VERSION_FOR_DJANGO_ANSIBLE_BASE=2.6.20260121 \
+    cd /tmp && make requirements_awx
 
 ARG VERSION
 ARG SETUPTOOLS_SCM_PRETEND_VERSION
-
-# Use the distro provided npm to bootstrap Node 18 LTS (required for old AWX UI build)
-RUN npm install -g n && n 18
+# Use the distro provided npm to bootstrap Node 20 LTS (required for UI build)
+RUN npm install -g n && n 20
 
 # Copy source into builder, build sdist, install it into awx venv
 COPY . /tmp/src/
@@ -82,10 +82,30 @@ WORKDIR /tmp/src/
 # pkg_resources still works (removed in setuptools>=81, see deprecation warning).
 RUN sed -i 's/"setuptools>=45"/"setuptools>=45,<81"/' pyproject.toml
 
-# Build old AWX UI but skip ui_next (disabled in AAP 2.6, see ansible/awx@d5388b3c).
-# Create an empty ui_next/build so the Makefile's ui-next target is satisfied without
-# cloning ansible-ui or running npm build.
-RUN mkdir -p awx/ui_next/build && make sdist && /var/lib/awx/venv/awx/bin/pip install dist/awx.tar.gz
+# Build the UI from AAP UI source (aap-ui, Apache-2.0).
+# The source is copied into the build context by build.sh.
+# We build only frontend/awx (standalone AWX UI with Vite), then place the
+# output where AWX expects it: awx/ui_next/build/awx/
+COPY aap-ui/ /tmp/aap-ui/
+# Inject VERSION and PRODUCT into Vite build environment so the About modal
+# shows the version string instead of undefined.  vite.config.ts defines
+# `process.env` as a limited object — we add our vars to it.
+RUN sed -i 's/  AWX_WEBSOCKET_PREFIX,/  AWX_WEBSOCKET_PREFIX,\n  VERSION: process.env.VERSION || "",\n  PRODUCT: "AWX",/' /tmp/aap-ui/frontend/awx/vite.config.ts
+RUN cd /tmp/aap-ui && VERSION="${VERSION}" npm ci && \
+    cd frontend/awx && VERSION="${VERSION}" npx vite build --base /static/awx/ && \
+    mkdir -p /tmp/src/awx/ui_next/build/awx && \
+    cp -r dist/* /tmp/src/awx/ui_next/build/awx/ && \
+    mv /tmp/src/awx/ui_next/build/awx/index.html /tmp/src/awx/ui_next/build/awx/index_awx.html && \
+    cp /tmp/aap-ui/frontend/assets/awx-logo.svg /tmp/src/awx/ui_next/build/awx/awx-logo.svg && \
+    (cp /tmp/aap-ui/frontend/assets/awx-icon.svg /tmp/src/awx/ui_next/build/awx/awx-icon.svg 2>/dev/null || true) && \
+    rm -rf /tmp/aap-ui
+
+# Create an empty old UI build dir to satisfy MANIFEST.in (recursive-include awx/ui/build *)
+# The old CRA/webpack UI is no longer built — the Vite UI above is the default.
+RUN mkdir -p awx/ui/build/static
+
+# Build sdist with HEADLESS=yes to skip Makefile UI targets.
+RUN HEADLESS=yes make sdist && /var/lib/awx/venv/awx/bin/pip install dist/awx.tar.gz
 
 # Collect static files.
 # AWX_MODE=defaults bypasses the production settings assertion (no /etc/tower/ needed).
@@ -97,10 +117,10 @@ RUN rm /tmp/requirements/requirements_git.credentials.txt
 # Final container(s)
 FROM docker.io/rockylinux/rockylinux:9
 
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
-ENV AWX_LOGGING_MODE stdout
+ENV LANG="en_US.UTF-8"
+ENV LANGUAGE="en_US:en"
+ENV LC_ALL="en_US.UTF-8"
+ENV AWX_LOGGING_MODE="stdout"
 
 USER root
 
