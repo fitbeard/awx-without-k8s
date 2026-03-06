@@ -27,11 +27,11 @@ awx_peers: []
 awx_peers_from_control_nodes: true
 
 # AWX
-awx_image_tag: 24.6.1.post281
+awx_image_tag: 24.6.1.post330
 awx_image: awx
 awx_image_registry: quay.io
 awx_image_url: "{{ awx_image_registry }}/tadas/{{ awx_image }}:{{ awx_image_tag }}"
-awx_ee_image_url: quay.io/tadas/awx-ee:24.6.1.post281
+awx_ee_image_url: quay.io/tadas/awx-ee:24.6.1.post330
 awx_directory: /opt/awx
 
 awx_admin_username: "xxx"

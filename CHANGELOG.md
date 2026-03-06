@@ -1,5 +1,51 @@
 # Changelog
 
+## [24.6.330](https://github.com/fitbeard/awx-without-k8s/compare/v24.6.281...v24.6.330) (2026-03-07)
+
+### Features
+
+* Code cleanup and dependency update
+* New build scripts for AWX and EE
+* AWX and EE images for `linux/amd64` and `linux/arm64` platforms
+
+#### AWX 24.6.1 → AAP 2.6.5 (commit 03140796f620)
+
+**330 commits** between tag `24.6.1` and commit `03140796f620966cdc4ff5052978c80a51c94ca7`.
+
+Source: [GitHub comparison](https://github.com/ansible/awx/compare/24.6.1...03140796f620966cdc4ff5052978c80a51c94ca7)
+
+### New AWX Features
+
+#### ESXi Inventory Plugin
+
+- ESXi inventory plugin support (`d35d7f62ec46`)
+- Logic to replace credential name when using ESXi (`60114ab92943`)
+
+#### Azure Key Vault Managed Identity
+
+- Azure Key Vault plugin updated to use Managed Identity (`ba7ee2329828`)
+
+#### Credential sharing
+
+- Credential sharing across organizations (`ceb2eeccd1`): Credentials can now be shared between organizations.
+
+#### Redis
+
+- Connection resilience (`a49da9a19f`): New `REDIS_RETRY_COUNT`, `REDIS_BACKOFF_CAP`, `REDIS_BACKOFF_BASE`
+settings for automatic retry on broken pipe.
+
+## Security Fixes
+
+- **CVE-2025-6176** (`ec02f8b991`)
+- **CVE-2025-66471**: urllib3 upgraded to 2.6.3 (`919022d624`)
+- **Django 4.2.27** security update (`e5db05ff3f`)
+
+## Kubernetes Operator
+
+New images (both AWX and EE) can also be used with [awx-operator](https://docs.ansible.com/projects/awx-operator/en/latest/)
+but an external nginx.conf config compatible with this version should be used. See [`nginx.conf`](./roles/awx/templates/awx-nginx.conf.j2)
+for the reference.
+
 ## [24.6.281](https://github.com/fitbeard/awx-without-k8s/compare/v24.6.2...v24.6.281) (2026-03-03)
 
 ### Features

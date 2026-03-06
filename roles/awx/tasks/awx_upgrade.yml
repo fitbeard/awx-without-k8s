@@ -26,6 +26,7 @@
   community.docker.docker_compose_v2:
     project_name: awx
     project_src: "{{ awx_directory }}"
+    renew_anon_volumes: true
     state: present
   when:
     - awx_cluster_node_type == 'primary'
@@ -46,6 +47,7 @@
   community.docker.docker_compose_v2:
     project_name: awx
     project_src: "{{ awx_directory }}"
+    renew_anon_volumes: true
     state: present
   when:
     - awx_cluster_node_type == 'secondary'
