@@ -35,6 +35,17 @@ BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/awx-src}"
 PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
 BUILDER_NAME="awx-multiarch"
 
+# Pre-flight: check required tools
+for cmd in git curl docker rpm2cpio cpio; do
+    if ! command -v "$cmd" &>/dev/null; then
+        echo "ERROR: '$cmd' is required but not found in PATH."
+        echo "  On macOS: brew install rpm2cpio"
+        echo "  On Debian/Ubuntu: apt install rpm2cpio cpio"
+        echo "  On RHEL/Fedora: dnf install rpm cpio"
+        exit 1
+    fi
+done
+
 PUSH=false
 LOCAL_PLATFORM=""
 NO_CACHE=false
