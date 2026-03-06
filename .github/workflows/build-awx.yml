@@ -28,6 +28,10 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y rpm2cpio cpio
+
       - name: Build image
         run: |
           cd build && \
