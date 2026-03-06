@@ -316,7 +316,20 @@ echo "   Done."
 echo ""
 
 # -------------------------------------------------------------------
-# 10. Build the container image
+# 10. Ensure aap-ui is inside the Docker build context
+#     AAP_UI_DIR may live outside BUILD_DIR for caching; Docker COPY
+#     requires it inside the context.
+# -------------------------------------------------------------------
+if [ "$(cd "${AAP_UI_DIR}" && pwd)" != "$(cd "${BUILD_DIR}/aap-ui" 2>/dev/null && pwd)" ]; then
+    echo "=> Copying aap-ui into Docker build context..."
+    rm -rf "${BUILD_DIR}/aap-ui"
+    cp -a "${AAP_UI_DIR}" "${BUILD_DIR}/aap-ui"
+    echo "   Done."
+    echo ""
+fi
+
+# -------------------------------------------------------------------
+# 11. Build the container image
 # -------------------------------------------------------------------
 BUILDX_ARGS=(
     -f "${SCRIPT_DIR}/Dockerfile"
