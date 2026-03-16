@@ -25,7 +25,7 @@ jobs:
         run: pip install ansible-builder==3.1.1
 
       - name: Checkout project
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Generate EE configs
         run: |
