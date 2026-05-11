@@ -1,0 +1,51 @@
+From 51113494f9ad85e9c225bec589e1356124608922 Mon Sep 17 00:00:00 2001
+From: AAP Rebuild <aap-rebuild-bot@localhost>
+Date: Tue, 5 May 2026 08:36:27 +0300
+Subject: [PATCH] patch: postgres max_connections=1024 default (configurable)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+EDA's gunicorn / daphne / activation-worker fleet saturates Postgres'
+upstream default of 100 connections quickly. Expose
+postgres_max_connections (default 1024 — Red Hat-validated ceiling)
+inside the _database dict so users can override via
+spec.database.postgres_max_connections on the EDA CR. Inject it as
+POSTGRESQL_MAX_CONNECTIONS env var, honored by the sclorg
+postgres-15-c9s default image at startup. Mirrors the configurable
+shape of awx-operator patch 0004.
+---
+ roles/postgres/defaults/main.yml                      | 6 ++++++
+ roles/postgres/templates/postgres.statefulset.yaml.j2 | 2 ++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/roles/postgres/defaults/main.yml b/roles/postgres/defaults/main.yml
+index 4598039..6ae459f 100644
+--- a/roles/postgres/defaults/main.yml
++++ b/roles/postgres/defaults/main.yml
+@@ -40,6 +40,12 @@ _database:
+   priority_class: ''
+   tolerations: []
+   postgres_extra_args: ''  # Deprecated
++  # Maximum number of concurrent connections accepted by the postgres pod.
++  # Upstream postgres defaults to 100, which EDA's gunicorn / daphne /
++  # activation-worker fleet saturates quickly. 1024 matches Red Hat's
++  # AAP-validated ceiling. Override via spec.database.postgres_max_connections
++  # on the EDA CR.
++  postgres_max_connections: 1024
+   postgres_extra_settings: []  # Define postgresql.conf configurations
+   postgres_keep_pvc_after_upgrade: true  # Specify whether or not to keep the old PVC after PostgreSQL upgrades
+   postgres_data_volume_init: false
+diff --git a/roles/postgres/templates/postgres.statefulset.yaml.j2 b/roles/postgres/templates/postgres.statefulset.yaml.j2
+index 2472dfd..435db9c 100644
+--- a/roles/postgres/templates/postgres.statefulset.yaml.j2
++++ b/roles/postgres/templates/postgres.statefulset.yaml.j2
+@@ -94,6 +94,8 @@ spec:
+             timeoutSeconds: 2
+           env:
+             # For postgres_image based on rhel8/postgresql-13
++            - name: POSTGRESQL_MAX_CONNECTIONS
++              value: '{{ combined_database.postgres_max_connections }}'
+             - name: POSTGRESQL_DATABASE
+               valueFrom:
+                 secretKeyRef:
