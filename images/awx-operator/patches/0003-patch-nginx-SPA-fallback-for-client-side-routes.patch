@@ -1,0 +1,52 @@
+From dd0361b1502c73ff9f9129ddcfb2807a2f7cb1b1 Mon Sep 17 00:00:00 2001
+From: AAP Rebuild <aap-rebuild-bot@localhost>
+Date: Thu, 23 Apr 2026 20:11:08 +0300
+Subject: [PATCH] patch: nginx SPA fallback for client-side routes
+
+Client-side routes like /templates or /jobs/123 return Django 404 on
+page refresh because ui/urls.py only binds r'^$' to IndexView. Convert
+unknown 404s into the Vite shell (index_awx.html) so React Router can
+resolve the path client-side. Preserve real 404 semantics for /api/.
+---
+ .../templates/configmaps/config.yaml.j2       | 21 ++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/roles/installer/templates/configmaps/config.yaml.j2 b/roles/installer/templates/configmaps/config.yaml.j2
+index 78b60b4..88505d0 100644
+--- a/roles/installer/templates/configmaps/config.yaml.j2
++++ b/roles/installer/templates/configmaps/config.yaml.j2
+@@ -257,6 +257,10 @@ data:
+                 uwsgi_pass uwsgi;
+                 include /etc/nginx/uwsgi_params;
+                 include /etc/nginx/conf.d/*.conf;
++                # Required for error_page below to intercept Django's 404 body;
++                # without this, uWSGI's 404 response streams through untouched
++                # and error_page never fires.
++                uwsgi_intercept_errors on;
+                 proxy_set_header X-Forwarded-Port 443;
+                 uwsgi_param HTTP_X_FORWARDED_PORT 443;
+ 
+@@ -269,7 +273,22 @@ data:
+                 add_header Pragma "no-cache";
+                 # Return 503 Service Unavailable with JSON response if uWSGI fails to respond
+                 error_page 504 =503 /json_503;
+-                error_page 502 =503 /json_503;  # Optional, in case uWSGI is completely down   
++                error_page 502 =503 /json_503;  # Optional, in case uWSGI is completely down
++                # Page-refresh on a SPA deep-link (e.g. /templates, /jobs/123) would
++                # otherwise hit Django -> handle_404 because ui/urls.py only maps r'^$'.
++                # Convert 404 into the Vite shell so React Router picks up the route
++                # client-side. API paths preserve their own 404 via @spa_fallback's if.
++                error_page 404 = @spa_fallback;
++            }
++
++            location @spa_fallback {
++                internal;
++                # API 404s must stay as 404s so clients see real errors.
++                if ($request_uri ~ ^{{ (ingress_path + '/api/').replace('//', '/') }}) {
++                    return 404;
++                }
++                # Serve the Vite index shell; React Router handles the path.
++                rewrite ^ {{ (ingress_path + '/static/awx/index_awx.html').replace('//', '/') }} last;
+             }
+ 
+             location = /json_503 {

@@ -1,0 +1,24 @@
+---
+# Sample AWX CR for use with our hand-rolled chart at charts/awx-operator/.
+#
+# Apply with:
+#   kubectl apply -f deploy/awx-sample.yaml
+#
+# No image / image_version / control_plane_ee_image fields needed — the
+# chart sets RELATED_IMAGE_AWX + RELATED_IMAGE_CONTROL_PLANE_EE env vars
+# on the operator pod, and the role's existing
+#   _image | default(env RELATED_IMAGE_*) | default(_default)
+# lookup chain pins them at reconcile time. To override the registry,
+# set chart values relatedImages.awx / relatedImages.controlPlaneEE.
+apiVersion: awx.ansible.com/v1beta1
+kind: AWX
+metadata:
+  name: awx
+  namespace: ansible
+spec:
+  image_pull_policy: IfNotPresent
+  service_type: ClusterIP
+  # Operator auto-provisions sclorg postgresql-15-c9s. To wire an external
+  # Postgres, drop a Secret with host/port/database/username/password keys
+  # and reference it via:
+  #   postgres_configuration_secret: <secret-name>

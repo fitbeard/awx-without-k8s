@@ -1,0 +1,54 @@
+From 21e89d237637ec6e6a4ca83df2cb8e29b6ce862b Mon Sep 17 00:00:00 2001
+From: AAP Rebuild <aap-rebuild-bot@localhost>
+Date: Thu, 23 Apr 2026 19:47:27 +0300
+Subject: [PATCH 2/3] patch: resolve control_plane_ee_image before init image
+ derivation
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Upstream bug: install.yml includes set_images.yml (L75) before
+resources_configuration.yml (L101). set_images.yml freezes
+_init_container_image via set_fact using the default
+_control_plane_ee_image, but the user's CR override is only applied
+later by resources_configuration.yml. Result: main EE container
+honors control_plane_ee_image, but init-receptor does not.
+
+Fix by moving the two control_plane_ee_image resolution tasks to
+the top of set_images.yml. resources_configuration.yml still runs
+them again later — harmless idempotent set_fact — so we don't need
+to touch that file.
+
+Symptom this fixes: setting control_plane_ee_image: quay.io/fitbeard/ansible-platform/awx-ee
+on the AWX CR leaves init-receptor pointing at quay.io/ansible/awx-ee
+and crashing in disconnected environments.
+---
+ roles/installer/tasks/set_images.yml | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/roles/installer/tasks/set_images.yml b/roles/installer/tasks/set_images.yml
+index 2992610..b5008e5 100644
+--- a/roles/installer/tasks/set_images.yml
++++ b/roles/installer/tasks/set_images.yml
+@@ -1,5 +1,21 @@
+ # For disconnected environments, images must be set based on the values of `RELATED_IMAGE_` variables
+ ---
++# NOTE: the user-supplied control_plane_ee_image override is normally applied
++# by resources_configuration.yml, which runs AFTER this file in install.yml.
++# That ordering means _init_container_image (derived from _control_plane_ee_image
++# in defaults/main.yml) freezes to the default quay.io/ansible/awx-ee before
++# the override takes effect. Apply it here first so the derived init image
++# picks up the user-supplied value.
++- name: Set user provided control plane ee image (early, for init-container derivation)
++  set_fact:
++    _custom_control_plane_ee_image: "{{ control_plane_ee_image }}"
++  when:
++    - control_plane_ee_image | default([]) | length
++
++- name: Set Control Plane EE image URL (early, for init-container derivation)
++  set_fact:
++    _control_plane_ee_image: "{{ _custom_control_plane_ee_image | default(lookup('env', 'RELATED_IMAGE_CONTROL_PLANE_EE')) | default(_control_plane_ee_image, true) }}"
++
+ - name: Set default awx init container image
+   set_fact:
+     _default_init_container_image: "{{ _init_container_image }}:{{ _init_container_image_version }}"
