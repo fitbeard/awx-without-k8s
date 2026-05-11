@@ -1,19 +1,10 @@
-name: build-eda
+name: build-mcp
 
 on:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Set image tag'
-        required: true
-        default: '1.2.8'
-      ui-tag:
-        description: 'Set UI image tag'
-        required: true
-        default: '2.6.8'
 
 jobs:
-  images:
+  image:
     runs-on: ubuntu-latest
     steps:
       - name: Install QEMU static binaries
@@ -32,12 +23,8 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
-      - name: Install dependencies
+      - name: Build image
         run: |
-          sudo apt-get install -y rpm2cpio cpio
-
-      - name: Build images
-        run: |
-          cd images/eda && \
+          cd images/mcp && \
           chmod +x build.sh && \
-          VERSION=${{ github.event.inputs.tag }} UI_VERSION=${{ github.event.inputs.ui-tag }} ./build.sh --no-cache --push
+          ./build.sh --no-cache --push
