@@ -41,4 +41,4 @@ jobs:
           cd images/eda-server-operator && \
           chmod +x build.sh && \
           chmod +x patch.sh && \
-          VERSION=${{ github.event.inputs.eda-tag }} DEFAULT_EDA_VERSION=${{ github.event.inputs.eda-tag }} DEFAULT_EDA_UI_VERSION=${{ github.event.inputs.eda-ui-tag }} ./build.sh --no-cache --push
+          VERSION=${{ github.event.inputs.tag }} DEFAULT_EDA_VERSION=${{ github.event.inputs.eda-tag }} DEFAULT_EDA_UI_VERSION=${{ github.event.inputs.eda-ui-tag }} ./build.sh --no-cache --push
