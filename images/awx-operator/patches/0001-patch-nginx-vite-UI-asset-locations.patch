@@ -1,0 +1,56 @@
+From d06e980dd4513ea4649219b37396aa728973caae Mon Sep 17 00:00:00 2001
+From: AAP Rebuild <aap-rebuild-bot@localhost>
+Date: Thu, 23 Apr 2026 19:47:00 +0300
+Subject: [PATCH 1/3] patch: nginx vite UI asset locations
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The AWX Vite UI (shipped in quay.io/fitbeard/ansible-platform/awx:25.0.0+) emits absolute
+URL references in index_awx.html that the upstream operator nginx
+config does not expose:
+
+  /assets/awx-logo.svg   (login masthead + About modal)
+  /awx-icon.svg          (<link rel="icon">)
+  /favicon.ico           (upstream aliased to stale media/favicon.ico)
+
+Add two = locations and correct /favicon.ico to point at awx-icon.svg.
+Without this, the login page shows a broken logo and the browser tab
+shows no favicon.
+
+All three files live under /var/lib/awx/public/static/awx/ in the image,
+installed there by collectstatic during image build.
+
+Does NOT affect direct /login/, /api/, /sso/ routing — those continue
+to flow through the catch-all {{ ingress_path }} -> uwsgi block.
+---
+ .../templates/configmaps/config.yaml.j2          | 16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/roles/installer/templates/configmaps/config.yaml.j2 b/roles/installer/templates/configmaps/config.yaml.j2
+index b83fcce..78b60b4 100644
+--- a/roles/installer/templates/configmaps/config.yaml.j2
++++ b/roles/installer/templates/configmaps/config.yaml.j2
+@@ -208,8 +208,20 @@ data:
+                 alias /var/lib/awx/public/static/awx/locales;
+             }
+ 
+-            location {{ (ingress_path + '/favicon.ico').replace('//', '/') }} {
+-                alias /var/lib/awx/public/static/media/favicon.ico;
++            location = {{ (ingress_path + '/favicon.ico').replace('//', '/') }} {
++                alias /var/lib/awx/public/static/awx/awx-icon.svg;
++            }
++
++            # AWX Vite UI asset references emitted by index_awx.html
++            # (login masthead, About modal logo, <link rel="icon">).
++            # The Vite build writes these under /var/lib/awx/public/static/awx/
++            # but the HTML references them at absolute paths without /static prefix.
++            location = {{ (ingress_path + '/assets/awx-logo.svg').replace('//', '/') }} {
++                alias /var/lib/awx/public/static/awx/awx-logo.svg;
++            }
++
++            location = {{ (ingress_path + '/awx-icon.svg').replace('//', '/') }} {
++                alias /var/lib/awx/public/static/awx/awx-icon.svg;
+             }
+ 
+ {% if api_urlpattern_prefix | length > 0 %}

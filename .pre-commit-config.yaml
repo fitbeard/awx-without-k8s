@@ -3,7 +3,9 @@ repos:
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
+        exclude: ^images/.*/patches/.*\.patch$
       - id: trailing-whitespace
+        exclude: ^images/.*/patches/.*\.patch$
 
   - repo: https://github.com/ansible/ansible-lint
     rev: v25.6.1

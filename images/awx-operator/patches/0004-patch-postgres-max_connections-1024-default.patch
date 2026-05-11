@@ -1,0 +1,47 @@
+From bf91124624ff7485c8aabdd532aef66483af0cae Mon Sep 17 00:00:00 2001
+From: AAP Rebuild <aap-rebuild-bot@localhost>
+Date: Mon, 4 May 2026 11:22:53 +0300
+Subject: [PATCH] patch: postgres max_connections=1024 default
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+AWX's web/task/dispatcher fleet saturates Postgres' upstream default of
+100 connections quickly. Expose 'postgres_max_connections' (default
+1024 — Red Hat-validated ceiling) on the CR and inject it as the
+POSTGRESQL_MAX_CONNECTIONS env var, which the sclorg postgres-15-c9s
+image (default _postgres_image) honors at startup.
+---
+ roles/installer/defaults/main.yml                       | 5 +++++
+ roles/installer/templates/statefulsets/postgres.yaml.j2 | 2 ++
+ 2 files changed, 7 insertions(+)
+
+diff --git a/roles/installer/defaults/main.yml b/roles/installer/defaults/main.yml
+index df78359..a9b966d 100644
+--- a/roles/installer/defaults/main.yml
++++ b/roles/installer/defaults/main.yml
+@@ -425,6 +425,11 @@ projects_existing_claim: ''
+ # Define postgres configuration arguments to use (Deprecated)
+ postgres_extra_args: ''
+ #
++# Maximum number of concurrent connections accepted by the postgres pod.
++# Upstream postgres defaults to 100, which AWX's web/task/dispatcher fleet
++# saturates quickly. 1024 matches Red Hat's AAP-validated ceiling.
++postgres_max_connections: 1024
++#
+ # Define postgresql.conf configurations
+ postgres_extra_settings: []
+ 
+diff --git a/roles/installer/templates/statefulsets/postgres.yaml.j2 b/roles/installer/templates/statefulsets/postgres.yaml.j2
+index d1c93c9..a0fa07d 100644
+--- a/roles/installer/templates/statefulsets/postgres.yaml.j2
++++ b/roles/installer/templates/statefulsets/postgres.yaml.j2
+@@ -105,6 +105,8 @@ spec:
+                 secretKeyRef:
+                   name: '{{ __postgres_configuration_secret }}'
+                   key: password
++            - name: POSTGRESQL_MAX_CONNECTIONS
++              value: '{{ postgres_max_connections }}'
+ 
+             # For postgres_image based on postgres
+             - name: POSTGRES_DB
