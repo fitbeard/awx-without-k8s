@@ -6,7 +6,7 @@ on:
       tag:
         description: 'Set image tag'
         required: true
-        default: 'test'
+        default: '25.0.0'
 
 jobs:
   image:
@@ -29,7 +29,7 @@ jobs:
 
       - name: Generate EE configs
         run: |
-          cd ee && \
+          cd images/awx-ee && \
           ansible-builder create -v3 --file execution-environment.yml --context . --output-filename=Dockerfile
 
       - name: Authenticate with Quay.io
@@ -42,12 +42,12 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@v7.0.0
         with:
-          context: ee
-          file: ee/Dockerfile
+          context: images/awx-ee
+          file: images/awx-ee/Dockerfile
           push: true
           platforms: |
             linux/amd64
             linux/arm64
           tags: |
-            quay.io/tadas/awx-ee:latest
-            quay.io/tadas/awx-ee:${{ github.event.inputs.tag }}
+            quay.io/fitbeard/ansible-platform/awx-ee:latest
+            quay.io/fitbeard/ansible-platform/awx-ee:${{ github.event.inputs.tag }}

@@ -15,7 +15,7 @@ dependencies:
   ansible_core:
     package_pip: ansible-core>=2.15.0,<2.19.0
   ansible_runner:
-    package_pip: ansible-runner==2.4.2
+    package_pip: ansible-runner==2.4.3
   galaxy: |
     ---
     collections:
@@ -50,6 +50,7 @@ dependencies:
     openssl-devel [platform:rpm compile]
   python: |
     git+https://github.com/ansible/ansible-sign
+    git+https://github.com/ansible/awx.git@devel#subdirectory=awxkit
     ncclient
     paramiko
     pyOpenSSL

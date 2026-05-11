@@ -1,7 +1,7 @@
 ---
 exclude_paths:
   - .github
-  - ee
+  - images/awx-ee
 
 warn_list:
   - no-handler
