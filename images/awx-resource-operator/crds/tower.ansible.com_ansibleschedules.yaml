@@ -1,0 +1,72 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ansibleschedules.tower.ansible.com
+spec:
+  group: tower.ansible.com
+  names:
+    kind: AnsibleSchedule
+    listKind: AnsibleScheduleList
+    plural: ansibleschedules
+    singular: ansibleschedule
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: (Tech Preview) AnsibleSchedule is the Schema for the ansibleschedules API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              name:
+                type: string
+                description: The name of the schedule
+              rrule:
+                type: string
+                description: A value representing the schedules iCal recurrence rule.
+              unified_job_template:
+                type: string
+                description: The unified job template to schedule
+              connection_secret:
+                description: |
+                  A k8s secret that contains an access token for AWX. To create an access token see these docs: https://docs.ansible.com/automation-controller/4.1.0/html/userguide/applications_auth.html#add-tokens.
+                type: string
+              runner_image:
+                type: string
+                description: Runner image used when running jobs
+              runner_version:
+                type: string
+                description: Runner image version used when running jobs
+              runner_pull_policy:
+                type: string
+                description: Runner image pull policy used when running jobs
+            required:
+            - connection_secret
+            - name
+            - rrule
+            - unified_job_template
+            description: Spec defines the definition of the AnsibleSchedule
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status defines the observed state of AnsibleSchedule
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

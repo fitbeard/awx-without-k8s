@@ -1,0 +1,84 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ansiblejobs.tower.ansible.com
+spec:
+  group: tower.ansible.com
+  names:
+    kind: AnsibleJob
+    listKind: AnsibleJobList
+    plural: ansiblejobs
+    singular: ansiblejob
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AnsibleJob is the Schema for the ansiblejobs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              extra_vars:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              inventory:
+                type: string
+              job_template_name:
+                type: string
+              workflow_template_name:
+                type: string
+              request_timeout:
+                type: integer
+                description: Timeout in seconds to wait for a response when querying the API for the job status
+              runner_image:
+                type: string
+                description: Runner image used when running jobs
+              runner_version:
+                type: string
+                description: Runner image version used when running jobs
+              runner_pull_policy:
+                type: string
+                description: Runner image pull policy used when running jobs
+              job_ttl:
+                description: Time to live for k8s job object after the playbook run has finished
+                type: integer
+              job_tags:
+                type: string
+                description: A comma-separated list of tags to specify which sets of ansible tasks in a job should be run
+              skip_tags:
+                type: string
+                description: A comma-separated list of tags to specify which sets of ansible tasks in a job should not be run
+              tower_auth_secret:
+                description: |
+                  (DEPRECATED) A k8s secret that contains an access token for AWX. To create an access token see these docs: https://docs.ansible.com/automation-controller/4.1.0/html/userguide/applications_auth.html#add-tokens.
+                type: string
+              connection_secret:
+                description: |
+                  A k8s secret that contains an access token for AWX. To create an access token see these docs: https://docs.ansible.com/automation-controller/4.1.0/html/userguide/applications_auth.html#add-tokens.
+                type: string
+            required:
+            description: Spec defines the desired state of AnsibleJob
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status defines the observed state of AnsibleJob
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
