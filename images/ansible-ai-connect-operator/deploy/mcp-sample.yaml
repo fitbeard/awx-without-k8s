@@ -1,0 +1,69 @@
+# Sample AnsibleMCPConnect CR (STANDALONE deployment path).
+#
+# This sample applies the AnsibleMCPConnect CR DIRECTLY — mcp-operator owns
+# the full reconcile loop, picks up every spec edit continuously.
+#
+# Alternative: deploy through `AnsibleAutomationPlatform.spec.mcp:` block —
+# see `ap-gateway-operator/deploy/ap-sample2.yaml`. That path gives you
+# AAP-CR ownership/garbage-collection but is fire-and-forget at the
+# ap-gateway-operator layer (AAP CR `mcp:` edits are silently ignored after
+# first deploy; only direct edits to the SPAWNED MCP CR propagate).
+#
+# Apply with:
+#   kubectl create namespace ansible
+#   kubectl apply -f deploy/mcp-sample.yaml
+#
+# What this deploys:
+#   - 1× Deployment (single container: ap-mcp-server image — port 8086 nginx → node 3000)
+#   - 1× Service (ClusterIP)
+#   - ConfigMap with env-vars (BASE_URL, ALLOW_WRITE_OPERATIONS, extras)
+#
+# ⚠️  IMPORTANT: this MCP server requires the AAP unified gateway endpoint
+#    (`/api/gateway/v1/me/` for token validation, `/api/controller/v2/...` for
+#    controller tools, `/api/eda/v1/...` for EDA, `/api/galaxy/v3/...` for hub).
+#    It does NOT work with standalone AWX — auth would fail (AWX has no
+#    `/api/gateway/v1/me/` endpoint, only `/api/v2/me/`).
+
+---
+apiVersion: mcpconnect.ansible.com/v1alpha1
+kind: AnsibleMCPConnect
+metadata:
+  # NOTE: do NOT name this CR exactly `mcp`.
+  # k8s legacy service-discovery (enableServiceLinks: true is the default)
+  # injects MCP_PORT=tcp://<svc-ip>:8086 into pods in the same namespace
+  # when a Service named `mcp` exists — that env collides with the
+  # ap-mcp-server's own MCP_PORT (expected `3000`). Node fails to bind,
+  # nginx upstream returns 502.
+  # Use `ap-mcp`, `mcpserver`, or any name that doesn't generate `MCP_*` env vars.
+  name: ap-mcp
+  namespace: ansible
+spec:
+  # The URL of your AAP gateway — what the MCP server bridges to.
+  # Must be the unified gateway URL (NOT a standalone AWX URL).
+  public_base_url: http://ap.ansible.svc.cluster.local
+
+  image_pull_policy: IfNotPresent
+
+  # Service exposure (ingress wired externally — match the pattern of our
+  # other CR samples).
+  service_type: ClusterIP
+  ingress_type: none
+
+  # MCP server config
+  allow_write_operations: false # set true to enable POST/DELETE/PATCH tools
+  no_log: false
+
+  # Optional: bring-your-own MCP runtime image (otherwise operator uses
+  # RELATED_IMAGE_ANSIBLE_MCP_SERVER env from helm chart values)
+  # image: quay.io/fitbeard/ansible-platform/mcp-server
+  # image_version: latest
+
+  # Optional: trust a custom CA for talking to AAP (self-signed certs etc.)
+  # bundle_cacert_secret: my-ca-bundle
+
+  # Optional: extra env vars passed into the MCP server's ConfigMap
+  # extra_settings:
+  #   - setting: ignore_certificate_errors
+  #     value: "true"
+  #   - setting: session_timeout
+  #     value: "1800"

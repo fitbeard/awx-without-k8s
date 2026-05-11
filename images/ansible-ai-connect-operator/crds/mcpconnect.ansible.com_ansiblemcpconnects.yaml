@@ -1,0 +1,518 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ansiblemcpconnects.mcpconnect.ansible.com
+spec:
+  group: mcpconnect.ansible.com
+  names:
+    kind: AnsibleMCPConnect
+    listKind: AnsibleMCPConnectList
+    plural: ansiblemcpconnects
+    singular: ansiblemcpconnect
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AnsibleMCPConnect is the Schema for the ansiblemcpconnect API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired state of AnsibleMCPConnect
+            type: object
+            required:
+              - public_base_url
+            x-kubernetes-validations:
+              - rule: "has(self.image) && has(self.image_version) || !has(self.image) && !has(self.image_version)"
+                message: "Both image and image_version must be set together or both must be unset"
+            properties:
+              image_pull_policy:
+                description: The image pull policy
+                type: string
+                default: IfNotPresent
+                enum:
+                  - Always
+                  - always
+                  - Never
+                  - never
+                  - IfNotPresent
+                  - ifnotpresent
+              image_pull_secrets:
+                description: Image pull secrets for the API and database containers
+                type: array
+                items:
+                  type: string
+              image:
+                description: Registry path to API container image to use
+                type: string
+              image_version:
+                description: API container image tag or version to use
+                type: string
+              additional_labels:
+                description: Additional labels defined on the resource, which should be propagated to child resources
+                type: array
+                items:
+                  type: string
+              no_log:
+                description: Configure no_log for no log tasks
+                type: boolean
+                default: true
+              api:
+                description: Defines desired state of the resources
+                properties:
+                  replicas:
+                    default: 1
+                    description: 'The number of replicas. Default: 1'
+                    format: int32
+                    minimum: 0
+                    nullable: true
+                    type: integer
+                  resource_requirements:
+                    description: Resource requirements for the container.
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                          - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                            - type: integer
+                            - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                            - type: integer
+                            - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
+                  node_selector:
+                    additionalProperties:
+                      type: string
+                    description: NodeSelector for the pods.
+                    type: object
+                  strategy:
+                    description: The deployment strategy to use to replace existing pods with new ones.
+                    properties:
+                      rollingUpdate:
+                        description: 'Rolling update config params. Present only if
+                          DeploymentStrategyType = RollingUpdate. --- TODO: Update
+                          this to follow our convention for oneOf, whatever we decide
+                          it to be.'
+                        properties:
+                          maxSurge:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            description: 'The maximum number of pods that can be scheduled
+                              above the desired number of pods. Value can be an absolute
+                              number (ex: 5) or a percentage of desired pods (ex:
+                              10%). This can not be 0 if MaxUnavailable is 0. Absolute
+                              number is calculated from percentage by rounding up.
+                              Defaults to 25%. Example: when this is set to 30%, the
+                              new ReplicaSet can be scaled up immediately when the
+                              rolling update starts, such that the total number of
+                              old and new pods do not exceed 130% of desired pods.
+                              Once old pods have been killed, new ReplicaSet can be
+                              scaled up further, ensuring that total number of pods
+                              running at any time during the update is at most 130%
+                              of desired pods.'
+                            x-kubernetes-int-or-string: true
+                          maxUnavailable:
+                            anyOf:
+                              - type: integer
+                              - type: string
+                            description: 'The maximum number of pods that can be unavailable
+                              during the update. Value can be an absolute number (ex:
+                              5) or a percentage of desired pods (ex: 10%). Absolute
+                              number is calculated from percentage by rounding down.
+                              This can not be 0 if MaxSurge is 0. Defaults to 25%.
+                              Example: when this is set to 30%, the old ReplicaSet
+                              can be scaled down to 70% of desired pods immediately
+                              when the rolling update starts. Once new pods are ready,
+                              old ReplicaSet can be scaled down further, followed
+                              by scaling up the new ReplicaSet, ensuring that the
+                              total number of pods available at all times during the
+                              update is at least 70% of desired pods.'
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      type:
+                        description: Type of deployment. Can be "Recreate" or "RollingUpdate".
+                          Default is RollingUpdate.
+                        type: string
+                    type: object
+                  tolerations:
+                    description: Node tolerations for the pods.
+                    items:
+                      description: The pod this Toleration is attached to tolerates
+                        any taint that matches the triple <key,value,effect> using
+                        the matching operator <operator>.
+                      properties:
+                        effect:
+                          description: Effect indicates the taint effect to match.
+                            Empty means match all taint effects. When specified, allowed
+                            values are NoSchedule, PreferNoSchedule and NoExecute.
+                          type: string
+                        key:
+                          description: Key is the taint key that the toleration applies
+                            to. Empty means match all taint keys. If the key is empty,
+                            operator must be Exists; this combination means to match
+                            all values and all keys.
+                          type: string
+                        operator:
+                          description: Operator represents a key's relationship to
+                            the value. Valid operators are Exists and Equal. Defaults
+                            to Equal. Exists is equivalent to wildcard for value,
+                            so that a pod can tolerate all taints of a particular
+                            category.
+                          type: string
+                        tolerationSeconds:
+                          description: TolerationSeconds represents the period of
+                            time the toleration (which must be of effect NoExecute,
+                            otherwise this field is ignored) tolerates the taint.
+                            By default, it is not set, which means tolerate the taint
+                            forever (do not evict). Zero and negative values will
+                            be treated as 0 (evict immediately) by the system.
+                          format: int64
+                          type: integer
+                        value:
+                          description: Value is the taint value the toleration matches
+                            to. If the operator is Exists, the value should be empty,
+                            otherwise just a regular string.
+                          type: string
+                      type: object
+                    type: array
+                  topology_spread_constraints:
+                    description: Topology rule(s) for the pods.
+                    items:
+                      description: TopologySpreadConstraint specifies how to spread
+                        matching pods among the given topology.
+                      properties:
+                        labelSelector:
+                          description: LabelSelector is used to find matching pods.
+                            Pods that match this label selector are counted to determine
+                            the number of pods in their corresponding topology domain.
+                          properties:
+                            matchExpressions:
+                              description: matchExpressions is a list of label selector
+                                requirements. The requirements are ANDed.
+                              items:
+                                description: A label selector requirement is a selector
+                                  that contains values, a key, and an operator that
+                                  relates the key and values.
+                                properties:
+                                  key:
+                                    description: key is the label key that the selector
+                                      applies to.
+                                    type: string
+                                  operator:
+                                    description: operator represents a key's relationship
+                                      to a set of values. Valid operators are In,
+                                      NotIn, Exists and DoesNotExist.
+                                    type: string
+                                  values:
+                                    description: values is an array of string values.
+                                      If the operator is In or NotIn, the values array
+                                      must be non-empty. If the operator is Exists
+                                      or DoesNotExist, the values array must be empty.
+                                      This array is replaced during a strategic merge
+                                      patch.
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                  - key
+                                  - operator
+                                type: object
+                              type: array
+                            matchLabels:
+                              additionalProperties:
+                                type: string
+                              description: matchLabels is a map of {key,value} pairs.
+                                A single {key,value} in the matchLabels map is equivalent
+                                to an element of matchExpressions, whose key field
+                                is "key", the operator is "In", and the values array
+                                contains only "value". The requirements are ANDed.
+                              type: object
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        matchLabelKeys:
+                          description: MatchLabelKeys is a set of pod label keys to
+                            select the pods over which spreading will be calculated.
+                            The keys are used to lookup values from the incoming pod
+                            labels, those key-value labels are ANDed with labelSelector
+                            to select the group of existing pods over which spreading
+                            will be calculated for the incoming pod. Keys that don't
+                            exist in the incoming pod labels will be ignored. A null
+                            or empty list means only match against labelSelector.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        maxSkew:
+                          description: 'MaxSkew describes the degree to which pods
+                            may be unevenly distributed. When `whenUnsatisfiable=DoNotSchedule`,
+                            it is the maximum permitted difference between the number
+                            of matching pods in the target topology and the global
+                            minimum. The global minimum is the minimum number of matching
+                            pods in an eligible domain or zero if the number of eligible
+                            domains is less than MinDomains. For example, in a 3-zone
+                            cluster, MaxSkew is set to 1, and pods with the same labelSelector
+                            spread as 2/2/1: In this case, the global minimum is 1.
+                            | zone1 | zone2 | zone3 | |  P P  |  P P  |   P   | -
+                            if MaxSkew is 1, incoming pod can only be scheduled to
+                            zone3 to become 2/2/2; scheduling it onto zone1(zone2)
+                            would make the ActualSkew(3-1) on zone1(zone2) violate
+                            MaxSkew(1). - if MaxSkew is 2, incoming pod can be scheduled
+                            onto any zone. When `whenUnsatisfiable=ScheduleAnyway`,
+                            it is used to give higher precedence to topologies that
+                            satisfy it. It''s a required field. Default value is 1
+                            and 0 is not allowed.'
+                          format: int32
+                          type: integer
+                        minDomains:
+                          description: "MinDomains indicates a minimum number of eligible
+                            domains. When the number of eligible domains with matching
+                            topology keys is less than minDomains, Pod Topology Spread
+                            treats \"global minimum\" as 0, and then the calculation
+                            of Skew is performed. And when the number of eligible
+                            domains with matching topology keys equals or greater
+                            than minDomains, this value has no effect on scheduling.
+                            As a result, when the number of eligible domains is less
+                            than minDomains, scheduler won't schedule more than maxSkew
+                            Pods to those domains. If value is nil, the constraint
+                            behaves as if MinDomains is equal to 1. Valid values are
+                            integers greater than 0. When value is not nil, WhenUnsatisfiable
+                            must be DoNotSchedule. \n For example, in a 3-zone cluster,
+                            MaxSkew is set to 2, MinDomains is set to 5 and pods with
+                            the same labelSelector spread as 2/2/2: | zone1 | zone2
+                            | zone3 | |  P P  |  P P  |  P P  | The number of domains
+                            is less than 5(MinDomains), so \"global minimum\" is treated
+                            as 0. In this situation, new pod with the same labelSelector
+                            cannot be scheduled, because computed skew will be 3(3
+                            - 0) if new Pod is scheduled to any of the three zones,
+                            it will violate MaxSkew. \n This is a beta field and requires
+                            the MinDomainsInPodTopologySpread feature gate to be enabled
+                            (enabled by default)."
+                          format: int32
+                          type: integer
+                        nodeAffinityPolicy:
+                          description: "NodeAffinityPolicy indicates how we will treat
+                            Pod's nodeAffinity/nodeSelector when calculating pod topology
+                            spread skew. Options are: - Honor: only nodes matching
+                            nodeAffinity/nodeSelector are included in the calculations.
+                            - Ignore: nodeAffinity/nodeSelector are ignored. All nodes
+                            are included in the calculations. \n If this value is
+                            nil, the behavior is equivalent to the Honor policy. This
+                            is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread
+                            feature flag."
+                          type: string
+                        nodeTaintsPolicy:
+                          description: "NodeTaintsPolicy indicates how we will treat
+                            node taints when calculating pod topology spread skew.
+                            Options are: - Honor: nodes without taints, along with
+                            tainted nodes for which the incoming pod has a toleration,
+                            are included. - Ignore: node taints are ignored. All nodes
+                            are included. \n If this value is nil, the behavior is
+                            equivalent to the Ignore policy. This is a beta-level
+                            feature default enabled by the NodeInclusionPolicyInPodTopologySpread
+                            feature flag."
+                          type: string
+                        topologyKey:
+                          description: TopologyKey is the key of node labels. Nodes
+                            that have a label with this key and identical values are
+                            considered to be in the same topology. We consider each
+                            <key, value> as a "bucket", and try to put balanced number
+                            of pods into each bucket. We define a domain as a particular
+                            instance of a topology. Also, we define an eligible domain
+                            as a domain whose nodes meet the requirements of nodeAffinityPolicy
+                            and nodeTaintsPolicy. e.g. If TopologyKey is "kubernetes.io/hostname",
+                            each Node is a domain of that topology. And, if TopologyKey
+                            is "topology.kubernetes.io/zone", each zone is a domain
+                            of that topology. It's a required field.
+                          type: string
+                        whenUnsatisfiable:
+                          description: 'WhenUnsatisfiable indicates how to deal with
+                            a pod if it doesn''t satisfy the spread constraint. -
+                            DoNotSchedule (default) tells the scheduler not to schedule
+                            it. - ScheduleAnyway tells the scheduler to schedule the
+                            pod in any location, but giving higher precedence to topologies
+                            that would help reduce the skew. A constraint is considered
+                            "Unsatisfiable" for an incoming pod if and only if every
+                            possible node assignment for that pod would violate "MaxSkew"
+                            on some topology. For example, in a 3-zone cluster, MaxSkew
+                            is set to 1, and pods with the same labelSelector spread
+                            as 3/1/1: | zone1 | zone2 | zone3 | | P P P |   P   |   P   |
+                            If WhenUnsatisfiable is set to DoNotSchedule, incoming
+                            pod can only be scheduled to zone2(zone3) to become 3/2/1(3/1/2)
+                            as ActualSkew(2-1) on zone2(zone3) satisfies MaxSkew(1).
+                            In other words, the cluster can still be imbalanced, but
+                            scheduler won''t make it *more* imbalanced. It''s a required
+                            field.'
+                          type: string
+                      required:
+                        - maxSkew
+                        - topologyKey
+                        - whenUnsatisfiable
+                      type: object
+                    type: array
+                type: object
+              service_type:
+                description: The service type to be used on the deployed instance
+                type: string
+                enum:
+                  - LoadBalancer
+                  - loadbalancer
+                  - ClusterIP
+                  - clusterip
+                  - NodePort
+                  - nodeport
+                default: ClusterIP
+              loadbalancer_protocol:
+                description: Protocol to use for the loadbalancer
+                type: string
+                enum:
+                  - http
+                  - https
+              loadbalancer_port:
+                description: Port to use for the loadbalancer
+                type: integer
+              nodeport_port:
+                description: Port to use for the nodeport
+                type: integer
+              ingress_type:
+                description: The ingress type to use to reach the deployed instance
+                type: string
+                enum:
+                  - none
+                  - Ingress
+                  - ingress
+                  - Route
+                  - route
+                default: Route
+              ingress_class_name:
+                description: The name of ingress class to use instead of the cluster default.
+                type: string
+              ingress_path:
+                description: The ingress path used to reach the deployed service
+                type: string
+              ingress_path_type:
+                description: The ingress path type for the deployed service
+                type: string
+              ingress_api_version:
+                description: The Ingress API version to use
+                type: string
+              hostname:
+                description: The hostname of the instance
+                type: string
+              ingress_annotations:
+                description: Annotations to add to the Ingress Controller
+                type: string
+              ingress_tls_secret:
+                description: Secret where the Ingress TLS secret can be found
+                type: string
+              route_tls_termination_mechanism:
+                description: The secure TLS termination mechanism to use
+                type: string
+                enum:
+                  - Edge
+                  - edge
+                  - Passthrough
+                  - passthrough
+              route_tls_secret:
+                description: Secret where the TLS related credentials are stored
+                type: string
+              route_api_version:
+                description: The route API version to use
+                type: string
+              route_host:
+                description: The DNS to use to points to the instance
+                type: string
+              service_account_annotations:
+                description: ServiceAccount annotations
+                type: string
+              service_annotations:
+                description: Service annotations
+                type: string
+              bundle_cacert_secret:
+                description: Secret where the trusted Certificate Authority Bundle is stored
+                type: string
+              set_self_labels:
+                description: Maintain some of the recommended `app.kubernetes.io/*` labels on the resource (self)
+                type: boolean
+                default: true
+              public_base_url:
+                description: The URL of your Ansible Automation Platform
+                type: string
+              allow_write_operations:
+                description: Enable tools that support modification and data changes (using POST, DELETE, and PATCH methods).
+                type: boolean
+              extra_settings:
+                description: Environment variables to configure the application-level settings
+                items:
+                  properties:
+                    setting:
+                      type: string
+                    value:
+                      x-kubernetes-preserve-unknown-fields: true
+                  type: object
+                type: array
+          status:
+            description: Status defines the observed state of AnsibleMCPConnect
+            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              image:
+                description: URL of the image used for the deployed instance
+                type: string
+              version:
+                description: The version of the image used for the deployed instance
+                type: string
+              URL:
+                description: URL to access the deployed instance
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
