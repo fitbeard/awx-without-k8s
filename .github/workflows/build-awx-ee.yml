@@ -1,4 +1,4 @@
-name: build-ee
+name: build-awx-ee
 
 on:
   workflow_dispatch:
