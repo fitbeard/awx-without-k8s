@@ -6,7 +6,7 @@ on:
       tag:
         description: 'Set image tag'
         required: true
-        default: 'test'
+        default: '25.0.0'
 
 jobs:
   image:
@@ -34,6 +34,6 @@ jobs:
 
       - name: Build image
         run: |
-          cd build && \
+          cd images/awx && \
           chmod +x build.sh && \
-          IMAGE_TAG=${{ github.event.inputs.tag }} ./build.sh --no-cache --push
+          VERSION=${{ github.event.inputs.tag }} ./build.sh --no-cache --push
