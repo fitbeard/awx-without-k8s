@@ -1,0 +1,47 @@
+###
+### Build EDA UI from automation-platform-ui SRPM source (frontend/eda workspace).
+### Produces a lightweight Rocky 9 + nginx image serving the Vite SPA.
+### Nginx config is NOT baked in.
+###
+
+# =============================================================================
+# UI Builder stage: build EDA frontend (Vite SPA) from SRPM monorepo
+# =============================================================================
+FROM docker.io/rockylinux/rockylinux:9 AS ui-builder
+
+# Node 20 LTS (required for Vite build)
+RUN dnf install -y nodejs && npm install -g n && n 20
+
+# Copy full monorepo (npm workspaces need root package.json + all workspace dirs)
+COPY ap-ui/ /tmp/ap-ui/
+WORKDIR /tmp/ap-ui
+
+RUN npm ci
+RUN cd frontend/eda && NODE_OPTIONS=--max-old-space-size=8192 npx vite build
+
+# =============================================================================
+# Runtime stage: nginx serving the SPA
+# =============================================================================
+FROM docker.io/rockylinux/rockylinux:9
+
+# Pull current Rocky 9 security errata before installing nginx so the resulting
+# image starts from a fully-patched base.
+RUN dnf -y update --security --bugfix && \
+    dnf module install -y nginx:1.26/common && \
+    dnf clean all
+
+# Copy built SPA
+COPY --from=ui-builder /tmp/ap-ui/frontend/eda/dist /usr/share/nginx/html
+
+# Prepare directories with correct permissions
+RUN for dir in \
+      /etc/nginx \
+      /var/log/nginx \
+      /var/lib/nginx \
+      /run/nginx ; \
+    do mkdir -m 0775 -p "$dir" ; chmod g+rwx "$dir" ; chgrp root "$dir" ; done
+
+EXPOSE 8443 8080
+
+STOPSIGNAL SIGQUIT
+CMD ["nginx", "-g", "daemon off;"]
