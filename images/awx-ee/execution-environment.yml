@@ -65,7 +65,7 @@ additional_build_steps:
     - RUN $PYCMD -m pip install -U pip
   append_final:
     - RUN dnf update -y && dnf -y install podman crun procps && dnf clean all && rm -rf /var/cache /var/log/dnf* /var/log/yum.*
-    - COPY --from=quay.io/ansible/receptor:devel /usr/bin/receptor /usr/bin/receptor
+    - COPY --from=quay.io/ansible/receptor:v1.5.7 /usr/bin/receptor /usr/bin/receptor
     - RUN mkdir -p /var/run/receptor
     - RUN git lfs install --system
     # SymLink `python` -> `python3.12`

@@ -20,6 +20,8 @@ jobs:
 
       - name: Setup Python
         uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
 
       - name: Install Ansible Builder
         run: pip install ansible-builder==3.1.1
