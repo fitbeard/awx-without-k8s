@@ -1,0 +1,42 @@
+---
+# Sample EDA CR for use with our hand-rolled chart at charts/eda-server-operator/.
+#
+# Apply with:
+#   kubectl apply -f deploy/eda-sample.yaml
+#
+# No image / image_version / image_web / image_web_version fields needed —
+# the chart sets RELATED_IMAGE_EDA + RELATED_IMAGE_EDA_UI env vars on the
+# operator pod, and the role's `_image | default(env RELATED_IMAGE_*) |
+# default(_default)` lookup chain pins them at reconcile time. To override
+# the registry, set chart values relatedImages.eda / relatedImages.edaUi.
+apiVersion: eda.ansible.com/v1alpha1
+kind: EDA
+metadata:
+  name: eda
+  namespace: ansible
+spec:
+  image_pull_policy: IfNotPresent
+  service_type: ClusterIP
+  ingress_type: none
+  # CRD validation requires automation_server_url. Pointing it at the
+  # awx-service we already have running in the awx-app namespace via the
+  # awx-operator chart. EDA_ALLOW_LOCAL_RESOURCE_MANAGEMENT=true makes
+  # EDA serve its own Team/User Access endpoints under /api/eda/v1/*, so
+  # the UI doesn't actually depend on a real Automation Controller.
+  automation_server_url: http://awx-service.awx-app.svc.cluster.local
+  automation_server_ssl_verify: 'no'
+  extra_settings:
+    - setting: EDA_ALLOW_LOCAL_RESOURCE_MANAGEMENT
+      value: true
+  # Single replica per component for kind/dev (default is 2). Drop these
+  # blocks for production-sized deploys.
+  api:
+    replicas: 1
+  ui:
+    replicas: 1
+  scheduler:
+    replicas: 1
+  default_worker:
+    replicas: 1
+  activation_worker:
+    replicas: 1
