@@ -1,0 +1,132 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: workflowtemplates.tower.ansible.com
+spec:
+  group: tower.ansible.com
+  names:
+    kind: WorkflowTemplate
+    listKind: WorkflowTemplateList
+    plural: workflowtemplates
+    singular: workflowtemplate
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: (Tech Preview) WorkflowTemplate is the Schema for the workflowtemplates API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              connection_secret:
+                description: Tower Auth Secret is the name of the secret containing the
+                  username and password for the Tower instance
+                type: string
+              name:
+                description: Workflow Template Name is the name of the workflow template
+                  in Tower
+                type: string
+              extra_vars:
+                description: Workflow Template Extra Vars is a list of extra vars to
+                  be passed to the workflow template in Tower
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              description:
+                description: Workflow Template Description is the description of the
+                  workflow template in Tower
+                type: string
+              organization:
+                description: Workflow Template Organization is the name of the organization
+                  in Tower
+                type: string
+              allow_simultaneous:
+                description: Allow Simultaneous is a boolean value that determines
+                  if the workflow template will allow simultaneous runs
+                type: boolean
+              ask_inventory_on_launch:
+                description: Ask Inventory on Launch is a boolean value that determines
+                  if the workflow template will ask for an inventory on launch
+                type: boolean
+              ask_variables_on_launch:
+                description: Ask Variables on Launch is a boolean value that determines
+                  if the workflow template will ask for variables on launch
+                type: boolean
+              ask_limit_on_launch:
+                description: Ask Limit on Launch is a boolean value that determines
+                  if the workflow template will ask for a limit on launch
+                type: boolean
+              ask_scm_branch_on_launch:
+                description: Ask SCM Branch on Launch is a boolean value that determines
+                  if the workflow template will ask for an SCM branch on launch
+                type: boolean
+              ask_labels_on_launch:
+                description: Ask Labels on Launch is a boolean value that determines
+                  if the workflow template will ask for labels on launch
+                type: boolean
+              ask_tags_on_launch:
+                description: Ask Tags on Launch is a boolean value that determines
+                  if the workflow template will ask for tags on launch
+                type: boolean
+              ask_skip_tags_on_launch:
+                description: Ask Skip Tags on Launch is a boolean value that determines
+                  if the workflow template will ask for skip tags on launch
+                type: boolean
+              inventory:
+                description: Inventory is the name of the inventory to be used for the
+                  workflow template
+                type: string
+              limit:
+                description: Limit is the limit to be used for the workflow template
+                type: string
+              job_tags:
+                description: Job Tags is the job tags to be used for the workflow template
+                type: string
+              labels:
+                description: Labels is the labels to be used for the workflow template
+                type: string
+              skip_tags:
+                description: Skip Tags is the skip tags to be used for the workflow template
+                type: string
+              survey_enabled:
+                description: Survey Enabled is a boolean value that determines if the
+                  workflow template will have a survey enabled
+                type: boolean
+              survey_spec:
+                description: Survey Spec is the survey spec to be used for the workflow
+                  template
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              state:
+                description: State is the state of the workflow template
+                type: string
+            required:
+            - connection_secret
+            - name
+            - organization
+            - inventory
+            - workflow_nodes
+            description: Spec defines the desired state of WorkfkowTemplate
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status defines the observed state of WorkflowTemplate
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

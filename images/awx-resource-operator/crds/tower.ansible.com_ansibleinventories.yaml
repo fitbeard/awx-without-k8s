@@ -1,0 +1,83 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ansibleinventories.tower.ansible.com
+spec:
+  group: tower.ansible.com
+  names:
+    kind: AnsibleInventory
+    listKind: AnsibleInventoryList
+    plural: ansibleinventories
+    singular: ansibleinventory
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Inventory is the Schema for the inventories API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              name:
+                type: string
+                description: The name to use for the inventory
+              description:
+                type: string
+                description: The description for the inventory
+              organization:
+                type: string
+                description: Organization name, ID, or named URL the inventory belongs to
+              instance_groups:
+                type: array
+                description: list of Instance Group names, IDs, or named URLs for this Organization to run on
+                items:
+                  type: string
+              copy_from:
+                type: string
+                description: Name or id to copy the inventory from
+                  This will copy an existing inventory and change any parameters supplied
+                  The new inventory name will be the one provided in the name parameter
+                  The organization parameter is not used in this, to facilitate copy from one organization to another
+                  Provide the id or use the lookup plugin to provide the id if multiple inventories share the same name
+              state:
+                type: string
+                default: present
+                enum: ["present", "absent", "exists"]
+                description: Desired state of the resource
+              variables:
+                type: object
+                description: The desired inventory variables for the inventory
+                additionalProperties:
+                  x-kubernetes-preserve-unknown-fields: true
+              connection_secret:
+                type: string
+                description: |
+                  A k8s secret that contains an access token for AWX. To create an access token see these docs: https://docs.ansible.com/automation-controller/4.1.0/html/userguide/applications_auth.html#add-tokens.
+            description: Spec defines the desired state of Inventory
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+            required:
+            - name
+            - organization
+          status:
+            description: Status defines the observed state of Inventory
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

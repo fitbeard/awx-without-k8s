@@ -1,0 +1,125 @@
+# Sample CRs for awx-resource-operator. Adapt namespace + AWX target.
+#
+# Prerequisites:
+#   1. AWX deployed somewhere reachable from this cluster (in-cluster Service
+#      URL or external https URL).
+#   2. An OAuth token issued by that AWX instance for a user with sufficient
+#      privileges to create the resources below. AWX docs:
+#        https://docs.ansible.com/automation-controller/4.1.0/html/userguide/applications_auth.html#add-tokens
+#   3. A Secret with `host` (URL incl. scheme) and `token` keys, referenced
+#      by `connection_secret` on each CR below.
+#
+# Field conventions (matches upstream `config/samples/`):
+#   - `connection_secret` is the standard auth ref; `tower_auth_secret` is
+#     a deprecated alias kept for backwards compatibility.
+#   - For AnsibleCredential, do NOT use `inputs:` as a YAML map — that
+#     field is typed `string` in the CRD. Use the typed fields the
+#     upstream samples expose: `ssh_username`/`ssh_secret`,
+#     `username_secret`/`password_secret`, `token_secret`,
+#     `kubernetes_api`/`kubernetes_bearer_token_secret`.
+#
+# Apply order:
+#   Secret (awx-access) -> AnsibleProject -> JobTemplate -> AnsibleJob
+#
+# AWX ships pre-seeded "Demo Project", "Demo Inventory", "Demo Job Template"
+# fixtures, so the AnsibleJob at the bottom works against a fresh AWX with
+# zero other CRs applied — useful first sanity test.
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: awx-resources
+---
+# Connection secret consumed by every CR via `connection_secret: awx-access`
+apiVersion: v1
+kind: Secret
+metadata:
+  name: awx-access
+  namespace: awx-resources
+type: Opaque
+stringData:
+  # In-cluster: http://<release>-service.<awx-namespace>.svc.cluster.local
+  # External:   https://awx.example.com
+  host: http://awx-service.awx-app.svc.cluster.local
+  token: REPLACE_ME_WITH_AWX_OAUTH_TOKEN
+---
+# Optional: secret holding SSH-key payload, referenced by AnsibleCredential.ssh_secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example-ssh-key
+  namespace: awx-resources
+type: Opaque
+stringData:
+  ssh_key_data: |
+    -----BEGIN OPENSSH PRIVATE KEY-----
+    REPLACE_WITH_PRIVATE_KEY_CONTENT
+    -----END OPENSSH PRIVATE KEY-----
+---
+# Machine credential — wires the SSH key secret above into AWX
+apiVersion: tower.ansible.com/v1alpha1
+kind: AnsibleCredential
+metadata:
+  name: example-machine-cred
+  namespace: awx-resources
+spec:
+  connection_secret: awx-access
+  name: Example Machine Credential
+  description: Provisioned via awx-resource-operator
+  organization: Default
+  type: Machine
+  ssh_username: ansible
+  ssh_secret: example-ssh-key
+  runner_pull_policy: IfNotPresent
+---
+# Project pulled from a public git repo (AWX-side resource creation)
+apiVersion: tower.ansible.com/v1alpha1
+kind: AnsibleProject
+metadata:
+  name: example-project
+  namespace: awx-resources
+spec:
+  connection_secret: awx-access
+  name: ExampleProject
+  description: Provisioned via awx-resource-operator
+  organization: Default
+  scm_type: git
+  repo: https://github.com/ansible/ansible-tower-samples
+  branch: master
+  runner_pull_policy: IfNotPresent
+---
+# Job template referencing the project + Demo Inventory (seeded by AWX)
+apiVersion: tower.ansible.com/v1alpha1
+kind: JobTemplate
+metadata:
+  name: example-job-template
+  namespace: awx-resources
+spec:
+  connection_secret: awx-access
+  name: ExampleJobTemplate
+  project: ExampleProject
+  playbook: hello_world.yml
+  inventory: Demo Inventory
+  ask_variables_on_launch: true
+  runner_pull_policy: IfNotPresent
+---
+# Launch the seeded "Demo Job Template" — works on a fresh AWX without any
+# other CRs above (since AWX pre-seeds Demo Project + Demo Inventory +
+# Demo Job Template). Use this as your first sanity check.
+#
+# Tip: to launch a fresh job on every invocation, swap `name:` for
+# `generateName: example-job-` and use `kubectl create -f` (NOT
+# `kubectl apply -f` — apply requires a fixed name).
+apiVersion: tower.ansible.com/v1alpha1
+kind: AnsibleJob
+metadata:
+  name: example-job
+  namespace: awx-resources
+spec:
+  connection_secret: awx-access
+  job_template_name: Demo Job Template
+  extra_vars:
+    triggered_by: kubernetes
+    timestamp: "2026-05-09T12:00:00Z"
+  runner_pull_policy: IfNotPresent

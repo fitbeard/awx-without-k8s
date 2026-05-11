@@ -1,0 +1,84 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: jobtemplates.tower.ansible.com
+spec:
+  group: tower.ansible.com
+  names:
+    kind: JobTemplate
+    listKind: JobTemplateList
+    plural: jobtemplates
+    singular: jobtemplate
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: JobTemplate is the Schema for the jobtemplates API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              job_template_inventory:
+                description: This field is deprecated, please use 'inventory' instead.
+                type: string
+              job_template_name:
+                description: This field is deprecated, please use 'name' instead.
+                type: string
+              job_template_playbook:
+                description: This field is deprecated, please use 'playbook' instead.
+                type: string
+              job_template_project:
+                description: This field is deprecated, please use 'project' instead.
+                type: string
+              job_template_ask_vars:
+                description: This field is deprecated, please use 'ask_variables_on_launch' instead.
+                type: boolean
+              job_template_ask_inventory:
+                description: This field is deprecated, please use 'ask_inventory_on_launch' instead.
+                type: boolean
+              inventory:
+                type: string
+              name:
+                type: string
+              playbook:
+                type: string
+              project:
+                type: string
+              ask_variables_on_launch:
+                type: boolean
+              ask_inventory_on_launch:
+                type: boolean
+              tower_auth_secret:
+                type: string
+                description: |
+                  (DEPRECATED) A k8s secret that contains an access token for AWX. To create an access token see these docs: https://docs.ansible.com/automation-controller/4.1.0/html/userguide/applications_auth.html#add-tokens.
+              connection_secret:
+                type: string
+                description: |
+                  A k8s secret that contains an access token for AWX. To create an access token see these docs: https://docs.ansible.com/automation-controller/4.1.0/html/userguide/applications_auth.html#add-tokens.
+            description: Spec defines the desired state of JobTemplate
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status defines the observed state of JobTemplate
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+

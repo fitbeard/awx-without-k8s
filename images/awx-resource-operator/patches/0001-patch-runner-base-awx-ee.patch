@@ -1,0 +1,76 @@
+From 6d079ebebd7bfd23dba29145c65d87613e0a7f0e Mon Sep 17 00:00:00 2001
+From: AAP Rebuild <aap-rebuild-bot@localhost>
+Date: Sat, 9 May 2026 11:15:55 +0300
+Subject: [PATCH] patch: rebase Dockerfile.runner on quay.io/fitbeard/ansible-platform/awx-ee
+
+Upstream's quay.io/ansible/ansible-runner:latest base is abandoned per
+its quay.io repo description ('no longer maintained'): last build
+2022-04-29, CentOS Stream 8 (EOL May 2024), Python 3.8 (EOL Oct 2024),
+amd64-only.
+
+quay.io/fitbeard/ansible-platform/awx-ee mirrors the actively-maintained quay.io/ansible/awx-ee
+(rebuilt daily upstream, CentOS Stream 9, Python 3.9, multi-arch). It
+already ships most of what the upstream Dockerfile installs:
+
+  - ansible-runner / ansible-galaxy / pip3 on PATH
+  - collections: awx.awx, kubernetes.core (versions newer than required)
+  - pip:         awxkit, kubernetes
+
+We install one collection ourselves: operator_sdk.util. It's the
+canonical k8s_status module for ansible-operator workloads. The
+runner's roles/job_runner/ has 11 references to
+operator_sdk.util.k8s_status for updating CR status subresources;
+without it the runner Job aborts with 'couldn't resolve module/action
+operator_sdk.util.k8s_status'. (The upstream Dockerfile installs it via
+`ansible-galaxy collection install -r requirements.yml`; we install
+only the missing piece.)
+
+The skipped 'openshift' pip package from upstream is a deprecated alias
+for the 'kubernetes' python client (which awx-ee already has).
+
+Paths are hardcoded to /home/runner (awx-ee's user is uid 1000 'runner'
+with HOME=/home/runner) rather than ${HOME}: BuildKit's Dockerfile
+parser doesn't substitute ENV inherited from the FROM image at parse
+time, so bare ${HOME} raised UndefinedVar warnings and resolved to
+empty (silently misplacing the role at /roles instead of /home/runner/roles).
+---
+ Dockerfile.runner | 28 ++++++++++++++++++++--------
+ 1 file changed, 20 insertions(+), 8 deletions(-)
+
+diff --git a/Dockerfile.runner b/Dockerfile.runner
+index 072375e..79c4ee4 100644
+--- a/Dockerfile.runner
++++ b/Dockerfile.runner
+@@ -1,12 +1,24 @@
+-FROM quay.io/ansible/ansible-runner:latest
+-ENV ANSIBLE_ROLES_PATH ${HOME}/roles
++FROM quay.io/fitbeard/ansible-platform/awx-ee:latest
+ 
+-COPY requirements.yml ${HOME}/requirements.yml
++# awx-ee runs as user `runner` (uid 1000) with HOME=/home/runner. We
++# hardcode that path instead of `${HOME}` because Dockerfile-parse-time
++# substitution doesn't see ENV inherited from the FROM image, only ARG
++# and ENV declared in the current Dockerfile (BuildKit raises
++# UndefinedVar warnings on bare `${HOME}` here).
++ENV ANSIBLE_ROLES_PATH=/home/runner/roles
+ 
+-RUN ansible-galaxy collection install -r ${HOME}/requirements.yml --force \
+- && chmod -R ug+rwx ${HOME}/.ansible && mkdir -p ${HOME}/roles
++# awx-ee already provides ansible-runner, ansible-galaxy, python3, pip3,
++# the awx.awx + kubernetes.core collections (versions newer than
++# requirements.yml asks for), and the awxkit + kubernetes pip packages.
++#
++# What's missing from awx-ee is operator_sdk.util — the canonical
++# k8s_status implementation for ansible-operator workloads. The runner's
++# roles/job_runner/ has 11 references to operator_sdk.util.k8s_status
++# for updating CR status subresources. Install it explicitly here.
++# (This mirrors what upstream Dockerfile does via `-r requirements.yml`,
++# but we install only the missing piece to avoid noise.)
++RUN ansible-galaxy collection install operator_sdk.util:==0.5.0 \
++ && chmod -R ug+rwx /home/runner/.ansible
+ 
+-RUN pip3 install awxkit kubernetes openshift
+-
+-COPY roles/job_runner ${HOME}/roles/job_runner
++COPY roles/job_runner /home/runner/roles/job_runner
+ CMD ["ansible-runner", "run", "/runner", "--hosts", "localhost", "--role", "job_runner", "--role-skip-facts"]
