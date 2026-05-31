@@ -1,0 +1,46 @@
+---
+# AnsibleAutomationPlatform CR — Controller + EDA.
+#
+# Apply with:
+#   kubectl apply -f deploy/ap-sample.yaml
+#
+# Component enable/disable convention (per
+# roles/common/tasks/determine_if_enabled.yml, post-patch 0007):
+#   - block omitted     -> behaviour depends on component default
+#   - block + disabled  -> disabled
+#   - block + no flag   -> enabled
+#
+# Defaults after patches:
+#   - controller / eda      -> "missing block = enabled"
+#   - hub / lightspeed / mcp -> "missing block = disabled"
+# Hub/lightspeed/mcp are omitted entirely — they default to disabled and
+# we don't ship operator rebuilds for them.
+apiVersion: aap.ansible.com/v1alpha1
+kind: AnsibleAutomationPlatform
+metadata:
+  name: ap
+  namespace: ansible
+spec:
+  no_log: false
+  image_pull_policy: IfNotPresent
+  service_type: ClusterIP
+  ingress_type: none
+  # Required by tasks/set_gateway_url.yml so gateway knows its own public
+  # URL for SSO redirects + service-data migration. Without it, gateway_url
+  # falls back to "https://{{ hostname }}" — empty host on CRs without a
+  # spec.hostname → migrate_service_data fails. Plug in your real public
+  # URL once you wire HTTPRoute/Ingress; placeholder works on kind.
+  public_base_url: http://ap.ansible.svc.cluster.local
+  controller:
+    name: awx
+  eda:
+    name: eda
+    # Trim replicas to 1 across the board — defaults are 2 for
+    # default_worker / activation_worker / scheduler (api, event_stream,
+    # ui already default to 1). Saves ~5 pods on a kind cluster.
+    default_worker:
+      replicas: 1
+    activation_worker:
+      replicas: 1
+    scheduler:
+      replicas: 1
