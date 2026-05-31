@@ -1,0 +1,22 @@
+apiVersion: v2
+name: awx-resource-operator
+description: |
+  AWX resource operator (rebuilt from public ansible/awx-resource-operator).
+  Deploys the controller-manager that reconciles declarative AWX content
+  resources (AnsibleJob, JobTemplate, AnsibleProject, AnsibleWorkflow,
+  AnsibleCredential, AnsibleSchedule, AnsibleInstanceGroup,
+  WorkflowTemplate, AnsibleInventory) by spawning short-lived runner Jobs
+  that call the AWX API via the awx.awx ansible collection.
+
+  CRDs are NOT installed by this chart — apply them first from
+  images/awx-resource-operator/crds/ so their lifecycle stays decoupled
+  from the operator install.
+type: application
+version: 0.1.0
+appVersion: "2.6-709"
+keywords:
+  - awx
+  - ansible
+  - operator
+  - declarative-content
+home: https://github.com/fitbeard/ansible-platform

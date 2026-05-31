@@ -10,7 +10,6 @@
 # first deploy; only direct edits to the SPAWNED MCP CR propagate).
 #
 # Apply with:
-#   kubectl create namespace ansible
 #   kubectl apply -f deploy/mcp-sample.yaml
 #
 # What this deploys:
@@ -67,3 +66,24 @@ spec:
   #     value: "true"
   #   - setting: session_timeout
   #     value: "1800"
+
+# ---
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: HTTPRoute
+# metadata:
+#   name: mcp
+#   namespace: ansible
+# spec:
+#   parentRefs:
+#     - name: gateway-external
+#       namespace: envoy-gateway-system
+#   hostnames:
+#     - mcp.localtest.me
+#   rules:
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /
+#       backendRefs:
+#         - name: ap-mcp
+#           port: 8086

@@ -1,0 +1,27 @@
+apiVersion: v2
+name: mcp-operator
+description: |
+  MCP operator (rebuilt from public ansible/ansible-ai-connect-operator,
+  scoped MCP-only). Deploys the controller-manager that reconciles
+  AnsibleMCPConnect resources — each spawns an aap-mcp-server runtime
+  pod that bridges AAP REST APIs to MCP clients (Claude Desktop / Code,
+  Cursor, custom AI agents) via the open Model Context Protocol.
+
+  The operator binary also supports the AnsibleAIConnect (Lightspeed
+  chatbot) CRD upstream, but this chart's RBAC is deliberately narrowed
+  to mcpconnect.ansible.com only — chatbot CRs cannot be reconciled
+  against this install. This signals MCP-only intent.
+
+  CRDs are NOT installed by this chart — apply them first from
+  images/ansible-ai-connect-operator/crds/ so their lifecycle stays decoupled from
+  the operator install.
+type: application
+version: 0.1.0
+appVersion: "2.6-709"
+keywords:
+  - ansible
+  - mcp
+  - model-context-protocol
+  - operator
+  - aap
+home: https://github.com/fitbeard/ansible-platform

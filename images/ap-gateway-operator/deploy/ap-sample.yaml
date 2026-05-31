@@ -29,7 +29,7 @@ spec:
   # URL for SSO redirects + service-data migration. Without it, gateway_url
   # falls back to "https://{{ hostname }}" — empty host on CRs without a
   # spec.hostname → migrate_service_data fails. Plug in your real public
-  # URL once you wire HTTPRoute/Ingress; placeholder works on kind.
+  # URL once you wire HTTPRoute/Ingress.
   public_base_url: http://ap.ansible.svc.cluster.local
   controller:
     name: awx
@@ -44,3 +44,28 @@ spec:
       replicas: 1
     scheduler:
       replicas: 1
+
+# ---
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: HTTPRoute
+# metadata:
+#   name: ap
+#   namespace: ansible
+# spec:
+#   parentRefs:
+#     - name: gateway-external
+#       namespace: envoy-gateway-system
+#   hostnames:
+#     # This test address will open AP UI but won't work for login -'Invalid username or password. Please try again.'
+#     # This is expected because the AP UI tries to call the gateway's /api/gateway/v1/me/ endpoint using resolvable
+#     # hostnames (ap.localtest.me 127.0.0.1) that the gateway can't resolve internally.
+#     # # For real worl scenario use the actual public hostname + set public_base_url to match.
+#     - ap.localtest.me
+#   rules:
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /
+#       backendRefs:
+#         - name: ap
+#           port: 80

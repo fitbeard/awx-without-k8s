@@ -1,0 +1,18 @@
+apiVersion: v2
+name: awx-operator
+description: |
+  AWX operator (rebuilt from public ansible/awx-operator with downstream
+  patches applied). Deploys the controller-manager that reconciles
+  AWX/AWXBackup/AWXRestore/AWXMeshIngress resources.
+
+  CRDs are NOT installed by this chart — apply them first from
+  images/awx-operator/crds/ so their lifecycle stays decoupled from the
+  operator install.
+type: application
+version: 0.1.0
+appVersion: "2.6-709"
+keywords:
+  - awx
+  - ansible
+  - operator
+home: https://github.com/fitbeard/ansible-platform

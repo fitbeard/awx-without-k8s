@@ -1,0 +1,111 @@
+# Default values for mcp-operator.
+
+# -- Number of operator replicas. Leader-election ensures only one active.
+replicaCount: 1
+
+# -- Operator container image
+image:
+  repository: quay.io/fitbeard/ansible-platform/ansible-ai-connect-operator
+  tag: 2.6-709
+  pullPolicy: IfNotPresent
+
+# -- Pull secrets for private registries
+imagePullSecrets: []
+# - name: regcred
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Watch scope:
+#    "release"             = same namespace as the operator (default, namespace-scoped Role)
+#    "<namespace>"         = single specific namespace (namespace-scoped Role in that ns)
+#    "" (empty)            = cluster-wide (operator watches CRs in ALL namespaces).
+#                            Renders the manager RBAC as ClusterRole+ClusterRoleBinding.
+watchNamespace: release
+
+# -- Leader election. Use a unique-cluster-wide ID even when watchNamespace
+#    is namespace-scoped, so two operators in different namespaces don't fight.
+leaderElection:
+  enabled: true
+  id: mcp-operator
+
+# -- Operator-sdk RELATED_IMAGE_* env vars consumed by the operator's roles.
+#    `mcpServer` becomes RELATED_IMAGE_ANSIBLE_MCP_SERVER; the operator's
+#    set_images.yml task reads it and stamps it as the runtime image on
+#    each AnsibleMCPConnect Deployment. Per-CR `image`/`image_version`
+#    fields override this default when set.
+relatedImages:
+  # Pinned to a specific git-sha-tagged build. Bump when build-mcp-server
+  # rebuilds against a newer ansible/aap-mcp-server upstream commit.
+  mcpServer: quay.io/fitbeard/ansible-platform/mcp-server:a9281de4
+
+# -- Optional kube-rbac-proxy sidecar exposing /metrics behind authn/authz.
+#    Matches Red Hat downstream behavior — config/default/kustomization.yaml
+#    applies manager_auth_proxy_patch.yaml, same as our other 4 charts.
+#    Disable on small / dev clusters to skip the extra container.
+kubeRbacProxy:
+  enabled: true
+  image:
+    repository: registry.k8s.io/kubebuilder/kube-rbac-proxy
+    tag: v0.15.0
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 5m
+      memory: 64Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# -- Metrics service (only created when kubeRbacProxy.enabled). Useful as a
+#    Prometheus scrape target.
+metricsService:
+  type: ClusterIP
+  port: 8443
+
+# -- Operator container resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 768Mi
+  requests:
+    cpu: 10m
+    memory: 256Mi
+
+# -- Pod-level security context
+podSecurityContext:
+  runAsNonRoot: true
+
+# -- Container-level security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Pod placement
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+# -- Pod metadata
+podAnnotations: {}
+podLabels: {}
+
+# -- Service account for the operator deployment
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Ansible runner tuning. Set to 'true' for verbose role logs on the operator pod.
+ansibleDebugLogs: false
+
+# -- Ansible-operator log verbosity (0=quiet, 1=task names, 2=task default args)
+ansibleVerbosity: "0"

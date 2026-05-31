@@ -1,0 +1,32 @@
+awx-operator {{ .Chart.AppVersion }} installed in namespace "{{ .Release.Namespace }}".
+
+Watch mode: {{ if eq .Values.watchNamespace "" }}cluster-wide{{ else if eq .Values.watchNamespace "release" }}release namespace ({{ .Release.Namespace }}){{ else }}{{ .Values.watchNamespace }}{{ end }}
+
+Pinned images (RELATED_IMAGE_*):
+  AWX            : {{ .Values.relatedImages.awx | default "(upstream default)" }}
+  CONTROL_PLANE_EE: {{ .Values.relatedImages.controlPlaneEE | default "(upstream default)" }}
+
+Next steps:
+  1. Verify the operator pod is healthy:
+       kubectl rollout status deploy/{{ include "awx-operator.fullname" . }}-controller-manager -n {{ .Release.Namespace }}
+
+  2. Create an AWX CR (CRDs must be applied separately from images/awx-operator/crds/):
+       cat <<EOF | kubectl apply -f -
+       apiVersion: awx.ansible.com/v1beta1
+       kind: AWX
+       metadata:
+         name: awx
+         namespace: {{ .Release.Namespace }}
+       spec:
+         service_type: ClusterIP
+         image_pull_policy: IfNotPresent
+       EOF
+
+  3. Tail reconcile logs:
+       kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "awx-operator.fullname" . }}-controller-manager -c awx-manager -f
+{{- if eq .Values.watchNamespace "" }}
+
+NOTE: cluster-wide watch is enabled — the manager RBAC is rendered as
+ClusterRole+ClusterRoleBinding so the operator can reconcile AWX CRs in
+any namespace.
+{{- end }}

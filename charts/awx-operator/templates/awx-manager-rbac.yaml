@@ -1,0 +1,72 @@
+{{- $clusterScope := eq .Values.watchNamespace "" -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ if $clusterScope }}ClusterRole{{ else }}Role{{ end }}
+metadata:
+  name: {{ include "awx-operator.fullname" . }}-awx-manager-role
+  labels:
+    {{- include "awx-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [route.openshift.io]
+    resources: [routes, routes/custom-host]
+    verbs: [get, list, create, delete, patch, update, watch]
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services
+      - services/finalizers
+      - serviceaccounts
+      - endpoints
+      - persistentvolumeclaims
+      - events
+      - configmaps
+      - secrets
+    verbs: [get, list, create, delete, patch, update, watch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles, rolebindings]
+    verbs: [get, list, create, delete, patch, update, watch]
+  - apiGroups: [apps]
+    resources: [deployments, daemonsets, replicasets, statefulsets]
+    verbs: [get, list, create, delete, patch, update, watch]
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses]
+    verbs: [get, list, create, delete, patch, update, watch]
+  - apiGroups: [batch]
+    resources: [cronjobs, jobs]
+    verbs: [get, list, create, patch, update, watch]
+  - apiGroups: [monitoring.coreos.com]
+    resources: [servicemonitors]
+    verbs: [get, create]
+  - apiGroups: [apps]
+    resources: [deployments/finalizers]
+    resourceNames: [awx-operator]
+    verbs: [update]
+  - apiGroups: [apps]
+    resources: [deployments/scale, statefulsets/scale]
+    verbs: [patch]
+  - apiGroups: [""]
+    resources: [pods/exec, pods/attach, pods/log]
+    verbs: [create, get]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, create]
+  - apiGroups: [awx.ansible.com]
+    resources: ["*", awxbackups, awxrestores]
+    verbs: ["*"]
+  - apiGroups: [traefik.containo.us, traefik.io]
+    resources: [ingressroutetcps]
+    verbs: [get, list, create, delete, patch, update, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ if $clusterScope }}ClusterRoleBinding{{ else }}RoleBinding{{ end }}
+metadata:
+  name: {{ include "awx-operator.fullname" . }}-awx-manager-rolebinding
+  labels:
+    {{- include "awx-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: {{ if $clusterScope }}ClusterRole{{ else }}Role{{ end }}
+  name: {{ include "awx-operator.fullname" . }}-awx-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "awx-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
