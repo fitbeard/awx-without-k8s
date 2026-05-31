@@ -1,0 +1,93 @@
+---
+# AnsibleAutomationPlatform CR — Controller + MCP, EDA disabled.
+#
+# Apply with:
+#   kubectl apply -f deploy/aap-sample2.yaml
+#
+# Component enable/disable convention (per
+# roles/common/tasks/determine_if_enabled.yml, post-patch 0007):
+#   - block omitted     -> behaviour depends on component default
+#   - block + disabled  -> disabled
+#   - block + no flag   -> enabled
+#
+# Defaults after patches:
+#   - controller / eda       -> "missing block = enabled"
+#   - hub / lightspeed / mcp -> "missing block = disabled"
+#
+# This sample explicitly:
+#   - enables controller (default — kept block to set name)
+#   - DISABLES eda (`disabled: true`)
+#   - ENABLES mcp by adding the block (mcp default = disabled, so any
+#     present block without `disabled: true` flips it on)
+#
+# ⚠️  AAP-CR-driven MCP deployment is FIRE-AND-FORGET at the gateway-operator
+#    layer. Specifically: roles/common/tasks/check_existing_components.yml
+#    sets `_deploy_mcp: false` once an AnsibleMCPConnect CR exists in the
+#    namespace. After first deploy, edits to THIS file's `mcp:` block are
+#    silently ignored — ap-gateway-operator never re-applies the spec.
+#
+#    Workarounds:
+#      a) Delete the spawned MCP CR to force ap-gateway-operator to recreate it:
+#           kubectl delete ansiblemcpconnect ap-mcp -n ansible
+#      b) Edit the spawned MCP CR DIRECTLY — mcp-operator continuously
+#         reconciles it (ap-gateway-operator doesn't fight you):
+#           kubectl edit ansiblemcpconnect ap-mcp -n ansible
+#      c) For ongoing-spec-mutability use cases, use the STANDALONE path
+#         instead — apply build-operator-mcp/deploy/mcp-sample.yaml
+#         directly (mcp-operator owns full reconcile, no ap-gateway-operator
+#         fire-and-forget gate).
+#
+#    Lifecycle: spawned MCP CR has ownerReferences pointing back to this
+#    AAP CR (unless the gateway role's `remove_owner_references_from_children`
+#    flag is set to true), so deleting the AAP CR cascade-cleans the MCP CR.
+#    That ownership-pinning is the main reason to use this path over standalone.
+#
+# Prerequisites for the mcp block to actually deploy something:
+#   - helm/mcp-operator/ chart installed
+#   - ansible-ai-connect-operator/crds/ applied (mcpconnect.ansible.com_ansiblemcpconnects)
+# Without those, the ap-gateway-operator still creates the AnsibleMCPConnect
+# CR but nothing reconciles it.
+apiVersion: aap.ansible.com/v1alpha1
+kind: AnsibleAutomationPlatform
+metadata:
+  name: ap
+  namespace: ansible
+spec:
+  no_log: false
+  image_pull_policy: IfNotPresent
+  service_type: ClusterIP
+  ingress_type: none
+  # Required by tasks/set_gateway_url.yml so gateway knows its own public
+  # URL for SSO redirects + service-data migration. Without it, gateway_url
+  # falls back to "https://{{ hostname }}" — empty host on CRs without a
+  # spec.hostname → migrate_service_data fails. Plug in your real public
+  # URL once you wire HTTPRoute/Ingress; placeholder works on kind.
+  public_base_url: http://ap.ansible.svc.cluster.local
+  controller:
+    name: awx
+  # EDA disabled — we don't deploy the EDA component in this sample.
+  eda:
+    disabled: true
+  # MCP enabled — gateway-operator will create an AnsibleMCPConnect CR
+  # named "<aap-cr-name>-mcp" (i.e. `ap-mcp` here, per the default in
+  # roles/ansibleautomationplatform/tasks/combine_mcp.yml). That spawned
+  # CR is then reconciled by mcp-operator (build-operator-mcp/) into a
+  # Deployment + Service that bridges AAP's REST API to MCP clients
+  # (Claude Desktop / Code, Cursor, custom AI agents).
+  #
+  # public_base_url for the spawned MCP CR defaults to gateway_url
+  # (computed by tasks/set_gateway_url.yml) — automatically points at
+  # the in-cluster gateway service. Override here if you need a different
+  # value (e.g. an externally-resolvable URL for off-cluster MCP clients).
+  mcp:
+    # name: custom-mcp                           # default: <aap-cr>-mcp
+    # public_base_url: http://other.example.com  # default: gateway_url
+    # Upstream mcp role defaults ingress_type=Route (OpenShift-first); on
+    # plain k8s the route.openshift.io apigroup doesn't exist and the role
+    # fails with "Failed to find exact match for route.openshift.io/v1.Route".
+    # Override to `none` (Service-only, ingress wired externally) — matches
+    # convention from build-operator-{eda,gateway,mcp}/deploy/*-sample.yaml.
+    ingress_type: none
+    extra_settings:
+      - setting: IGNORE_CERTIFICATE_ERRORS
+        value: "true"

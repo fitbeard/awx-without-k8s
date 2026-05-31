@@ -1,0 +1,51 @@
+From 1622623c0c46186dd86eacb2ac0e9ec546ca3228 Mon Sep 17 00:00:00 2001
+From: AAP Rebuild <aap-rebuild-bot@localhost>
+Date: Wed, 6 May 2026 11:42:53 +0300
+Subject: [PATCH] patch: nginx static-asset paths -> match
+ build-gateway/Dockerfile layout
+
+The bundle template assumes the downstream gateway image's path layout
+(/var/lib/ansible-automation-platform/platform/ui[/static]/) which
+matches the Red Hat-built gateway container. Our image
+(quay.io/tadas/ap-gateway:2.6.20260325, built via build-gateway/) lays
+the platform UI + collected static under /opt/aap_gateway/ instead:
+
+  - /var/lib/.../platform/ui/static/  ->  /opt/aap_gateway/static/
+  - /var/lib/.../platform/ui          ->  /opt/aap_gateway/platform_ui
+
+See build-gateway/Dockerfile lines 'COPY --from=ui-builder ... /opt/aap_gateway/platform_ui'
+and 'chown -R 1000 /opt/aap_gateway/static' for the source side.
+---
+ .../templates/nginx.configmap.yaml.j2                       | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/roles/ansibleautomationplatform/templates/nginx.configmap.yaml.j2 b/roles/ansibleautomationplatform/templates/nginx.configmap.yaml.j2
+index da308cd..2cf962f 100644
+--- a/roles/ansibleautomationplatform/templates/nginx.configmap.yaml.j2
++++ b/roles/ansibleautomationplatform/templates/nginx.configmap.yaml.j2
+@@ -71,7 +71,7 @@ data:
+ 
+             # API Static files
+             location ^~ /static/ {
+-                alias /var/lib/ansible-automation-platform/platform/ui/static/;
++                alias /opt/aap_gateway/static/;
+             }
+ 
+             # API endpoints
+@@ -100,14 +100,14 @@ data:
+ 
+             # UI files
+             location ~* \.(json|woff|woff2|jpe?g|png|gif|ico|svg|css|js)$ {
+-                root /var/lib/ansible-automation-platform/platform/ui;
++                root /opt/aap_gateway/platform_ui;
+                 add_header Cache-Control "public, max-age=31536000, s-maxage=31536000, immutable";
+                 try_files $uri =404;
+             }
+ 
+             # UI root
+             location / {
+-                root /var/lib/ansible-automation-platform/platform/ui;
++                root /opt/aap_gateway/platform_ui;
+                 autoindex off;
+                 expires off;
+                 add_header Cache-Control "public, max-age=0, s-maxage=0, must-revalidate" always;
