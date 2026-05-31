@@ -1,0 +1,13 @@
+{{- if .Values.kubeRbacProxy.enabled -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "mcp-operator.fullname" . }}-metrics-reader
+  labels:
+    {{- include "mcp-operator.labels" . | nindent 4 }}
+rules:
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+{{- end }}

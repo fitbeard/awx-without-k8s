@@ -19,21 +19,21 @@ build_ignore:
   - .github
   - .vscode
   - ansible-cache
+  - charts
   - demo
-  - ee
-  - molecule
+  - images
+  - scripts
   - .ansible-lint
   - .gitignore
   - .markdownlint.yml
-  - .python-version
   - .pre-commit-config.yaml
   - poetry.lock
   - pyproject.toml
 tags:
-  - application
   - cloud
   - infrastructure
   - linux
   - tools
   - awx
   - ansible_tower
+  - ansible_platform

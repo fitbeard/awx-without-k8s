@@ -1,0 +1,40 @@
+ap-gateway-operator {{ .Chart.AppVersion }} installed in namespace "{{ .Release.Namespace }}".
+
+Watch mode: {{ if eq .Values.watchNamespace "" }}cluster-wide (empty WATCH_NAMESPACE — flaky in v1.36){{ else if eq .Values.watchNamespace "release" }}release namespace ({{ .Release.Namespace }}){{ else }}{{ .Values.watchNamespace }}{{ end }}
+RBAC scope:  {{ if eq (include "ap-gateway-operator.clusterScope" .) "true" }}ClusterRole{{ else }}Role{{ end }}
+
+Pinned images (RELATED_IMAGE_*):
+  GATEWAY        : {{ .Values.relatedImages.gateway        | default "(upstream default)" }}
+  GATEWAY_PROXY  : {{ .Values.relatedImages.gatewayProxy   | default "(upstream default)" }}
+  GATEWAY_POSTGRES: {{ .Values.relatedImages.gatewayPostgres | default "(upstream default)" }}
+  GATEWAY_REDIS  : {{ .Values.relatedImages.gatewayRedis   | default "(upstream default)" }}
+
+Next steps:
+  1. Apply CRDs (one-time, decoupled from the operator chart):
+       kubectl apply -f images/ap-gateway-operator/crds/
+
+  2. Deploy companion operators (the gateway operator orchestrates AWX + EDA sub-CRs):
+       helm install awx-operator       helm/awx-operator       -n {{ .Release.Namespace }} --set watchNamespace="{{ .Values.watchNamespace }}"
+       helm install eda-server-operator helm/eda-server-operator -n {{ .Release.Namespace }} --set watchNamespace="{{ .Values.watchNamespace }}"
+
+  3. Verify the operator pod is healthy:
+       kubectl rollout status deploy/{{ include "ap-gateway-operator.fullname" . }}-controller-manager -n {{ .Release.Namespace }}
+
+  4. Apply an AnsibleAutomationPlatform CR. See images/ap-gateway-operator/deploy/ap-sample.yaml
+     for a minimal controller+EDA example.
+
+  5. Tail reconcile logs:
+       kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "ap-gateway-operator.fullname" . }}-controller-manager -c manager -f
+
+{{- if eq (include "ap-gateway-operator.clusterScope" .) "true" }}
+
+NOTE: cluster-wide / multi-namespace watch is enabled — manager RBAC is rendered as
+ClusterRole+ClusterRoleBinding. Component defaults after our patches:
+  controller / eda      -> "missing block in CR = ENABLED"
+  hub / lightspeed / mcp -> "missing block in CR = DISABLED"
+
+NOTE: First reconcile after enabling/disabling a component takes ~10–12 min — the
+gateway Deployment rotates mid-playbook, the captured pod name goes stale, and
+the "Merge service data" task fails fast 30 times before the next reconcile picks
+up the live pod and succeeds. This is expected; do not intervene.
+{{- end }}

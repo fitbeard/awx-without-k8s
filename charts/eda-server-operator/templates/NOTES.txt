@@ -1,0 +1,40 @@
+eda-server-operator {{ .Chart.AppVersion }} installed in namespace "{{ .Release.Namespace }}".
+
+Watch mode: {{ if eq .Values.watchNamespace "" }}cluster-wide{{ else if eq .Values.watchNamespace "release" }}release namespace ({{ .Release.Namespace }}){{ else }}{{ .Values.watchNamespace }}{{ end }}
+
+Pinned images (RELATED_IMAGE_*):
+  EDA   : {{ .Values.relatedImages.eda    | default "(upstream default)" }}
+  EDA_UI: {{ .Values.relatedImages.edaUi  | default "(upstream default)" }}
+
+Next steps:
+  1. Verify the operator pod is healthy:
+       kubectl rollout status deploy/{{ include "eda-server-operator.fullname" . }}-controller-manager -n {{ .Release.Namespace }}
+
+  2. Create an EDA CR (CRDs must be applied separately from images/eda-server-operator/crds/).
+     The CRD requires automation_server_url — point it at a controller
+     (or a placeholder URL if you don't have one):
+       cat <<EOF | kubectl apply -f -
+       apiVersion: eda.ansible.com/v1alpha1
+       kind: EDA
+       metadata:
+         name: eda
+         namespace: {{ .Release.Namespace }}
+       spec:
+         service_type: ClusterIP
+         ingress_type: none
+         image_pull_policy: IfNotPresent
+         automation_server_url: http://placeholder
+         automation_server_ssl_verify: 'no'
+         extra_settings:
+           - setting: EDA_ALLOW_LOCAL_RESOURCE_MANAGEMENT
+             value: true
+       EOF
+
+  3. Tail reconcile logs:
+       kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "eda-server-operator.fullname" . }}-controller-manager -c eda-manager -f
+{{- if eq .Values.watchNamespace "" }}
+
+NOTE: cluster-wide watch is enabled — the manager RBAC is rendered as
+ClusterRole+ClusterRoleBinding so the operator can reconcile EDA CRs in
+any namespace.
+{{- end }}

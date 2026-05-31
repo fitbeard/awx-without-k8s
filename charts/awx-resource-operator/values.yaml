@@ -1,0 +1,115 @@
+# Default values for awx-resource-operator.
+
+# -- Number of operator replicas. Leader-election ensures only one active.
+replicaCount: 1
+
+# -- Operator container image
+image:
+  repository: quay.io/fitbeard/ansible-platform/awx-resource-operator
+  tag: 2.6-709
+  pullPolicy: IfNotPresent
+
+# -- Pull secrets for private registries
+imagePullSecrets: []
+# - name: regcred
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Watch scope:
+#    "release"             = same namespace as the operator (default, namespace-scoped Role)
+#    "<namespace>"         = single specific namespace (namespace-scoped Role in that ns)
+#    "" (empty)            = cluster-wide (operator watches CRs in ALL namespaces).
+#                            Renders the manager RBAC as ClusterRole+ClusterRoleBinding.
+watchNamespace: release
+
+# -- Leader election. resourceName matches upstream config/manager/manager.yaml.
+leaderElection:
+  enabled: true
+  id: awx-resource-operator
+
+# -- Operator-sdk RELATED_IMAGE_* env vars consumed by the operator's roles.
+#    `jobRunner` becomes RELATED_IMAGE_ANSIBLE_JOB_RUNNER_IMAGE; the operator
+#    reads it via `lookup('env', ...)` and stamps it into each spawned Job
+#    container. Per-CR `runner_image`/`runner_version` fields override this
+#    default when set.
+relatedImages:
+  jobRunner: quay.io/fitbeard/ansible-platform/awx-resource-runner:2.6-709
+
+# -- Max concurrent reconciles (passed as a CLI arg on the operator).
+maxConcurrentReconciles: 15
+
+# -- Optional kube-rbac-proxy sidecar exposing /metrics behind authn/authz.
+#    Matches Red Hat downstream behavior — config/default/kustomization.yaml
+#    applies manager_auth_proxy_patch.yaml in 2.6-709 to wire this sidecar,
+#    same as awx-operator + eda-server-operator + gateway-operator.
+#    Disable on small / dev clusters to skip the extra container.
+kubeRbacProxy:
+  enabled: true
+  image:
+    repository: registry.k8s.io/kubebuilder/kube-rbac-proxy
+    tag: v0.15.0
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 5m
+      memory: 64Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# -- Metrics service (only created when kubeRbacProxy.enabled). Useful as a
+#    Prometheus scrape target.
+metricsService:
+  type: ClusterIP
+  port: 8443
+
+# -- Operator container resources
+resources:
+  limits:
+    cpu: "1"
+    memory: 2Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# -- Pod-level security context
+podSecurityContext:
+  runAsNonRoot: true
+
+# -- Container-level security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Pod placement
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+# -- Pod metadata
+podAnnotations: {}
+podLabels: {}
+
+# -- Service account for the operator deployment
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Service account used by spawned runner Jobs (created by upstream's
+#    `roles/*/templates/service_account.yml.j2` at reconcile time, NOT by
+#    this chart). Rendered here only so Job-spawn RBAC is surfaced cleanly.
+runnerServiceAccount:
+  name: resource-operator-controller-manager-job
+
+# -- Ansible runner tuning. Set to 'true' for verbose role logs on the operator pod.
+ansibleDebugLogs: false

@@ -22,3 +22,24 @@ spec:
   # Postgres, drop a Secret with host/port/database/username/password keys
   # and reference it via:
   #   postgres_configuration_secret: <secret-name>
+
+# ---
+# apiVersion: gateway.networking.k8s.io/v1
+# kind: HTTPRoute
+# metadata:
+#   name: awx
+#   namespace: ansible
+# spec:
+#   parentRefs:
+#     - name: gateway-external
+#       namespace: envoy-gateway-system
+#   hostnames:
+#     - awx.localtest.me
+#   rules:
+#     - matches:
+#         - path:
+#             type: PathPrefix
+#             value: /
+#       backendRefs:
+#         - name: awx-service
+#           port: 80

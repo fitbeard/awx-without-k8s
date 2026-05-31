@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ap-gateway-operator.fullname" . }}-controller-manager
+  labels:
+    control-plane: controller-manager
+    {{- include "ap-gateway-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      {{- include "ap-gateway-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        control-plane: controller-manager
+        {{- include "ap-gateway-operator.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "ap-gateway-operator.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        {{- if .Values.kubeRbacProxy.enabled }}
+        - name: kube-rbac-proxy
+          image: "{{ .Values.kubeRbacProxy.image.repository }}:{{ .Values.kubeRbacProxy.image.tag }}"
+          imagePullPolicy: {{ .Values.kubeRbacProxy.image.pullPolicy }}
+          args:
+            - --secure-listen-address=0.0.0.0:8443
+            - --upstream=http://127.0.0.1:8080/
+            - --logtostderr=true
+            - --v=0
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.kubeRbacProxy.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.kubeRbacProxy.securityContext | nindent 12 }}
+        {{- end }}
+        - name: manager
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --health-probe-bind-address=:6789
+            - --metrics-bind-address={{ if .Values.kubeRbacProxy.enabled }}127.0.0.1:8080{{ else }}0.0.0.0:8080{{ end }}
+            {{- if .Values.leaderElection.enabled }}
+            - --leader-elect
+            - --leader-election-id={{ .Values.leaderElection.id }}
+            {{- end }}
+          env:
+            - name: ANSIBLE_GATHERING
+              value: explicit
+            - name: ANSIBLE_VERBOSITY
+              value: {{ .Values.ansibleVerbosity | quote }}
+            - name: ANSIBLE_DEBUG_LOGS
+              value: {{ .Values.ansibleDebugLogs | quote }}
+            - name: WATCH_NAMESPACE
+              {{- if eq .Values.watchNamespace "" }}
+              # Cluster-wide: empty string is operator-sdk's "all namespaces" sentinel.
+              # Note: in v1.36 this can be flaky for cross-namespace cache reads — prefer
+              # an explicit comma-separated list (e.g. "gateway,ap") when possible.
+              value: ""
+              {{- else if eq .Values.watchNamespace "release" }}
+              # Pinned to the release namespace via downward API
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+              {{- else }}
+              # Single namespace OR comma-separated multi-namespace list
+              value: {{ .Values.watchNamespace | quote }}
+              {{- end }}
+            {{- with .Values.relatedImages.gateway }}
+            - name: RELATED_IMAGE_GATEWAY
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.relatedImages.gatewayProxy }}
+            - name: RELATED_IMAGE_GATEWAY_PROXY
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.relatedImages.gatewayPostgres }}
+            - name: RELATED_IMAGE_GATEWAY_POSTGRES
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.relatedImages.gatewayRedis }}
+            - name: RELATED_IMAGE_GATEWAY_REDIS
+              value: {{ . | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 6789
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 6789
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}

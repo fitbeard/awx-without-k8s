@@ -1,0 +1,19 @@
+apiVersion: v2
+name: eda-server-operator
+description: |
+  EDA Server operator (rebuilt from public ansible/eda-server-operator with
+  downstream patches applied). Deploys the controller-manager that
+  reconciles EDA/EDABackup/EDARestore resources.
+
+  CRDs are NOT installed by this chart — apply them first from
+  images/eda-server-operator/crds/ so their lifecycle stays decoupled from the
+  operator install.
+type: application
+version: 0.1.0
+appVersion: "2.6-709"
+keywords:
+  - eda
+  - event-driven-ansible
+  - ansible
+  - operator
+home: https://github.com/fitbeard/ansible-platform

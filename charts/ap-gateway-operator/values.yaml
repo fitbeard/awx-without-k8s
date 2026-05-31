@@ -1,0 +1,114 @@
+# Default values for ap-gateway-operator.
+
+# -- Number of operator replicas. Leader-election ensures only one active.
+replicaCount: 1
+
+# -- Operator container image
+image:
+  repository: quay.io/your-namespace/ap-gateway-operator
+  tag: 2.6-709
+  pullPolicy: IfNotPresent
+
+# -- Pull secrets for private registries hosting the operator/gateway/envoy/postgres/redis images
+imagePullSecrets: []
+# - name: regcred
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Watch scope:
+#    "release"             = same namespace as the operator (default, namespace-scoped Role)
+#    "<namespace>"         = single specific namespace (namespace-scoped Role in that ns)
+#    "<ns1>,<ns2>,..."     = multi-namespace explicit list. Renders manager RBAC as ClusterRole+CRB.
+#                            Required when AAP CRs live in a different namespace than the operator
+#                            (e.g. operator in `gateway`, CR in `ap`). Pass `gateway,ap`.
+#    "" (empty)            = cluster-wide (operator watches AAP CRs in ALL namespaces).
+#                            Renders manager RBAC as ClusterRole+CRB.
+#
+watchNamespace: release
+
+# -- Leader election. ID matches what upstream manager.yaml ships with.
+leaderElection:
+  enabled: true
+  id: aap-gateway-operator
+
+# -- Operator-sdk RELATED_IMAGE_* env vars. Consumed by the role's
+#    `_image | default(env RELATED_IMAGE_*) | default(_default)` lookup
+#    chain so users can deploy an AAP CR without restating image fields.
+#    Empty string skips the env var (falls back to upstream-baked default).
+relatedImages:
+  gateway: quay.io/fitbeard/ansible-platform/gateway:2.6.20260422
+  gatewayProxy: docker.io/envoyproxy/envoy:v1.34-latest
+  gatewayPostgres: quay.io/sclorg/postgresql-15-c9s:latest
+  gatewayRedis: quay.io/sclorg/redis-6-c9s:c9s
+
+# -- Optional kube-rbac-proxy sidecar exposing /metrics behind authn/authz.
+#    Disable on small / dev clusters to skip the extra container.
+kubeRbacProxy:
+  enabled: true
+  image:
+    repository: registry.k8s.io/kubebuilder/kube-rbac-proxy
+    tag: v0.15.0
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 5m
+      memory: 64Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# -- Metrics service (only created when kubeRbacProxy.enabled). Useful as a
+#    Prometheus scrape target.
+metricsService:
+  type: ClusterIP
+  port: 8443
+
+# -- Operator container resources
+resources:
+  limits:
+    cpu: "2"
+    memory: 4000Mi
+  requests:
+    cpu: 10m
+    memory: 256Mi
+
+# -- Pod-level security context
+podSecurityContext:
+  runAsNonRoot: true
+
+# -- Container-level security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Pod placement
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+# -- Pod metadata
+podAnnotations: {}
+podLabels: {}
+
+# -- Service account for the operator deployment
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Operator verbosity. 0=quiet, 1=task names, 2=default args dump.
+#    Generic ANSIBLE_VERBOSITY is honoured by ansible-operator v1.36 for
+#    all kinds (per-kind ANSIBLE_VERBOSITY_<KIND>_<GROUP> would override).
+ansibleVerbosity: "0"
+
+# -- Ansible runner debug logs on the operator pod. Set 'true' for verbose role logs.
+ansibleDebugLogs: false

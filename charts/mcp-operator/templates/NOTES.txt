@@ -1,0 +1,38 @@
+mcp-operator {{ .Chart.AppVersion }} installed in namespace "{{ .Release.Namespace }}".
+
+Watch mode: {{ if eq .Values.watchNamespace "" }}cluster-wide{{ else if eq .Values.watchNamespace "release" }}release namespace ({{ .Release.Namespace }}){{ else }}{{ .Values.watchNamespace }}{{ end }}
+
+Pinned images (RELATED_IMAGE_*):
+  ANSIBLE_MCP_SERVER: {{ .Values.relatedImages.mcpServer | default "(upstream default — quay.io/ttakamiy/aap-mcp-server:latest)" }}
+
+Next steps:
+  1. Verify the operator pod is healthy:
+       kubectl rollout status deploy/{{ include "mcp-operator.fullname" . }}-controller-manager -n {{ .Release.Namespace }}
+
+  2. CRDs must be applied separately (chart does not install them):
+       kubectl apply -f build-operator-mcp/crds/
+
+  3. Create an AnsibleMCPConnect CR pointing at your AAP instance:
+       kubectl apply -f build-operator-mcp/deploy/mcp-sample.yaml
+       # (edit `public_base_url` first to point at your AAP)
+
+  4. Tail reconcile logs:
+       kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "mcp-operator.fullname" . }}-controller-manager -c mcp-manager -f
+{{- if eq .Values.watchNamespace "" }}
+
+NOTE: cluster-wide watch is enabled — the manager RBAC is rendered as
+ClusterRole+ClusterRoleBinding so the operator can reconcile CRs in
+any namespace.
+{{- end }}
+
+📝 SCOPE: this chart is MCP-ONLY.
+   The `ansible-ai-connect-operator` binary watches BOTH the chatbot CRD
+   (aiconnect.ansible.com/AnsibleAIConnect → Lightspeed/Wisdom/RAG) AND
+   the MCP CRD (mcpconnect.ansible.com/AnsibleMCPConnect). This chart
+   deliberately grants RBAC for ONLY the MCP apigroup — applying chatbot
+   CRs against this install will fail with "forbidden", which is intentional.
+
+   To enable the chatbot stack, you'd need to: (1) snapshot aiconnect CRDs,
+   (2) extend manager-rbac to include `aiconnect.ansible.com`, (3) wire 7
+   additional RELATED_IMAGE_* values for the chatbot/Wisdom/RAG stack.
+   See INFO-COLLECTED-OPERATORS.md "AI assistant stack rebuild" TODO entry.

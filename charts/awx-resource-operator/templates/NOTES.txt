@@ -1,0 +1,36 @@
+awx-resource-operator {{ .Chart.AppVersion }} installed in namespace "{{ .Release.Namespace }}".
+
+Watch mode: {{ if eq .Values.watchNamespace "" }}cluster-wide{{ else if eq .Values.watchNamespace "release" }}release namespace ({{ .Release.Namespace }}){{ else }}{{ .Values.watchNamespace }}{{ end }}
+
+Pinned images (RELATED_IMAGE_*):
+  ANSIBLE_JOB_RUNNER_IMAGE: {{ .Values.relatedImages.jobRunner | default "(upstream default — quay.io/ansible/awx-resource-runner:latest)" }}
+
+Next steps:
+  1. Verify the operator pod is healthy:
+       kubectl rollout status deploy/{{ include "awx-resource-operator.fullname" . }}-controller-manager -n {{ .Release.Namespace }}
+
+  2. CRDs must be applied separately (chart does not install them):
+       kubectl apply -f build-operator-awx-resource/crds/
+
+  3. Create the AWX-access Secret + a CR. Example AnsibleJob:
+       kubectl apply -f build-operator-awx-resource/deploy/awx-resource-sample.yaml
+
+  4. Tail reconcile logs:
+       kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "awx-resource-operator.fullname" . }}-controller-manager -c awx-resource-manager -f
+{{- if eq .Values.watchNamespace "" }}
+
+NOTE: cluster-wide watch is enabled — the manager RBAC is rendered as
+ClusterRole+ClusterRoleBinding so the operator can reconcile CRs in
+any namespace.
+{{- end }}
+
+⚠️  RECONCILE MODEL — fire-and-forget (NOT a continuous reconciler):
+   Each CR runs ONCE. After the spawned runner Job sets
+   status.isFinished=true, every subsequent reconcile hits an
+   `end_play` early-exit. Spec edits to the CR are silently ignored.
+   AWX-side drift is NOT corrected.
+
+   To force a re-run:
+     kubectl delete <cr> && kubectl apply -f <cr>     # or
+     kubectl patch <cr> --subresource=status --type=merge \
+       -p '{"status":{"isFinished":false}}'

@@ -1,0 +1,75 @@
+{{- $clusterScope := eq .Values.watchNamespace "" -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ if $clusterScope }}ClusterRole{{ else }}Role{{ end }}
+metadata:
+  name: {{ include "eda-server-operator.fullname" . }}-eda-manager-role
+  labels:
+    {{- include "eda-server-operator.labels" . | nindent 4 }}
+rules:
+  # Base operator rules
+  - apiGroups: [""]
+    resources: [secrets, pods, pods/exec, pods/log]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [apps]
+    resources: [deployments, daemonsets, replicasets, statefulsets]
+    verbs: [create, delete, get, list, patch, update, watch]
+  # OpenShift Routes (no-op on plain Kubernetes)
+  - apiGroups: [route.openshift.io]
+    resources: [routes, routes/custom-host]
+    verbs: [get, list, create, delete, patch, update, watch]
+  # Reconciler-managed child resources
+  - apiGroups: ["", rbac.authorization.k8s.io]
+    resources:
+      - pods
+      - services
+      - services/finalizers
+      - serviceaccounts
+      - endpoints
+      - persistentvolumeclaims
+      - events
+      - configmaps
+      - secrets
+      - roles
+      - rolebindings
+    verbs: [get, list, create, delete, patch, update, watch]
+  - apiGroups: [apps, networking.k8s.io]
+    resources: [deployments, daemonsets, replicasets, statefulsets, ingresses]
+    verbs: [get, list, create, delete, patch, update, watch]
+  - apiGroups: [apps]
+    resources: [deployments/scale]
+    verbs: [patch]
+  - apiGroups: [""]
+    resources: [pods/exec, pods/attach, pods/log]
+    verbs: [create, get]
+  # Operator SA grants Job permissions to worker deployment SA
+  - apiGroups: ["", batch, extensions]
+    resources: [jobs]
+    verbs: [get, list, watch, create, update, patch, delete]
+  # EDA CRD ownership
+  - apiGroups: [eda.ansible.com]
+    resources:
+      - edas
+      - edas/status
+      - edas/finalizers
+      - edabackups
+      - edabackups/status
+      - edabackups/finalizers
+      - edarestores
+      - edarestores/status
+      - edarestores/finalizers
+    verbs: [create, delete, get, list, patch, update, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ if $clusterScope }}ClusterRoleBinding{{ else }}RoleBinding{{ end }}
+metadata:
+  name: {{ include "eda-server-operator.fullname" . }}-eda-manager-rolebinding
+  labels:
+    {{- include "eda-server-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: {{ if $clusterScope }}ClusterRole{{ else }}Role{{ end }}
+  name: {{ include "eda-server-operator.fullname" . }}-eda-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "eda-server-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}

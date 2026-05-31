@@ -1,0 +1,107 @@
+# Default values for eda-server-operator.
+
+# -- Number of operator replicas. Leader-election ensures only one active.
+replicaCount: 1
+
+# -- Operator container image
+image:
+  repository: quay.io/fitbeard/ansible-platform/eda-server-operator
+  tag: 2.6-709
+  pullPolicy: IfNotPresent
+
+# -- Pull secrets for private registries hosting the operator/EDA/EDA-UI images
+imagePullSecrets: []
+# - name: regcred
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Watch scope:
+#    "release"             = same namespace as the operator (default, namespace-scoped Role)
+#    "<namespace>"         = single specific namespace (namespace-scoped Role in that ns)
+#    "" (empty)            = cluster-wide (operator watches EDA CRs in ALL namespaces).
+#                            Renders the manager RBAC as ClusterRole+ClusterRoleBinding.
+watchNamespace: release
+
+# -- Leader election. resourceName matches what upstream manager_config.yaml had.
+leaderElection:
+  enabled: true
+  id: eda-server-operator
+  resourceName: 9db35fdb.ansible.com
+
+# -- Operator-sdk RELATED_IMAGE_* env vars. Consumed by the role's
+#    `_image | default(env RELATED_IMAGE_*) | default(_default)` lookup
+#    chain so users can deploy an EDA CR without restating image fields.
+#    Empty string skips the env var (falls back to upstream-baked default).
+relatedImages:
+  eda: quay.io/fitbeard/ansible-platform/eda-server:1.2.8
+  edaUi: quay.io/fitbeard/ansible-platform/eda-ui:2.6.8
+  edaInitContainer: ""        # default: ubi9/ubi-minimal
+  edaRedis: ""                # default: docker.io/redis:latest
+  edaPostgres: ""             # default: quay.io/sclorg/postgresql-15-c9s
+
+# -- Optional kube-rbac-proxy sidecar exposing /metrics behind authn/authz.
+#    Disable on small / dev clusters to skip the extra container.
+kubeRbacProxy:
+  enabled: true
+  image:
+    repository: registry.k8s.io/kubebuilder/kube-rbac-proxy
+    tag: v0.15.0
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 5m
+      memory: 64Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# -- Metrics service (only created when kubeRbacProxy.enabled). Useful as a
+#    Prometheus scrape target.
+metricsService:
+  type: ClusterIP
+  port: 8443
+
+# -- Operator container resources
+resources:
+  limits:
+    cpu: "2"
+    memory: 4000Mi
+  requests:
+    cpu: 50m
+    memory: 32Mi
+
+# -- Pod-level security context
+podSecurityContext:
+  runAsNonRoot: true
+
+# -- Container-level security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Pod placement
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+# -- Pod metadata
+podAnnotations: {}
+podLabels: {}
+
+# -- Service account for the operator deployment
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Ansible runner tuning. Set to 'true' for verbose role logs on the operator pod.
+ansibleDebugLogs: false

@@ -1,0 +1,25 @@
+apiVersion: v2
+name: ap-gateway-operator
+description: |
+  AAP Gateway operator (rebuilt from the platform-operator-bundle:2.6-709
+  source layer with downstream patches applied). Reconciles
+  AnsibleAutomationPlatform/Backup/Restore CRs and orchestrates the
+  controller (AWX), eda, mcp sub-CRs underneath.
+
+  CRDs are NOT installed by this chart — apply them first from
+  images/ap-gateway-operator/crds/ so their lifecycle stays decoupled from
+  the operator install.
+
+  This chart pairs with the awx-operator and eda-server-operator helm
+  charts; deploy all three (with cluster-wide watch) before applying an
+  AnsibleAutomationPlatform CR.
+type: application
+version: 0.1.0
+appVersion: "2.6-709"
+keywords:
+  - aap
+  - ansible-automation-platform
+  - gateway
+  - ansible
+  - operator
+home: https://github.com/fitbeard/ansible-platform

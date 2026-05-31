@@ -76,7 +76,7 @@ sed -i.bak \
     -e 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/' \
     -e '/^      imagePullSecrets:$/,/^        - name: redhat-operators-pull-secret$/d' \
     -e "/name: ANSIBLE_VERBOSITY/{n;s/value: '2'/value: '0'/;}" \
-    -e "/name: RELATED_IMAGE_GATEWAY$/{n;s|value: .*|value: quay.io/tadas/ap-gateway:2.6.20260422|;}" \
+    -e "/name: RELATED_IMAGE_GATEWAY$/{n;s|value: .*|value: quay.io/fitbeard/ansible-platform/gateway:2.6.20260422|;}" \
     -e "/name: RELATED_IMAGE_GATEWAY_PROXY$/{n;s|value: .*|value: docker.io/envoyproxy/envoy:v1.34-latest|;}" \
     ./config/manager/manager.yaml
 rm -f ./config/manager/manager.yaml.bak

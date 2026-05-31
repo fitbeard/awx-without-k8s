@@ -1,0 +1,19 @@
+{{- if .Values.kubeRbacProxy.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "awx-resource-operator.fullname" . }}-metrics-service
+  labels:
+    control-plane: controller-manager
+    {{- include "awx-resource-operator.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.metricsService.type }}
+  selector:
+    control-plane: controller-manager
+    {{- include "awx-resource-operator.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: https
+      port: {{ .Values.metricsService.port }}
+      protocol: TCP
+      targetPort: https
+{{- end }}

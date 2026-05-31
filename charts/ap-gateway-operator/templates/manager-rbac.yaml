@@ -1,0 +1,113 @@
+{{- $clusterScope := eq (include "ap-gateway-operator.clusterScope" .) "true" -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ if $clusterScope }}ClusterRole{{ else }}Role{{ end }}
+metadata:
+  name: {{ include "ap-gateway-operator.fullname" . }}-manager-role
+  labels:
+    {{- include "ap-gateway-operator.labels" . | nindent 4 }}
+rules:
+  # Base operator rules
+  - apiGroups: [""]
+    resources: [secrets, pods, pods/exec, pods/log]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [apps]
+    resources: [deployments, daemonsets, replicasets, statefulsets]
+    verbs: [create, delete, get, list, patch, update, watch]
+  # OpenShift Routes (no-op on plain Kubernetes)
+  - apiGroups: [route.openshift.io]
+    resources: [routes, routes/custom-host]
+    verbs: [get, list, create, delete, patch, update, watch]
+  # Reconciler-managed child resources
+  - apiGroups: ["", rbac.authorization.k8s.io]
+    resources:
+      - pods
+      - services
+      - services/finalizers
+      - serviceaccounts
+      - endpoints
+      - persistentvolumeclaims
+      - events
+      - configmaps
+      - secrets
+      - roles
+      - rolebindings
+    verbs: [get, list, create, delete, patch, update, watch]
+  - apiGroups: [apps, networking.k8s.io]
+    resources: [deployments, daemonsets, replicasets, statefulsets, ingresses]
+    verbs: [get, list, create, delete, patch, update, watch]
+  - apiGroups: [""]
+    resources: [pods/exec, pods/attach, pods/log]
+    verbs: [create, get]
+  # Operator SA grants Job permissions to worker deployment SA
+  - apiGroups: ["", batch, extensions]
+    resources: [jobs]
+    verbs: [create, delete, get, list, patch, update, watch]
+  # AAP CR ownership (primary)
+  - apiGroups: [aap.ansible.com]
+    resources:
+      - ansibleautomationplatforms
+      - ansibleautomationplatforms/status
+      - ansibleautomationplatforms/finalizers
+      - ansibleautomationplatformbackups
+      - ansibleautomationplatformbackups/status
+      - ansibleautomationplatformbackups/finalizers
+      - ansibleautomationplatformrestores
+      - ansibleautomationplatformrestores/status
+      - ansibleautomationplatformrestores/finalizers
+    verbs: [create, delete, get, list, patch, update, watch]
+  # AWX (controller) sub-CRs — managed indirectly via the platform CR
+  - apiGroups: [awx.ansible.com]
+    resources:
+      - awxs
+      - awxs/status
+      - awxs/finalizers
+      - awxbackups
+      - awxbackups/status
+      - awxbackups/finalizers
+      - awxrestores
+      - awxrestores/status
+      - awxrestores/finalizers
+    verbs: [create, delete, get, list, patch, update, watch]
+  # EDA sub-CRs
+  - apiGroups: [eda.ansible.com]
+    resources:
+      - edas
+      - edas/status
+      - edas/finalizers
+      - edabackups
+      - edabackups/status
+      - edabackups/finalizers
+      - edarestores
+      - edarestores/status
+      - edarestores/finalizers
+    verbs: [create, delete, get, list, patch, update, watch]
+  # MCP server sub-CRs. Apigroup matches our upstream-pure MCP operator
+  # (build-operator-mcp/, kind=AnsibleMCPConnect, group=mcpconnect.ansible.com).
+  # Gateway-operator's bundle source has these downstream-renamed to
+  # mcpserver.ansible.com; our build-operator-gateway/unpatch.sh section 6
+  # flips them back. Keep the chart RBAC in sync.
+  - apiGroups: [mcpconnect.ansible.com]
+    resources:
+      - ansiblemcpconnects
+      - ansiblemcpconnects/status
+      - ansiblemcpconnects/finalizers
+    verbs: [create, delete, get, list, patch, update, watch]
+  # Hub and Lightspeed RBAC intentionally omitted — those components are not
+  # planned for this fork. Patch 0007 makes hub default-disabled in the AAP CR;
+  # lightspeed/mcp were already default-disabled. Re-add the corresponding
+  # apiGroups blocks here if you ever wire those operators in.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ if $clusterScope }}ClusterRoleBinding{{ else }}RoleBinding{{ end }}
+metadata:
+  name: {{ include "ap-gateway-operator.fullname" . }}-manager-rolebinding
+  labels:
+    {{- include "ap-gateway-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: {{ if $clusterScope }}ClusterRole{{ else }}Role{{ end }}
+  name: {{ include "ap-gateway-operator.fullname" . }}-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "ap-gateway-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}

@@ -7,7 +7,7 @@ Subject: [PATCH] patch: nginx static-asset paths -> match
 The bundle template assumes the downstream gateway image's path layout
 (/var/lib/ansible-automation-platform/platform/ui[/static]/) which
 matches the Red Hat-built gateway container. Our image
-(quay.io/tadas/ap-gateway:2.6.20260325, built via build-gateway/) lays
+(quay.io/fitbeard/ansible-platform/gateway:2.6.20260422, built via build-gateway/) lays
 the platform UI + collected static under /opt/aap_gateway/ instead:
 
   - /var/lib/.../platform/ui/static/  ->  /opt/aap_gateway/static/
