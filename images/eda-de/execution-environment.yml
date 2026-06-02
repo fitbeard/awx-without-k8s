@@ -32,4 +32,3 @@ additional_build_steps:
   append_final:
     - RUN alternatives --install /usr/bin/python python /usr/bin/python3.12 312
     - RUN useradd runner -u 1000 -g 0
-    - RUN chown -R 1000:0 /home/runner/.config
