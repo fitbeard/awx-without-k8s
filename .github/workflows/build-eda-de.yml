@@ -1,0 +1,55 @@
+name: build-eda-de
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Set image tag'
+        required: true
+        default: '25.0.0'
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install QEMU static binaries
+        uses: docker/setup-qemu-action@v4.0.0
+
+      - name: Configure Buildkit
+        uses: docker/setup-buildx-action@v4.0.0
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install Ansible Builder
+        run: pip install ansible-builder==3.1.1
+
+      - name: Checkout project
+        uses: actions/checkout@v6
+
+      - name: Generate DE configs
+        run: |
+          cd images/eda-de && \
+          ansible-builder create -v3 --file execution-environment.yml --context . --output-filename=Dockerfile
+
+      - name: Authenticate with Quay.io
+        uses: docker/login-action@v4.0.0
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+      - name: Build image
+        uses: docker/build-push-action@v7.0.0
+        with:
+          context: images/eda-de
+          file: images/eda-de/Dockerfile
+          push: true
+          platforms: |
+            linux/amd64
+            linux/arm64
+          tags: |
+            quay.io/fitbeard/ansible-platform/eda-de:latest
+            quay.io/fitbeard/ansible-platform/eda-de:${{ github.event.inputs.tag }}
