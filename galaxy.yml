@@ -13,10 +13,11 @@ dependencies:
   community.crypto: ">=2.2.3"
   community.docker: ">=4.3.1"
   community.general: ">=10.3.1"
-repository: https://github.com/fitbeard/awx-without-k8s
-homepage: https://github.com/fitbeard/awx-without-k8s
-issues: https://github.com/fitbeard/awx-without-k8s/issues
+repository: https://github.com/fitbeard/ansible-platform
+homepage: https://github.com/fitbeard/ansible-platform
+issues: https://github.com/fitbeard/ansible-platform/issues
 build_ignore:
+  - .ansible
   - .github
   - .vscode
   - ansible-cache
@@ -28,8 +29,10 @@ build_ignore:
   - .gitignore
   - .markdownlint.yml
   - .pre-commit-config.yaml
+  - CHANGELOG.md
   - poetry.lock
   - pyproject.toml
+  - UPGRADE.md
 tags:
   - cloud
   - infrastructure
@@ -38,3 +41,5 @@ tags:
   - awx
   - ansible_tower
   - ansible_platform
+  - eda
+  - helm
