@@ -88,25 +88,25 @@ options:
       description: The percentage of failed hosts when the proxy will panic and start routing traffic to all nodes. Set to 0 to disable this.
 
 extends_documentation_fragment:
-- ansible.platform.state
-- ansible.platform.auth
+- fitbeard.awx.state
+- fitbeard.awx.auth
 """
 
 
 EXAMPLES = """
 - name: Add service cluster
-  ansible.platform.service_cluster:
+  fitbeard.awx.service_cluster:
     name: Automation Controller
     service_type: controller
     state: present
 
 - name: Delete service cluster
-  ansible.platform.service_cluster:
+  fitbeard.awx.service_cluster:
     name: Automation Controller
     state: absent
 
 - name: Check if cluster exists
-  ansible.platform.service_cluster:
+  fitbeard.awx.service_cluster:
     name: Automation Controller
     state: exists
 ...

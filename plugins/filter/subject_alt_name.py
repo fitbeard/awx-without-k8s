@@ -5,6 +5,40 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+DOCUMENTATION = r"""
+name: subject_alt_name
+author: Ansible Automation Platform
+short_description: Format a value as a certificate subject alternative name
+description:
+  - Return a value formatted as a certificate subject alternative name.
+  - IP addresses are returned with a C(IP:) prefix.
+  - Other values are returned with a C(DNS:) prefix.
+positional: _input
+options:
+  _input:
+    description:
+      - The DNS name or IP address to format.
+    type: str
+    required: true
+"""
+
+EXAMPLES = r"""
+- name: Format a DNS subject alternative name
+  ansible.builtin.debug:
+    msg: "{{ 'gateway.demo.io' | fitbeard.awx.subject_alt_name }}"
+
+- name: Format an IP subject alternative name
+  ansible.builtin.debug:
+    msg: "{{ '192.0.2.10' | fitbeard.awx.subject_alt_name }}"
+"""
+
+RETURN = r"""
+_value:
+  description:
+    - The value formatted as C(DNS:<value>) or C(IP:<value>).
+  type: str
+"""
+
 from ipaddress import ip_address
 
 

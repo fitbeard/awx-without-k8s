@@ -42,24 +42,24 @@ options:
       type: str
 
 extends_documentation_fragment:
-- ansible.platform.state
-- ansible.platform.auth
+- fitbeard.awx.state
+- fitbeard.awx.auth
 """
 
 EXAMPLES = """
 - name: Create service node
-  ansible.platform.service_node:
+  fitbeard.awx.service_node:
     name: "Controller - Node 1"
     address: 10.0.0.1
     service_cluster: controller
 
 - name: Delete service node
-  ansible.platform.service_node:
+  fitbeard.awx.service_node:
     name: 3  # ID can be used
     state: absent
 
 - name: Update service node's cluster
-  ansible.platform.service_node:
+  fitbeard.awx.service_node:
     name: "Controller - Node 1"
     address: 10.0.0.1
     service_cluster: 2 # service cluster's name or ID

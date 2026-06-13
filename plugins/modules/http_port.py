@@ -41,14 +41,14 @@ options:
         - Only one can be set to True
 
 extends_documentation_fragment:
-- ansible.platform.state
-- ansible.platform.auth
+- fitbeard.awx.state
+- fitbeard.awx.auth
 """
 
 
 EXAMPLES = """
 - name: Add API http port
-  ansible.platform.http_port:
+  fitbeard.awx.http_port:
     name: "Port for APIs"
     number: 443
     use_https: true
@@ -56,12 +56,12 @@ EXAMPLES = """
     state: present
 
 - name: Remove API http port
-  ansible.platform.http_port:
+  fitbeard.awx.http_port:
     name: "Port for APIs"
     state: absent
 
 - name: Update http port
-  ansible.platform.http_port:
+  fitbeard.awx.http_port:
     name: "Port for APIs"
     number: 80
     use_https: false

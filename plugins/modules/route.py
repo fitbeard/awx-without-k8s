@@ -77,13 +77,13 @@ options:
       type: str
 
 extends_documentation_fragment:
-- ansible.platform.state
-- ansible.platform.auth
+- fitbeard.awx.state
+- fitbeard.awx.auth
 """
 
 EXAMPLES = """
 - name: Create route
-  ansible.platform.route:
+  fitbeard.awx.route:
     name: Controller API
     description: Proxy to the Controller
     http_port: 1                                # ID of http_port
@@ -94,7 +94,7 @@ EXAMPLES = """
     service_port: 3000
 
 - name: Create route with mTLS enabled
-  ansible.platform.route:
+  fitbeard.awx.route:
     name: EDA Event Stream
     description: EDA Event Stream with mTLS
     http_port: 1
@@ -107,17 +107,17 @@ EXAMPLES = """
     service_port: 8080
 
 - name: Update route
-  ansible.platform.route:
+  fitbeard.awx.route:
     name: 1                                     # ID of route
     gateway_path: '/controller-config/'
 
 - name: Check route
-  ansible.platform.route:
+  fitbeard.awx.route:
     name: Controller API
     state: exists
 
 - name: Delete route
-  ansible.platform.route:
+  fitbeard.awx.route:
     name: Controller API
     state: absent
 ...

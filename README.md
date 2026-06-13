@@ -330,9 +330,6 @@ ansible-playbook -i inventory-eda-standalone playbook-eda-standalone.yml --diff 
   -e eda_tasks=upgrade
 ```
 
-See [`CHANGELOG.md`](./CHANGELOG.md) and [`UPGRADE.md`](./UPGRADE.md) for
-version-specific notes.
-
 ## Contributing
 
 Install the local development dependencies and hooks:

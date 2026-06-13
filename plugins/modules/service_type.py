@@ -38,14 +38,14 @@ options:
       description: API path to resource service index endpoint for the service type
 
 extends_documentation_fragment:
-- ansible.platform.state
-- ansible.platform.auth
+- fitbeard.awx.state
+- fitbeard.awx.auth
 """
 
 
 EXAMPLES = """
 - name: Add service type
-  ansible.platform.service_type:
+  fitbeard.awx.service_type:
     name: eda
     ping_url: /api/eda/v1/status/
     login_path: /v1/auth/session/login/
@@ -54,12 +54,12 @@ EXAMPLES = """
     state: present
 
 - name: Delete service cluster
-  ansible.platform.service_type:
+  fitbeard.awx.service_type:
     name: eda
     state: absent
 
 - name: Check if service type exists
-  ansible.platform.service_type:
+  fitbeard.awx.service_type:
     name: eda
     state: exists
 ...

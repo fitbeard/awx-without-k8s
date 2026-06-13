@@ -23,12 +23,12 @@ options:
         - A data structure to be sent into the settings endpoint
       type: dict
       required: True
-extends_documentation_fragment: ansible.platform.auth
+extends_documentation_fragment: fitbeard.awx.auth
 """
 
 EXAMPLES = """
 - name: Configure platform gateway settings
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       gateway_token_name: "<gateway_token_name>"
       gateway_access_token_expiration: 6000
@@ -37,7 +37,7 @@ EXAMPLES = """
       gateway_proxy_url_ignore_cert: true/false
 
 - name: Configure JWT settings
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       jwt_private_key: "<jwt_private_key>"
       jwt_public_key: |
@@ -47,7 +47,7 @@ EXAMPLES = """
       jwt_expiration_buffer_in_seconds: <jwt_expiration_buffer_in_seconds>
 
 - name: Set backend and timeout configurations
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       status_endpoint_backend_timeout_seconds: <timeout_seconds>
       status_endpoint_backend_verify: true/false
@@ -55,7 +55,7 @@ EXAMPLES = """
       request_timeout: <timeout_in_seconds>
 
 - name: Configure password and security policies
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       password_min_length: 0
       password_min_digits: 0
@@ -64,7 +64,7 @@ EXAMPLES = """
       allow_admins_to_set_insecure: false
 
 - name: Customize login and session behavior
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       LOGIN_REDIRECT_OVERRIDE: "<redirect_url>"
       custom_login_info: "<custom_login_message>"
@@ -73,25 +73,25 @@ EXAMPLES = """
       SESSION_COOKIE_AGE: <cookie_age_in_seconds>
 
 - name: Configure SSO and OAuth2 settings
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       CONTROLLER_SSO_URL: "<controller_sso_url>"
       AUTOMATION_HUB_SSO_URL: "<automation_hub_sso_url>"
       ALLOW_OAUTH2_FOR_EXTERNAL_USERS: true/false
 
 - name: Set pagination behavior
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       DEFAULT_PAGE_SIZE: <default_page_size>
       MAX_PAGE_SIZE: <max_page_size>
 
 - name: Enable analytics and tracking
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       INSIGHTS_TRACKING_STATE: true/false
 
 - name: Configure Red Hat integration
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       RED_HAT_CONSOLE_URL: "<red_hat_console_url>"
       REDHAT_USERNAME: "<redhat_username>"
@@ -100,7 +100,7 @@ EXAMPLES = """
       SUBSCRIPTIONS_PASSWORD: "<encrypted_subscriptions_password>"
 
 - name: Set Automation Analytics gather interval
-  ansible.platform.settings:
+  fitbeard.awx.settings:
     settings:
       AUTOMATION_ANALYTICS_GATHER_INTERVAL: <gather_interval_in_seconds>
 ...
