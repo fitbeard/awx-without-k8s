@@ -5,6 +5,39 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+DOCUMENTATION = r"""
+name: ipv6_wrap
+author: Ansible Automation Platform
+short_description: Wrap IPv6 addresses in square brackets
+description:
+  - Wrap an IPv6 address in square brackets.
+  - Return non-IPv6 values unchanged.
+positional: _input
+options:
+  _input:
+    description:
+      - The address or hostname to inspect.
+    type: str
+    required: true
+"""
+
+EXAMPLES = r"""
+- name: Wrap an IPv6 address for URL usage
+  ansible.builtin.debug:
+    msg: "{{ '2001:db8::1' | fitbeard.awx.ipv6_wrap }}"
+
+- name: Leave hostnames unchanged
+  ansible.builtin.debug:
+    msg: "{{ 'gateway.demo.io' | fitbeard.awx.ipv6_wrap }}"
+"""
+
+RETURN = r"""
+_value:
+  description:
+    - The original value, or the IPv6 address wrapped in square brackets.
+  type: str
+"""
+
 from ipaddress import IPv6Address
 
 

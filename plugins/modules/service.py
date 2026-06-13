@@ -81,13 +81,13 @@ options:
       type: int
 
 extends_documentation_fragment:
-- ansible.platform.state
-- ansible.platform.auth
+- fitbeard.awx.state
+- fitbeard.awx.auth
 """
 
 EXAMPLES = """
 - name: Create service
-  ansible.platform.service:
+  fitbeard.awx.service:
     name: Hub API
     description: Proxy to the Automation Hub
     api_slug: "hub"
@@ -99,17 +99,17 @@ EXAMPLES = """
     order: 100
 
 - name: Update service
-  ansible.platform.service:
+  fitbeard.awx.service:
     name: Hub API
     service_path: '/api/v2/'
 
 - name: Check service
-  ansible.platform.service:
+  fitbeard.awx.service:
     name: Gateway API
     state: exists
 
 - name: Delete service
-  ansible.platform.service:
+  fitbeard.awx.service:
     name: Gateway API
     state: absent
 ...
