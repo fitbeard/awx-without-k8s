@@ -91,7 +91,7 @@
 
     - name: Set current service nodes facts
       ansible.builtin.set_fact:
-        _current_service_nodes: "{{ _list_services.container.Output.split('\n') | select('match', '^\\s*node:') | map('regex_replace', '^\\s*node:\\s*(.*)', '\\1') | list }}"
+        _current_service_nodes: "{{ _list_services.container.Output.split('\n') | select('match', '^\\s*node:') | map('regex_replace', '^\\s*node:\\s*(.*)', '\\1') | list }}" # noqa: yaml[line-length]
 
     - name: Update automation platform gateway service nodes
       fitbeard.awx.service_node:
