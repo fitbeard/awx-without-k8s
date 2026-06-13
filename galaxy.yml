@@ -4,7 +4,7 @@ version: 1.0.0 # injected dynamically when publishing
 readme: README.md
 authors:
   - Tadas Sutkaitis <tadasas@gmail.com>
-description: AWX clustering and more
+description: Community Ansible Platform
 license:
   - GPL-3.0-or-later
 dependencies:
