@@ -1,0 +1,34 @@
+haproxy_no_log: false
+
+haproxy_routes:
+  - fqdn: awx.demo.io
+    backend_pool: awx
+  - fqdn: eda.demo.io
+    backend_pool: eda
+  - fqdn: gateway.demo.io
+    backend_pool: gateway
+
+haproxy_backend_pools:
+  awx:
+    port: "{{ awx_nginx_https_port }}"
+    servers:
+      - name: awx-1
+        host: "{{ hostvars['awx-1.demo.io'].ansible_host }}"
+      - name: awx-2
+        host: "{{ hostvars['awx-2.demo.io'].ansible_host }}"
+  eda:
+    port: "{{ eda_nginx_https_port }}"
+    servers:
+      - name: eda-1
+        host: "{{ hostvars['awx-1.demo.io'].ansible_host }}"
+      # - name: eda-2
+      #   host: "{{ hostvars['awx-2.demo.io'].ansible_host }}" # in demo this node is a worker - not serving any UI
+  gateway:
+    raw_backend: |
+      backend be_gateway
+          balance roundrobin
+          option httpchk
+          http-check send meth GET uri / ver HTTP/1.1 hdr Host %[srv_name].demo.io:9080
+          http-check expect status 200-399
+          server awx-1 awx-1.demo.io:9080 ssl verify none sni str(awx-1.demo.io) check-sni awx-1.demo.io check
+          server awx-2 awx-2.demo.io:9080 ssl verify none sni str(awx-2.demo.io) check-sni awx-2.demo.io check

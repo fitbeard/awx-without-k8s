@@ -1,0 +1,59 @@
+---
+- name: Import EDA configuration tasks
+  ansible.builtin.import_tasks: configure.yml
+
+- name: Pull EDA images
+  community.docker.docker_image:
+    name: "{{ item }}"
+    source: pull
+  with_items:
+    - "{{ eda_server_image_url }}"
+    - "{{ eda_ui_image_url }}"
+
+- name: Destroy EDA containers
+  community.docker.docker_compose_v2:
+    project_name: eda
+    project_src: "{{ eda_directory }}"
+    state: absent
+
+- name: Start EDA containers (on a primary)
+  community.docker.docker_compose_v2:
+    project_name: eda
+    project_src: "{{ eda_directory }}"
+    renew_anon_volumes: true
+    state: present
+  when:
+    - eda_cluster_node_type == 'primary'
+
+- name: Make sure EDA API is reachable (on primary)
+  ansible.builtin.uri:
+    url: "https://{{ eda_cluster_node_host_id }}:{{ eda_nginx_https_port }}/api/eda/v1/status/"
+    validate_certs: true
+    ca_path: "{{ ap_ca_directory }}/pki/extracted/pem/tls-ca-bundle.pem"
+  register: _eda_ready
+  until: _eda_ready.status == 200 and _eda_ready.json.status == "good"
+  retries: 80
+  delay: 30
+  when:
+    - eda_cluster_node_type == 'primary' and eda_type in ['api', 'hybrid']
+
+- name: Start EDA containers (on a secondary)
+  community.docker.docker_compose_v2:
+    project_name: eda
+    project_src: "{{ eda_directory }}"
+    renew_anon_volumes: true
+    state: present
+  when:
+    - eda_cluster_node_type == 'secondary'
+
+- name: Make sure EDA API is reachable (on secondary)
+  ansible.builtin.uri:
+    url: "https://{{ eda_cluster_node_host_id }}:{{ eda_nginx_https_port }}/api/eda/v1/status/"
+    validate_certs: true
+    ca_path: "{{ ap_ca_directory }}/pki/extracted/pem/tls-ca-bundle.pem"
+  register: _eda_ready
+  until: _eda_ready.status == 200 and _eda_ready.json.status == "good"
+  retries: 80
+  delay: 30
+  when:
+    - eda_cluster_node_type == 'secondary' and eda_type in ['api', 'hybrid']

@@ -1,18 +1,4 @@
 services:
-
-{% if not awx_rootful_containers | bool and not awx_external_frontend | bool %}
-  nginx:
-    image: nginx:stable
-    container_name: nginx
-    hostname: "{{ awx_cluster_node_host_id }}"
-    user: root
-    restart: unless-stopped
-    network_mode: host
-    volumes:
-      - "{{ awx_directory }}/nginx.conf:/etc/nginx/nginx.conf:ro"
-      - "{{ awx_directory }}/awx-nginx.pem:/etc/nginx/awx-nginx.pem:ro"
-{% endif %}
-
   awx-web:
     image: {{ awx_image_url }}
     container_name: awx-web
@@ -21,9 +7,6 @@ services:
       - awx-rsyslog
     command: /usr/bin/launch_awx_web.sh
     hostname: "{{ awx_cluster_node_host_id }}"
-{% if awx_rootful_containers | bool %}
-    user: root
-{% endif %}
     restart: unless-stopped
     network_mode: host
     volumes:
@@ -34,15 +17,27 @@ services:
       - "{{ awx_directory }}/mesh-CA.crt:/etc/receptor/tls/ca/mesh-CA.crt:ro"
       - "{{ awx_directory }}/mesh-CA.key:/etc/receptor/tls/ca/mesh-CA.key:ro"
       - "{{ awx_directory }}/credentials.py:/etc/tower/conf.d/credentials.py:ro"
-      - "{{ awx_directory }}/awx-nginx.pem:/etc/nginx/awx-nginx.pem:ro"
       - "{{ awx_directory }}/SECRET_KEY:/etc/tower/SECRET_KEY:ro"
       - "{{ awx_directory }}/settings.py:/etc/tower/settings.py:ro"
+      - "{{ awx_directory }}/awx.crt:/etc/tower/tower.crt:ro"
+      - "{{ awx_directory }}/awx.key:/etc/tower/tower.key:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
       - "{{ awx_directory }}/awx-nginx.conf:/etc/nginx/nginx.conf:ro"
       - "{{ awx_directory }}/awx-uwsgi.ini:/etc/tower/uwsgi.ini:ro"
+      - "{{ awx_directory }}/redis.py:/etc/tower/redis.py:ro"
       - "{{ awx_directory }}/redis_socket:/var/run/redis/:rw"
+{% if awx_pg_crt_auth | bool %}
+      - "{{ awx_directory }}/postgresql.crt:/etc/tower/postgresql.crt:ro"
+      - "{{ awx_directory }}/postgresql.key:/etc/tower/postgresql.key:ro"
+{% endif %}
       - "{{ awx_directory }}/projects:/var/lib/awx/projects:rw"
 {% if awx_ca_trust_dir is defined %}
       - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
+{% endif %}
+{% if not awx_standalone | bool and groups.get('gateway', []) | length > 0 %}
+    env_file:
+      - path: "{{ awx_directory }}/awx-service.key"
+        required: true
 {% endif %}
     environment:
       AWX_COMPONENT: 'web'
@@ -59,9 +54,6 @@ services:
       - awx-receptor
     command: /usr/bin/launch_awx_task.sh
     hostname: "{{ awx_cluster_node_host_id }}"
-{% if awx_rootful_containers | bool %}
-    user: root
-{% endif %}
     restart: unless-stopped
     network_mode: host
     volumes:
@@ -72,15 +64,28 @@ services:
       - "{{ awx_directory }}/SECRET_KEY:/etc/tower/SECRET_KEY:ro"
       - "{{ awx_directory }}/launch_awx_task.sh:/usr/bin/launch_awx_task.sh:ro"
       - "{{ awx_directory }}/settings.py:/etc/tower/settings.py:ro"
+      - "{{ awx_directory }}/awx.crt:/etc/tower/tower.crt:ro"
+      - "{{ awx_directory }}/awx.key:/etc/tower/tower.key:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
       - "{{ awx_directory }}/credentials.py:/etc/tower/conf.d/credentials.py:ro"
 {% if awx_cluster_node_type == 'primary' %}
       - "{{ awx_directory }}/environment.sh:/etc/tower/conf.d/environment.sh:ro"
 {% endif %}
+{% if awx_pg_crt_auth | bool %}
+      - "{{ awx_directory }}/postgresql.crt:/etc/tower/postgresql.crt:ro"
+      - "{{ awx_directory }}/postgresql.key:/etc/tower/postgresql.key:ro"
+{% endif %}
+      - "{{ awx_directory }}/redis.py:/etc/tower/redis.py:ro"
       - "{{ awx_directory }}/redis_socket:/var/run/redis/:rw"
       - "{{ awx_directory }}/projects:/var/lib/awx/projects:rw"
       - "{{ awx_directory }}/receptor:/etc/receptor/:rw"
 {% if awx_ca_trust_dir is defined %}
       - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
+{% endif %}
+{% if not awx_standalone | bool and groups.get('gateway', []) | length > 0 %}
+    env_file:
+      - path: "{{ awx_directory }}/awx-service.key"
+        required: true
 {% endif %}
     environment:
       AWX_COMPONENT: 'task'
@@ -93,9 +98,6 @@ services:
       - redis
     command: /usr/bin/launch_awx_rsyslog.sh
     hostname: "{{ awx_cluster_node_host_id }}"
-{% if awx_rootful_containers | bool %}
-    user: root
-{% endif %}
     restart: unless-stopped
     network_mode: host
     volumes:
@@ -103,10 +105,21 @@ services:
       - "{{ awx_directory }}/SECRET_KEY:/etc/tower/SECRET_KEY:ro"
       - "{{ awx_directory }}/credentials.py:/etc/tower/conf.d/credentials.py:ro"
       - "{{ awx_directory }}/settings.py:/etc/tower/settings.py:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
       - "{{ awx_directory }}/rsyslog-socket:/var/run/awx-rsyslog:rw"
+      - "{{ awx_directory }}/redis.py:/etc/tower/redis.py:ro"
       - "{{ awx_directory }}/redis_socket:/var/run/redis/:rw"
+{% if awx_pg_crt_auth | bool %}
+      - "{{ awx_directory }}/postgresql.crt:/etc/tower/postgresql.crt:ro"
+      - "{{ awx_directory }}/postgresql.key:/etc/tower/postgresql.key:ro"
+{% endif %}
 {% if awx_ca_trust_dir is defined %}
       - "{{ awx_ca_trust_dir }}:/etc/pki/ca-trust:ro"
+{% endif %}
+{% if not awx_standalone | bool and groups.get('gateway', []) | length > 0 %}
+    env_file:
+      - path: "{{ awx_directory }}/awx-service.key"
+        required: true
 {% endif %}
     environment:
       SUPERVISOR_CONFIG_PATH: '/etc/supervisord_rsyslog.conf'
@@ -114,9 +127,6 @@ services:
   awx-receptor:
     image: {{ awx_ee_image_url }}
     container_name: awx-receptor
-{% if awx_rootful_containers | bool %}
-    user: root
-{% endif %}
     privileged: true
     command: ["/bin/sh", "/receptor.sh"]
     hostname: "{{ awx_cluster_node_host_id }}"
@@ -126,11 +136,7 @@ services:
       - "{{ awx_directory }}/receptor_socket:/var/run/receptor/:rw"
       - "{{ awx_directory }}/projects:/var/lib/awx/projects:rw"
       - "{{ awx_directory }}/receptor:/etc/receptor/:rw"
-{% if awx_rootful_containers | bool %}
-      - "{{ awx_directory }}/containers:/var/lib/containers/:rw"
-{% else %}
       - "{{ awx_directory }}/containers:/home/runner/.local/share/containers/:rw"
-{% endif %}
       - "{{ awx_directory }}/receptor.sh:/receptor.sh:ro"
       - "{{ awx_directory }}/mesh-CA.crt:/etc/receptor/tls/ca/mesh-CA.crt:ro"
       - "{{ awx_directory }}/receptor-default.conf:/etc/receptor/receptor-default.conf:ro"
@@ -148,7 +154,7 @@ services:
 {% endif %}
 
   redis:
-    image: redis:{{ awx_redis_version }}
+    image: docker.io/redis:{{ awx_redis_version }}
     container_name: redis
     restart: unless-stopped
     command: ["/usr/local/etc/redis/redis.conf"]

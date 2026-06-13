@@ -1,0 +1,52 @@
+[supervisord]
+umask = 022
+minfds = 4096
+nodaemon = true
+pidfile = /run/supervisor/supervisord.pid
+logfile = /dev/stdout
+logfile_maxbytes = 0
+childlogdir = /run/supervisor
+
+[program:nginx]
+command = nginx -g "daemon off;" -c /etc/nginx/nginx.conf
+autorestart = true
+stopasgroup = true
+killasgroup = true
+stdout_logfile = /dev/stdout
+stdout_logfile_maxbytes = 0
+redirect_stderr=true
+
+[program:uwsgi]
+command = uwsgi /etc/ansible-automation-platform/gateway/uwsgi.ini
+autorestart = true
+stopwaitsecs = 1
+stopsignal = KILL
+stopasgroup = true
+killasgroup = true
+stdout_logfile = /dev/stdout
+stdout_logfile_maxbytes = 0
+redirect_stderr=true
+
+[program:control-plane]
+command = aap-gateway-manage start_grpc_server
+autorestart = true
+stopwaitsecs = 1
+stopsignal = KILL
+stopasgroup = true
+killasgroup = true
+stdout_logfile = /dev/stdout
+stdout_logfile_maxbytes = 0
+redirect_stderr=true
+
+[group:gateway-processes]
+programs = nginx,uwsgi,control-plane
+priority = 5
+
+[unix_http_server]
+file = /run/supervisor/supervisor.sock
+
+[supervisorctl]
+serverurl = unix:///run/supervisor/supervisor.sock
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface

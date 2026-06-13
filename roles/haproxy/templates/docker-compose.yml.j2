@@ -1,0 +1,17 @@
+---
+services:
+  haproxy:
+    image: "{{ haproxy_image }}"
+    container_name: "{{ haproxy_container_name }}"
+    user: root
+    restart: "{{ haproxy_restart_policy }}"
+{% if haproxy_network_mode | length > 0 %}
+    network_mode: "{{ haproxy_network_mode }}"
+{% else %}
+    ports:
+      - "{{ haproxy_http_port }}:{{ haproxy_http_port }}"
+      - "{{ haproxy_https_port }}:{{ haproxy_https_port }}"
+{% endif %}
+    volumes:
+      - "{{ haproxy_config_directory }}/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"
+      - "{{ haproxy_cert_directory }}/frontend.pem:/usr/local/etc/haproxy/certs/frontend.pem:ro"

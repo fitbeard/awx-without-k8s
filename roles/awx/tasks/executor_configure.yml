@@ -75,9 +75,14 @@
     loop_var: directory
   when: (receptor_configs is changed | bool) and (directory.create | default(True) | bool)
 
+- name: Check if AWX receptor container is running
+  community.docker.docker_container_info:
+    name: awx-receptor
+  register: awx_receptor_container_info
+
 - name: Start AWX containers
   community.docker.docker_compose_v2:
     project_name: awx
     project_src: "{{ awx_directory }}"
-    renew_anon_volumes: true
+    renew_anon_volumes: "{{ not awx_receptor_container_info.exists }}"
     state: present

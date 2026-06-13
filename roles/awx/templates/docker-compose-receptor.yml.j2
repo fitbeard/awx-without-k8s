@@ -1,11 +1,7 @@
 services:
-
   awx-receptor:
     image: {{ awx_ee_image_url }}
     container_name: awx-receptor
-{% if awx_rootful_containers | bool %}
-    user: root
-{% endif %}
     privileged: true
     command: ["receptor", "--config", "/etc/receptor/receptor.conf"]
     hostname: "{{ awx_cluster_node_host_id }}"
@@ -18,11 +14,7 @@ services:
 {% endif %}
       - "{{ awx_directory }}/receptor:/etc/receptor/:rw"
 {% if awx_node_role_type == 'execution'%}
-{% if awx_rootful_containers | bool %}
-      - "{{ awx_directory }}/containers:/var/lib/containers/:rw"
-{% else %}
       - "{{ awx_directory }}/containers:/home/runner/.local/share/containers/:rw"
-{% endif %}
 {% endif %}
       - "{{ awx_directory }}/mesh-CA.crt:/etc/receptor/tls/ca/mesh-CA.crt:ro"
       - "{{ awx_directory }}/receptor-execution.conf:/etc/receptor/receptor.conf:ro"

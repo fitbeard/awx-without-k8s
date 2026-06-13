@@ -1,0 +1,107 @@
+gateway_http_ports:
+  - name: port-{{ gateway_envoy_https_port }}
+    number: {{ gateway_envoy_https_port }}
+    use_https: true
+    is_api_port: true
+gateway_service_types: []
+gateway_service_clusters:
+  - name: gateway
+    service_type: gateway
+{% if groups.get('awx', []) | length > 0 %}
+  - name: controller
+    service_type: controller
+{% endif %}
+{% if groups.get('eda', []) | length > 0 %}
+  - name: eda
+    service_type: eda
+{% endif %}
+gateway_service_nodes:
+{% for item in groups['gateway'] %}
+{% set node_id = hostvars[item].get('gateway_cluster_node_host_id', hostvars[item]['ansible_fqdn']) %}
+  - name: 'Node gateway - {{ node_id }}'
+    service_cluster: gateway
+    address: '{{ node_id }}'
+{% endfor %}
+{% for item in groups.get('awx', []) %}
+{% set awx_node_role_type = hostvars[item].get('awx_node_role_type', 'control') %}
+{% if awx_node_role_type in ['control', 'hybrid'] %}
+{% set node_id = hostvars[item].get('awx_cluster_node_host_id', hostvars[item]['ansible_fqdn']) %}
+  - name: 'Node controller - {{ node_id }}'
+    service_cluster: controller
+    address: '{{ node_id }}'
+{% endif %}
+{% endfor %}
+{% for item in groups.get('eda', []) %}
+{% set eda_type = hostvars[item].get('eda_type', 'hybrid') %}
+{% if eda_type in ['api', 'hybrid', 'event-stream'] %}
+{% set node_id = hostvars[item].get('eda_cluster_node_host_id', hostvars[item]['ansible_fqdn']) %}
+  - name: 'Node eda - {{ node_id }}'
+    service_cluster: eda
+    address: '{{ node_id }}'
+    tags: 'eda-{{ eda_type }}'
+{% endif %}
+{% endfor %}
+gateway_services:
+  - name: 'gateway api'
+    api_slug: gateway
+    http_port: port-{{ gateway_envoy_https_port }}
+    service_cluster: gateway
+    is_service_https: true
+    service_path: '/'
+    service_port: {{ gateway_nginx_https_port }}
+    order: 100
+    enable_gateway_auth: false
+{% if groups.get('awx', []) | length > 0 %}
+  - name: 'controller api'
+    api_slug: controller
+    http_port: port-{{ gateway_envoy_https_port }}
+    service_cluster: controller
+    is_service_https: true
+    service_path: '/api/controller/'
+    service_port: {{ awx_nginx_https_port }}
+    order: 1
+{% endif %}
+{% if groups.get('eda', []) | length > 0 %}
+  - name: 'eda api'
+    api_slug: eda
+    http_port: port-{{ gateway_envoy_https_port }}
+    service_cluster: eda
+    is_service_https: true
+    service_path: '/api/eda/'
+    service_port: {{ eda_nginx_https_port }}
+    order: 2
+{% endif %}
+gateway_settings:
+  gateway_proxy_url: "{{ gateway_hostname }}"
+  request_timeout: {{ gateway_envoy_request_timeout }}
+  jwt_expiration_buffer_in_seconds: {{ gateway_jwt_expiration_buffer_in_seconds }}
+{% if groups.get('eda', []) | length > 0 %}
+gateway_routes:
+{% if groups.get('eda', []) | length > 0 %}
+  - name: "Event Driven Automation Event Stream"
+    description: "Proxy to the EDA Event Streams"
+    gateway_path: "{{ eda_event_stream_prefix_path | default('/eda-event-streams') }}/"
+    service_path: "/"
+    http_port: port-{{ gateway_envoy_https_port }}
+    service_cluster: eda
+    is_service_https: true
+    service_port: {{ eda_nginx_https_port }}
+    enable_gateway_auth: false
+    node_tags: "eda-hybrid,eda-event-stream"
+{% if eda_event_stream_mtls | default(true) | bool %}
+  - name: "Event Driven Automation Event Stream mTLS"
+    description: "Proxy to the EDA Event Streams mTLS"
+    gateway_path: "{{ eda_event_stream_mtls_prefix_path | default('/mtls/eda-event-streams') }}/"
+    service_path: "/"
+    http_port: port-{{ gateway_envoy_https_port }}
+    enable_mtls: true
+    service_cluster: eda
+    is_service_https: true
+    service_port: {{ eda_nginx_https_port }}
+    enable_gateway_auth: false
+    node_tags: "eda-hybrid,eda-event-stream"
+{% endif %}
+{% endif %}
+{% else %}
+gateway_routes: []
+{% endif %}

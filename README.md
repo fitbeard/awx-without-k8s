@@ -1,4 +1,4 @@
-# awx-without-k8s
+# Ansible Platform
 
 [AWX](https://github.com/ansible/awx) is originally designed to run
 in a Kubernetes environment only.
@@ -22,7 +22,7 @@ ansible-galaxy collection install fitbeard.awx
 or desired version
 
 ```shell
-ansible-galaxy collection install fitbeard.awx:24.6.330
+ansible-galaxy collection install fitbeard.awx:25.0.0
 ```
 
 ## Dependencies
@@ -35,7 +35,7 @@ ansible-galaxy collection install fitbeard.awx:24.6.330
 
 Befor installation please read about AWX in general,
 AWX node types (control, hybrid, hop, execution),
-[execution nodes](https://github.com/ansible/awx/blob/devel/docs/execution_nodes.md)
+[execution nodes](https://github.com/ansible/awx/blob/23.6.0/docs/execution_nodes.md)
 and [receptor](https://github.com/ansible/receptor).
 ___These are beyond the scope of this guide.___
 
@@ -58,33 +58,20 @@ openssl genrsa -out awx_mesh_ca_key 4096
 openssl req -x509 -new -nodes -key awx_mesh_ca_key -subj "CN=AWX Demo Receptor Root CA" -sha256 -days 3650 -out awx_mesh_ca_crt
 ```
 
-##### 2. Create self-signed SSL for AWX web
-
-```bash
-openssl req -x509 -newkey rsa:4096 -keyout awx_web_cert_key -out awx_web_cert_crt -sha256 -days 365
-openssl rsa -in awx_web_cert_key -out awx_web_cert_key
-```
-
-##### 3. Create receptor signing key pair
+##### 2. Create receptor signing key pair
 
 ```bash
 openssl genrsa -out awx_receptor_signing_private_key 4096
 openssl rsa -in awx_receptor_signing_private_key -out awx_receptor_signing_public_key -outform PEM -pubout
 ```
 
-##### 4. Create receptor key pair
+##### 3. Create receptor key pair
 
 Repeat for every node in a cluster
 
 ```bash
 bash ../scripts/receptor_keypair.sh -n awx-1.demo.io
 ```
-
-#### Modify `awx_ee_image_url` variable
-
-Create [`custom EE image`](./ee/execution-environment.yml) for execution nodes and for management nodes (if `awx_node_role_type` variable is set to `hybrid`).
-
-Or use `quay.io/tadas/awx-ee:24.6.1.post330` image which is based on the [`EE config`](./ee/execution-environment.yml).
 
 #### Start installation
 
@@ -101,7 +88,7 @@ Ansible will do it automatically but in case you need re-add it again.
 
 Repeat for every execution node in cluster
 
-This can be done in Web UI or by using `awx-manage` CLI (partially):
+This can be done in Web UI or by using `awx-manage`:
 
 ```bash
 docker exec -ti awx-task bash

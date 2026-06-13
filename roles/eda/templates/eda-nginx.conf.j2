@@ -1,0 +1,217 @@
+#jinja2: lstrip_blocks: True
+
+worker_processes  auto;
+
+pid        /run/nginx/nginx.pid;
+error_log  /dev/stdout error;
+
+# Load dynamic modules. See /usr/share/doc/nginx/README.dynamic.
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    server_tokens off;
+
+    log_format  main  '"$time_local" client=$remote_addr '
+                      'x_forwarded_for=$http_x_forwarded_for realip=$http_x_real_ip '
+                      'method=$request_method request="$request" '
+                      'request_length=$request_length '
+                      'status=$status bytes_sent=$bytes_sent '
+                      'body_bytes_sent=$body_bytes_sent '
+                      'referer=$http_referer '
+                      'user_agent="$http_user_agent" '
+                      'upstream_addr=$upstream_addr '
+                      'upstream_status=$upstream_status '
+                      'request_time=$request_time '
+                      'upstream_response_time=$upstream_response_time '
+                      'upstream_connect_time=$upstream_connect_time '
+                      'upstream_header_time=$upstream_header_time '
+                      'request_id="$http_x_request_id"';
+
+    access_log  /dev/stdout  main;
+
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        ''      close;
+    }
+
+    sendfile        on;
+    tcp_nopush      on;
+    tcp_nodelay     on;
+    types_hash_max_size 4096;
+
+{% if eda_type in ['hybrid', 'worker'] %}
+    upstream daphne {
+        server 127.0.0.1:{{ eda_daphne_port }};
+    }
+{% endif %}
+
+    upstream gunicorn {
+        server 127.0.0.1:{{ eda_gunicorn_port }};
+    }
+
+    # Load modular configuration files from the /etc/nginx/conf.d directory.
+    # See http://nginx.org/en/docs/ngx_core_module.html#include
+    # for more information.
+    include /etc/nginx/conf.d/*.conf;
+
+    server {
+        listen {{ eda_nginx_https_port }} default_server ssl;
+        http2 on;
+        {% if ansible_all_ipv6_addresses | length > 0 %}
+        listen [::]:{{ eda_nginx_https_port }} default_server ssl;
+        {% endif %}
+
+        # If you have a domain name, this is where to add it
+        server_name _;
+        keepalive_timeout 65;
+
+        # The default client_max_body_size is 1m. Clients uploading
+        # files larger than this will need to chunk said files.
+        client_max_body_size {{ eda_nginx_client_max_body_size }};
+
+        ssl_certificate /etc/eda/eda.crt;
+        ssl_certificate_key /etc/eda/eda.key;
+        ssl_session_cache shared:SSL:50m;
+        ssl_session_timeout 1d;
+        ssl_session_tickets off;
+
+        ssl_protocols {{ eda_nginx_https_protocols | join(' ') }};
+        ssl_ciphers PROFILE=SYSTEM;
+        ssl_prefer_server_ciphers on;
+
+        {% if not eda_nginx_disable_hsts | bool %}
+        # HSTS (ngx_http_headers_module is required, max-age in seconds)
+        add_header Strict-Transport-Security max-age={{ eda_nginx_hsts_max_age }};
+        {% endif %}
+
+        # headers added with eda_nginx_user_headers variable
+{% for header in eda_nginx_user_headers %}
+        add_header {{ header }};
+{% endfor %}
+        # end of headers added with eda_nginx_user_headers variable
+
+        # Protect against click-jacking https://www.owasp.org/index.php/Testing_for_Clickjacking_(OTG-CLIENT-009)
+        add_header X-Frame-Options "DENY";
+        # Protect against MIME content sniffing https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+        add_header X-Content-Type-Options nosniff;
+
+{% if eda_type in ['api', 'hybrid', 'event-stream'] %}
+        root /usr/share/nginx/html;
+
+        # Static files (from collectstatic, shared volume)
+        location ^~ /api/eda/static/ {
+            alias /var/lib/eda/static/;
+        }
+{% endif %}
+
+        gzip on;
+        gzip_comp_level 6;
+        gzip_proxied any;
+        gzip_types text/css text/javascript text/plain text/xml application/javascript application/json application/xml;
+        gzip_vary on;
+
+        # UI references /assets/eda-logo.svg but the file is at /eda-logo.svg
+        location = /assets/eda-logo.svg {
+            rewrite ^ /eda-logo.svg last;
+        }
+
+{% if eda_type in ['hybrid', 'worker'] %}
+        # WebSocket proxy
+        location ~ ^/api/eda/ws/[0-9a-z-]+ {
+            proxy_pass http://daphne;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Port $server_port;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+        }
+{% endif %}
+
+        # EDA API proxy
+        location ~ ^/api/eda {
+            proxy_pass http://gunicorn;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Port $server_port;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            # Return 503 Service Unavailable with JSON response if gunicorn fails to respond
+            proxy_read_timeout {{ eda_nginx_read_timeout }}s;
+            error_page 504 =503 /json_503;
+            error_page 502 =503 /json_503;  # Optional, in case gunicorn is completely down
+        }
+
+        location / {
+{% if eda_type in ['api', 'hybrid', 'event-stream'] %}
+            add_header X-Frame-Options "DENY";
+            add_header Cache-Control "no-cache, no-store, must-revalidate";
+            add_header Expires "0";
+            add_header Pragma "no-cache";
+            try_files $uri $uri/ /index.html =404;
+            # Return 503 Service Unavailable with JSON response if gunicorn fails to respond
+            proxy_read_timeout {{ eda_nginx_read_timeout }}s;
+            error_page 504 =503 /json_503;
+            error_page 502 =503 /json_503;  # Optional, in case gunicorn is completely down
+{% else %}
+            return 404;
+{% endif %}
+        }
+
+{% if eda_standalone | bool %}
+{% if eda_type in ['api', 'hybrid', 'event-stream'] %}
+        # Standalone mode: rewrite /api/gateway/v1/ to /api/eda/v1/.
+        # The UI shared components (Team Access, User Access) use gatewayAPI helper
+        # which is hardcoded to /api/gateway/v1/ — designed for the full AAP platform
+        # where the gateway serves DAB endpoints (role_team_assignments, role_definitions,
+        # etc.). In standalone mode without gateway, these same DAB endpoints are available
+        # under /api/eda/v1/ so we rewrite here.
+        # For gateway deployments this block should be removed — the gateway handles it.
+        location ~ ^/api/gateway/v1/(.*)$ {
+            rewrite ^/api/gateway/v1/(.*)$ /api/eda/v1/$1 break;
+            proxy_pass http://gunicorn;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Port $server_port;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+{% endif %}
+{% endif %}
+
+        location = /json_503 {
+            # Custom JSON response for 503 Service Unavailable
+            internal;
+            add_header Content-Type application/json;
+
+            # Check if X-Request-ID is set and include it in the response
+            if ($http_x_request_id) {
+                return 503 '{"status": "error", "message": "Service Unavailable", "code": 503, "request_id": "$http_x_request_id"}';
+            }
+
+            # If X-Request-ID is not set, just return the basic JSON response
+            return 503 '{"status": "error", "message": "Service Unavailable", "code": 503}';
+        }
+    }
+
+    server {
+        listen {{ eda_nginx_http_port }} default_server;
+        {% if ansible_all_ipv6_addresses | length > 0 %}
+        listen [::]:{{ eda_nginx_http_port }} default_server;
+        {% endif %}
+        server_name _;
+        {% if eda_nginx_http_port | int == 443 %}
+        return 301 https://$host$request_uri;
+        {% else %}
+        return 301 https://$host:{{ eda_nginx_https_port }}$request_uri;
+        {% endif %}
+    }
+}

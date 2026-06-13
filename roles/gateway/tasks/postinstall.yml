@@ -1,0 +1,117 @@
+---
+- name: Ensure Gateway is ready
+  ansible.builtin.uri:
+    url: "https://{{ gateway_cluster_node_host_id | fitbeard.awx.ipv6_wrap }}:{{ gateway_nginx_https_port }}/api/gateway/v1/ping/"
+    validate_certs: true
+    ca_path: "{{ ap_ca_directory }}/pki/extracted/pem/tls-ca-bundle.pem"
+  register: _gateway_ready
+  until: _gateway_ready.status == 200
+  retries: 30
+  delay: 10
+
+- name: Set gateway init facts
+  ansible.builtin.include_tasks: facts.yml
+
+- name: Render proxy variables
+  ansible.builtin.set_fact:
+    gateway_proxy_vars: "{{ lookup('template', 'proxy.yml.j2') | from_yaml }}"
+
+- name: Register services
+  environment:
+    SSL_CERT_FILE: "{{ ap_ca_directory }}/pki/extracted/pem/tls-ca-bundle.pem"
+  run_once: true
+  module_defaults:
+    group/fitbeard.awx.gateway:
+      gateway_hostname: "https://{{ gateway_cluster_node_host_id | fitbeard.awx.ipv6_wrap }}:{{ gateway_nginx_https_port }}"
+      gateway_username: "{{ gateway_admin_username }}"
+      gateway_password: "{{ gateway_admin_password }}"
+      gateway_validate_certs: true
+  block:
+    - name: Update gateway settings
+      fitbeard.awx.settings:
+        settings: "{{ gateway_proxy_vars.gateway_settings }}"
+
+    - name: Update gateway http ports
+      fitbeard.awx.http_port:
+        name: "{{ item.name }}"
+        number: "{{ item.number }}"
+        use_https: "{{ item.use_https }}"
+        is_api_port: "{{ item.is_api_port }}"
+      loop: "{{ gateway_proxy_vars.gateway_http_ports }}"
+
+    - name: Update gateway service type
+      fitbeard.awx.service_type:
+        name: "{{ item.name }}"
+        ping_url: "{{ item.ping_url | default(omit) }}"
+        login_path: "{{ item.login_path | default(omit) }}"
+        logout_path: "{{ item.logout_path | default(omit) }}"
+        service_index_path: "{{ item.service_index_path | default(omit) }}"
+      loop: "{{ gateway_proxy_vars.gateway_service_types }}"
+
+    - name: Update gateway service clusters
+      fitbeard.awx.service_cluster:
+        name: "{{ item.name }}"
+        service_type: "{{ item.service_type }}"
+      loop: "{{ gateway_proxy_vars.gateway_service_clusters }}"
+
+    - name: Update gateway service nodes
+      fitbeard.awx.service_node:
+        name: "{{ item.name }}"
+        address: "{{ item.address }}"
+        service_cluster: "{{ item.service_cluster }}"
+        tags: "{{ item.tags | default(omit) }}"
+      loop: "{{ gateway_proxy_vars.gateway_service_nodes }}"
+
+    - name: Update gateway services
+      fitbeard.awx.service:
+        name: "{{ item.name }}"
+        api_slug: "{{ item.api_slug }}"
+        http_port: "{{ item.http_port }}"
+        service_cluster: "{{ item.service_cluster }}"
+        is_service_https: "{{ item.is_service_https }}"
+        service_path: "{{ item.service_path }}"
+        service_port: "{{ item.service_port }}"
+        order: "{{ item.order }}"
+        enable_gateway_auth: "{{ item.enable_gateway_auth | default(omit) }}"
+      loop: "{{ gateway_proxy_vars.gateway_services }}"
+
+    - name: Gather Service Nodes
+      community.docker.docker_container:
+        name: gateway-init
+        image: "{{ gateway_image_url }}"
+        command: "aap-gateway-manage list_services"
+        detach: false
+        cleanup: true
+        entrypoint: ""
+        network_mode: host
+        volumes: "{{ _gateway_init_volumes }}"
+        env: "{{ _gateway_init_env }}"
+      changed_when: false
+      register: _list_services
+
+    - name: Set current service nodes facts
+      ansible.builtin.set_fact:
+        _current_service_nodes: "{{ _list_services.container.Output.split('\n') | select('match', '^\\s*node:') | map('regex_replace', '^\\s*node:\\s*(.*)', '\\1') | list }}"
+
+    - name: Update automation platform gateway service nodes
+      fitbeard.awx.service_node:
+        name: "{{ item }}"
+        state: absent
+      with_items: "{{ _current_service_nodes }}"
+      when:
+        - item not in gateway_proxy_vars.gateway_service_nodes | map(attribute='name') | list
+
+    - name: Update gateway routes
+      fitbeard.awx.route:
+        name: "{{ item.name }}"
+        description: "{{ item.description }}"
+        gateway_path: "{{ item.gateway_path }}"
+        service_path: "{{ item.service_path }}"
+        http_port: "{{ item.http_port }}"
+        is_service_https: "{{ item.is_service_https }}"
+        service_cluster: "{{ item.service_cluster }}"
+        service_port: "{{ item.service_port }}"
+        enable_gateway_auth: "{{ item.enable_gateway_auth }}"
+        enable_mtls: "{{ item.enable_mtls | default(omit) }}"
+        node_tags: "{{ item.node_tags | default(omit) }}"
+      loop: "{{ gateway_proxy_vars.gateway_routes }}"

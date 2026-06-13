@@ -1,0 +1,3 @@
+---
+- name: Include EDA node tasks
+  ansible.builtin.include_tasks: "{{ eda_tasks }}.yml"

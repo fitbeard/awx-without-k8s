@@ -1,0 +1,322 @@
+---
+- name: Set eda hostname
+  ansible.builtin.set_fact:
+    _eda_hostname: "{{ eda_cluster_node_host_id }}"
+
+- name: Set eda IPs
+  ansible.builtin.set_fact:
+    _eda_ips: "{{ _eda_ips | default([]) | union(['IP:' + item]) }}"
+  loop: "{{ ansible_all_ipv4_addresses + ansible_all_ipv6_addresses }}"
+
+- name: Set eda main URL hostname
+  ansible.builtin.set_fact:
+    _eda_main_url_hostname: '{{ eda_hostname | urlsplit("hostname") }}'
+  when: eda_hostname is defined and eda_hostname != ""
+
+- name: Generate TLS certificate and key
+  when:
+    - eda_tls_crt is not defined or eda_tls_crt == ""
+    - eda_tls_key is not defined or eda_tls_key == ""
+  block:
+    - name: Install python-cryptography
+      ansible.builtin.package:
+        name: python3-cryptography
+
+    - name: Check the current eda private key
+      ansible.builtin.stat:
+        path: "{{ eda_directory }}/eda.key"
+      register: _eda_tls_key
+
+    - name: Generate a private key
+      community.crypto.openssl_privatekey:
+        path: "{{ eda_directory }}/eda.key"
+        mode: "0o440"
+        owner: "{{ eda_uid }}"
+        group: "{{ eda_nginx_gid }}"
+      no_log: "{{ eda_no_log }}"
+      when: not _eda_tls_key.stat.exists | bool
+
+    - name: Check the current eda certificate
+      ansible.builtin.stat:
+        path: "{{ eda_directory }}/eda.crt"
+      register: _eda_tls_cert
+
+    - name: Create the eda TLS certificate
+      when: not _eda_tls_cert.stat.exists | bool or (ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      block:
+        - name: Set subject alt name fact
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_eda_hostname | fitbeard.awx.subject_alt_name] | union(_eda_ips) }}"
+
+        - name: Add eda main url hostname to SAN list
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_eda_main_url_hostname | fitbeard.awx.subject_alt_name] | union(_subject_alt_name) }}"
+          when: eda_hostname is defined and eda_hostname != ""
+
+        - name: Generate a certificate signing request
+          community.crypto.openssl_csr_pipe:
+            common_name: "{{ _eda_hostname }}"
+            country_name: "{{ ap_ca_country_name | default(omit) }}"
+            locality_name: "{{ ap_ca_locality_name | default(omit) }}"
+            organization_name: "{{ ap_ca_organization_name | default(omit) }}"
+            organizational_unit_name: "{{ ap_ca_organizational_unit_name | default(omit) }}"
+            state_or_province_name: "{{ ap_ca_state_or_province_name | default(omit) }}"
+            subject_alt_name: "{{ _subject_alt_name }}"
+            privatekey_path: "{{ eda_directory }}/eda.key"
+          no_log: "{{ eda_no_log }}"
+          register: _eda_tls_csr
+
+        - name: Generate a self signed x509 certificate
+          community.crypto.x509_certificate:
+            path: "{{ eda_directory }}/eda.crt"
+            csr_content: "{{ _eda_tls_csr.csr }}"
+            privatekey_path: "{{ eda_directory }}/eda.key"
+            provider: ownca
+            ownca_path: "{{ ap_ca_directory }}/ca.crt"
+            ownca_privatekey_path: "{{ ap_ca_directory }}/ca.key"
+            ownca_privatekey_passphrase: "{{ ap_ca_key_passphrase | default(omit) }}"
+            mode: "0o640"
+            owner: "{{ eda_uid }}"
+            group: "{{ eda_nginx_gid }}"
+          register: eda_tls_crt_result
+
+- name: Import TLS certificate and key
+  when:
+    - eda_tls_crt is defined and eda_tls_crt != ""
+    - eda_tls_key is defined and eda_tls_key != ""
+  block:
+    - name: Copy eda TLS certificate
+      ansible.builtin.template:
+        src: eda.crt.j2
+        dest: "{{ eda_directory }}/eda.crt"
+        mode: "0o640"
+        owner: "{{ eda_uid }}"
+        group: "{{ eda_nginx_gid }}"
+      register: eda_tls_crt_result
+
+    - name: Copy eda TLS key
+      ansible.builtin.template:
+        src: eda.key.j2
+        dest: "{{ eda_directory }}/eda.key"
+        mode: "0o440"
+        owner: "{{ eda_uid }}"
+        group: "{{ eda_nginx_gid }}"
+      register: eda_tls_key_result
+
+- name: Generate Postgres TLS certificate and key
+  when:
+    - not eda_external_database | bool
+    - eda_pg_tls_crt is not defined or eda_pg_tls_crt == ""
+    - eda_pg_tls_key is not defined or eda_pg_tls_key == ""
+    - eda_cluster_node_type == 'primary'
+  block:
+    - name: Check the current Postgres private key
+      ansible.builtin.stat:
+        path: "{{ eda_pg_directory }}/postgresql.key"
+      register: _eda_pg_tls_key
+
+    - name: Generate a private key
+      community.crypto.openssl_privatekey:
+        path: "{{ eda_pg_directory }}/postgresql.key"
+        mode: "0o600"
+        owner: "{{ eda_pg_uid }}"
+        group: "{{ eda_gid }}"
+      no_log: "{{ eda_no_log }}"
+      when: not _eda_pg_tls_key.stat.exists | bool
+
+    - name: Check the current Postgres certificate
+      ansible.builtin.stat:
+        path: "{{ eda_pg_directory }}/postgresql.crt"
+      register: _eda_pg_tls_cert
+
+    - name: Create the Postgres TLS certificate
+      when: not _eda_pg_tls_cert.stat.exists | bool or (ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      block:
+        - name: Set subject alt name fact
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_eda_hostname | fitbeard.awx.subject_alt_name] | union(_eda_ips) }}"
+
+        - name: Generate a certificate signing request
+          community.crypto.openssl_csr_pipe:
+            common_name: "{{ _eda_hostname }}"
+            country_name: "{{ ap_ca_country_name | default(omit) }}"
+            locality_name: "{{ ap_ca_locality_name | default(omit) }}"
+            organization_name: "{{ ap_ca_organization_name | default(omit) }}"
+            organizational_unit_name: "{{ ap_ca_organizational_unit_name | default(omit) }}"
+            state_or_province_name: "{{ ap_ca_state_or_province_name | default(omit) }}"
+            subject_alt_name: "{{ _subject_alt_name }}"
+            privatekey_path: "{{ eda_pg_directory }}/postgresql.key"
+          no_log: "{{ eda_no_log }}"
+          register: _eda_pg_tls_csr
+
+        - name: Generate a self signed x509 certificate
+          community.crypto.x509_certificate:
+            path: "{{ eda_pg_directory }}/postgresql.crt"
+            csr_content: "{{ _eda_pg_tls_csr.csr }}"
+            privatekey_path: "{{ eda_pg_directory }}/postgresql.key"
+            provider: ownca
+            ownca_path: "{{ ap_ca_directory }}/ca.crt"
+            ownca_privatekey_path: "{{ ap_ca_directory }}/ca.key"
+            ownca_privatekey_passphrase: "{{ ap_ca_key_passphrase | default(omit) }}"
+            mode: "0o640"
+            owner: "{{ eda_pg_uid }}"
+            group: "{{ eda_gid }}"
+          register: eda_pg_tls_crt_result
+
+- name: Import Postgres TLS certificate and key
+  when:
+    - eda_pg_crt_auth is defined
+    - eda_pg_crt_auth | bool
+    - eda_external_database | bool
+    - eda_pg_tls_crt is defined and eda_pg_tls_crt != ""
+    - eda_pg_tls_key is defined and eda_pg_tls_key != ""
+  block:
+    - name: Copy eda Postgres TLS certificate
+      ansible.builtin.template:
+        src: postgresql.crt.j2
+        dest: "{{ eda_directory }}/postgresql.crt"
+        mode: "0o640"
+        owner: "{{ eda_uid }}"
+        group: "{{ eda_gid }}"
+      register: eda_pg_tls_crt_result
+
+    - name: Copy eda Postgres TLS key
+      ansible.builtin.template:
+        src: postgresql.key.j2
+        dest: "{{ eda_directory }}/postgresql.key"
+        mode: "0o440"
+        owner: "{{ eda_uid }}"
+        group: "{{ eda_gid }}"
+      register: eda_pg_tls_key_result
+
+- name: Generate Redis TLS certificate and key
+  run_once: true
+  when:
+    - not eda_external_redis | bool
+    - eda_redis_tls_crt is not defined or eda_redis_tls_crt == ""
+    - eda_redis_tls_key is not defined or eda_redis_tls_key == ""
+  block:
+    - name: Check the current Redis private key
+      ansible.builtin.stat:
+        path: "{{ eda_directory }}/redis.key"
+      register: _eda_redis_tls_key
+
+    - name: Generate a private key
+      community.crypto.openssl_privatekey:
+        path: "{{ eda_directory }}/redis.key"
+        mode: "0o440"
+        owner: "{{ eda_redis_uid }}"
+        group: "{{ eda_gid }}"
+      no_log: "{{ eda_no_log }}"
+      when: not _eda_redis_tls_key.stat.exists | bool
+
+    - name: Check the current Redis certificate
+      ansible.builtin.stat:
+        path: "{{ eda_directory }}/redis.crt"
+      register: _eda_redis_tls_cert
+
+    - name: Create the Redis TLS certificate
+      when: not _eda_redis_tls_cert.stat.exists | bool or (ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      block:
+        - name: Set subject alt name fact
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_eda_hostname | fitbeard.awx.subject_alt_name] | union(_eda_ips) }}"
+
+        - name: Generate a certificate signing request
+          community.crypto.openssl_csr_pipe:
+            common_name: "{{ _eda_hostname }}"
+            country_name: "{{ ap_ca_country_name | default(omit) }}"
+            locality_name: "{{ ap_ca_locality_name | default(omit) }}"
+            organization_name: "{{ ap_ca_organization_name | default(omit) }}"
+            organizational_unit_name: "{{ ap_ca_organizational_unit_name | default(omit) }}"
+            state_or_province_name: "{{ ap_ca_state_or_province_name | default(omit) }}"
+            subject_alt_name: "{{ _subject_alt_name }}"
+            privatekey_path: "{{ eda_directory }}/redis.key"
+          no_log: "{{ eda_no_log }}"
+          register: _eda_redis_tls_csr
+
+        - name: Generate a self signed x509 certificate
+          community.crypto.x509_certificate:
+            path: "{{ eda_directory }}/redis.crt"
+            csr_content: "{{ _eda_redis_tls_csr.csr }}"
+            privatekey_path: "{{ eda_directory }}/redis.key"
+            provider: ownca
+            ownca_path: "{{ ap_ca_directory }}/ca.crt"
+            ownca_privatekey_path: "{{ ap_ca_directory }}/ca.key"
+            ownca_privatekey_passphrase: "{{ ap_ca_key_passphrase | default(omit) }}"
+            mode: "0o640"
+            owner: "{{ eda_redis_uid }}"
+            group: "{{ eda_gid }}"
+          register: eda_redis_tls_crt_result
+
+    - name: Copy Redis TLS files to other nodes
+      block:
+        - name: Create local temporary directory
+          ansible.builtin.tempfile:
+            state: directory
+          register: _redis_tls_temp
+          delegate_to: localhost
+          become: false
+          changed_when: false
+
+        - name: Fetch files locally
+          ansible.builtin.fetch:
+            src: "{{ eda_directory }}/redis.{{ item }}"
+            dest: "{{ _redis_tls_temp.path }}/redis.{{ item }}"
+            flat: true
+          loop:
+            - crt
+            - key
+          changed_when: false
+
+        - name: Copy Redis TLS certificate
+          ansible.builtin.copy:
+            src: "{{ _redis_tls_temp.path }}/redis.crt"
+            dest: "{{ eda_directory }}/redis.crt"
+            mode: "0o640"
+            owner: "{{ eda_redis_uid }}"
+            group: "{{ eda_gid }}"
+          run_once: false
+          register: eda_redis_tls_crt_result
+
+        - name: Copy Redis TLS key
+          ansible.builtin.copy:
+            src: "{{ _redis_tls_temp.path }}/redis.key"
+            dest: "{{ eda_directory }}/redis.key"
+            mode: "0o440"
+            owner: "{{ eda_redis_uid }}"
+            group: "{{ eda_gid }}"
+          no_log: "{{ eda_no_log }}"
+          run_once: false
+      always:
+        - name: Remove local temporary directory
+          ansible.builtin.file:
+            path: "{{ _redis_tls_temp.path }}"
+            state: absent
+          delegate_to: localhost
+          become: false
+          changed_when: false
+
+- name: Import Redis TLS certificate and key
+  when:
+    - eda_external_redis | bool
+    - eda_redis_tls_crt is defined and eda_redis_tls_crt != ""
+    - eda_redis_tls_key is defined and eda_redis_tls_key != ""
+  block:
+    - name: Copy eda Redis TLS certificate
+      ansible.builtin.template:
+        src: redis.crt.j2
+        dest: "{{ eda_directory }}/redis.crt"
+        mode: "0o640"
+        owner: "{{ eda_uid }}"
+        group: "{{ eda_gid }}"
+      register: eda_redis_tls_crt_result
+
+    - name: Copy eda Redis TLS key
+      ansible.builtin.template:
+        src: redis.key.j2
+        dest: "{{ eda_directory }}/redis.key"
+        mode: "0o440"
+        owner: "{{ eda_uid }}"
+        group: "{{ eda_gid }}"
+      register: eda_redis_tls_key_result

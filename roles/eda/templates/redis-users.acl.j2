@@ -1,0 +1,1 @@
+user {{ eda_redis_username }} on #{{ eda_redis_password | hash('sha256') }} ~{eda-rq}:* resetchannels &{eda-rq}:pubsub:* +@all

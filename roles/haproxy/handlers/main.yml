@@ -1,0 +1,7 @@
+---
+- name: Recreate HAProxy
+  community.docker.docker_compose_v2:
+    project_name: "{{ haproxy_project_name }}"
+    project_src: "{{ haproxy_directory }}"
+    recreate: always
+    state: present

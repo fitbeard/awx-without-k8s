@@ -1,0 +1,9 @@
+protected-mode no
+aclfile /usr/local/etc/redis/redis-users.acl
+bind 0.0.0.0
+port 0
+tls-port {{ gateway_redis_port }}
+tls-ca-cert-file /certs/tls-ca-bundle.pem
+tls-cert-file /var/lib/redis/server.crt
+tls-key-file /var/lib/redis/server.key
+tls-auth-clients yes

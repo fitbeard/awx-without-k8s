@@ -1,0 +1,68 @@
+---
+- name: Create Gateway directories
+  ansible.builtin.file:
+    name: "{{ directory.name }}"
+    mode: "{{ directory.mode }}"
+    owner: "{{ directory.owner | default('root') }}"
+    group: "{{ directory.group | default('root') }}"
+    state: directory
+  with_items:
+    - {name: "{{ gateway_directory }}", mode: "0o755"}
+  loop_control:
+    loop_var: directory
+
+- name: Template Gateway configuration files
+  ansible.builtin.template:
+    src: "{{ config.src }}"
+    dest: "{{ gateway_directory }}/{{ config.dst }}"
+    mode: "{{ config.mode }}"
+    owner: "{{ config.owner | default('root') }}"
+    group: "{{ config.group | default('root') }}"
+  with_items:
+    - {src: docker-compose.yml.j2, dst: docker-compose.yml, mode: "0o600"}
+    - {src: settings.py.j2, dst: settings.py, mode: "0o600", owner: "{{ gateway_uid }}", group: "{{ gateway_gid }}"}
+    - {src: redis.conf.j2, dst: redis.conf, mode: "0o664", owner: "{{ gateway_redis_uid }}", group: "{{ gateway_gid }}", create: "{{ gateway_cluster_node_type == 'primary' and not gateway_external_redis | bool }}"} # noqa: yaml[line-length]
+    - {src: redis-users.acl.j2, dst: redis-users.acl, mode: "0o600", owner: "{{ gateway_redis_uid }}", group: "{{ gateway_gid }}", create: "{{ gateway_cluster_node_type == 'primary' and not gateway_external_redis | bool }}"} # noqa: yaml[line-length]
+    - {src: gateway-nginx.conf.j2, dst: gateway-nginx.conf, mode: "0o640", owner: "{{ gateway_uid }}", group: "{{ gateway_gid }}"}
+    - {src: uwsgi.ini.j2, dst: uwsgi.ini, mode: "0o640", owner: "{{ gateway_uid }}", group: "{{ gateway_gid }}"}
+    - {src: supervisord.conf.j2, dst: supervisord.conf, mode: "0o640"}
+    - {src: envoy.yaml.j2, dst: envoy.yaml, mode: "0o644"}
+    - {src: container-startup.yml.j2, dst: container-startup.yml, mode: "0o640", owner: "{{ gateway_uid }}", group: "{{ gateway_gid }}", create: "{{ gateway_cluster_node_type == 'primary' }}"} # noqa: yaml[line-length]
+    - {src: envoy-path-rewrite.lua.j2, dst: envoy-path-rewrite.lua, mode: "0o644"}
+    - {src: SECRET_KEY.j2, dst: SECRET_KEY, mode: "0o600", owner: "{{ gateway_uid }}", group: "{{ gateway_gid }}"}
+    - {src: launch-gateway.sh.j2, dst: launch-gateway.sh, mode: "0o744", owner: "{{ gateway_uid }}", group: "{{ gateway_gid }}"}
+  loop_control:
+    loop_var: config
+  no_log: "{{ gateway_no_log }}"
+  register: gateway_configs
+  when: config.create | default(True) | bool
+
+- name: Create Postgres directories
+  ansible.builtin.file:
+    name: "{{ pg_directory }}"
+    state: directory
+    mode: "0o755"
+  with_items:
+    - "{{ gateway_pg_directory }}"
+    - "{{ gateway_pg_directory }}/data"
+  loop_control:
+    loop_var: pg_directory
+  when:
+    - gateway_cluster_node_type == 'primary' and not gateway_external_database
+
+- name: Template Postgres configuration files
+  ansible.builtin.template:
+    src: "{{ pg_config.src }}"
+    dest: "{{ gateway_pg_directory }}/{{ pg_config.dst }}"
+    mode: "0o600"
+  with_items:
+    - {src: docker-compose-postgres.yml.j2, dst: docker-compose.yml}
+  loop_control:
+    loop_var: pg_config
+  no_log: "{{ gateway_no_log }}"
+  register: gateway_postgres_configs
+  when:
+    - gateway_cluster_node_type == 'primary' and not gateway_external_database
+
+- name: Import Gateway TLS configuration tasks
+  ansible.builtin.import_tasks: tls.yml

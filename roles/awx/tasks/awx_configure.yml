@@ -28,12 +28,11 @@
   with_items:
     - {src: docker-compose.yml.j2, dst: docker-compose.yml, mode: "0o600"}
     - {src: settings.py.j2, dst: settings.py, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
+    - {src: redis.py.j2, dst: redis.py, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: credentials.py.j2, dst: credentials.py, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: redis.conf.j2, dst: redis.conf, mode: "0o664"}
     - {src: awx-nginx.conf.j2, dst: awx-nginx.conf, mode: "0o640", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: awx-uwsgi.ini.j2, dst: awx-uwsgi.ini, mode: "0o644"}
-    - {src: nginx.conf.j2, dst: nginx.conf, mode: "0o640", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ not awx_rootful_containers | bool and not awx_external_frontend | bool }}"} # noqa: yaml[line-length]
-    - {src: awx-nginx.pem.j2, dst: awx-nginx.pem, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ not awx_external_frontend | bool }}"} # noqa: yaml[line-length]
     - {src: environment.sh.j2, dst: environment.sh, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}", create: "{{ awx_cluster_node_type == 'primary' }}"} # noqa: yaml[line-length]
     - {src: SECRET_KEY.j2, dst: SECRET_KEY, mode: "0o600", owner: "{{ awx_uid }}", group: "{{ awx_gid }}"}
     - {src: execution_environments.py.j2, dst: execution_environments.py, mode: "0o644", group: "{{ awx_gid }}"}
@@ -77,6 +76,53 @@
   loop_control:
     loop_var: pg_config
   no_log: "{{ awx_no_log }}"
-  register: postgres_configs
+  register: awx_postgres_configs
   when:
     - awx_cluster_node_type == 'primary' and not awx_external_database
+
+- name: Import AWX TLS configuration tasks
+  ansible.builtin.import_tasks: tls.yml
+
+- name: Manage awx service key
+  run_once: true
+  when:
+    - awx_service_key is not defined or awx_service_key == ""
+    - groups.get('gateway', []) | length > 0
+    - not awx_standalone | bool
+  block:
+    - name: Get AWX service key
+      ansible.builtin.stat:
+        path: "{{ awx_directory }}/awx-service.key"
+      register: _awx_service_key
+      delegate_to: '{{ groups["awx"] | first }}'
+
+    - name: Generate awx service key
+      ansible.builtin.include_role:
+        name: gateway
+        tasks_from: service_key.yml
+      vars:
+        _component: controller
+        _no_log: "{{ awx_no_log }}"
+      when: not _awx_service_key.stat.exists | bool
+
+    - name: Set awx service key fact
+      ansible.builtin.set_fact:
+        awx_service_key: '{{ _service_key.container.Output | trim }}'
+      no_log: "{{ awx_no_log }}"
+      when: not _awx_service_key.stat.exists | bool
+
+- name: Copy awx service key
+  ansible.builtin.template:
+    src: awx-service.key.j2
+    dest: "{{ awx_directory }}/awx-service.key"
+    mode: "0o440"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['awx'] }}"
+  run_once: true
+  when:
+    - awx_service_key is defined
+    - awx_service_key != ""
+    - groups.get('gateway', []) | length > 0
+    - not awx_standalone | bool

@@ -1,1 +1,10 @@
 requires_ansible: ">=2.17.0"
+action_groups:
+  gateway:
+    - http_port
+    - route
+    - service
+    - service_cluster
+    - service_type
+    - service_node
+    - settings

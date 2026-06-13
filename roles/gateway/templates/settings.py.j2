@@ -1,0 +1,60 @@
+# Gateway override settings. Settings here will override the default django settings
+
+DEBUG = False
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': '{{ gateway_pg_database }}',
+        'USER': '{{ gateway_pg_username }}',
+        'HOST': '{{ gateway_pg_hostname }}',
+        'PORT': '{{ gateway_pg_port }}',
+        'OPTIONS': {
+            'options': '-c datestyle=ISO,\\ MDY',
+            'sslmode': '{{ gateway_pg_sslmode }}',
+            'sslrootcert': '{{ ap_ca_trust_bundle }}',
+{% if gateway_pg_crt_auth | bool %}
+            'sslcert': '/etc/ansible-automation-platform/gateway/postgresql.crt',
+            'sslkey': '/etc/ansible-automation-platform/gateway/postgresql.key',
+{% endif %}
+        },
+    }
+}
+
+ENVOY_HOSTNAME = '{{ gateway_cluster_node_host_id | fitbeard.awx.ipv6_wrap }}'
+
+STATIC_ROOT = '/opt/aap_gateway/static'
+GATEWAY_PATH_REWRITE_SCRIPT_FILE = '/etc/ansible-automation-platform/gateway/envoy-path-rewrite.lua'
+
+GATEWAY_SECRET_KEY_FILE = '/etc/ansible-automation-platform/gateway/SECRET_KEY'
+
+CACHES['primary']['OPTIONS']['CLIENT_CLASS_KWARGS']['mode'] = '{{ gateway_redis_mode }}'
+CACHES['primary']['OPTIONS']['CLIENT_CLASS_KWARGS']['ssl'] = {{ not gateway_redis_disable_tls | bool }}
+CACHES['primary']['OPTIONS']['CLIENT_CLASS_KWARGS']['ssl_ca_certs'] = '{{ ap_ca_trust_bundle }}'
+CACHES['primary']['OPTIONS']['CLIENT_CLASS_KWARGS']['ssl_keyfile'] = '/etc/ansible-automation-platform/gateway/redis.key'
+CACHES['primary']['OPTIONS']['CLIENT_CLASS_KWARGS']['ssl_certfile'] = '/etc/ansible-automation-platform/gateway/redis.crt'
+{% if gateway_redis_mode == 'cluster' %}
+CACHES['primary']['OPTIONS']['CLIENT_CLASS_KWARGS']['redis_hosts'] = '{{ gateway_redis_cluster_hostnames }}'
+{% else %}
+CACHES['primary']['OPTIONS']['CLIENT_CLASS_KWARGS']['redis_hosts'] = ''
+{% endif %}
+
+CACHES['fallback']['LOCATION'] = '/var/cache/ansible-automation-platform/gateway'
+
+LOGGING['loggers']['aap']['level'] = 'INFO'
+LOGGING['loggers']['ansible_base']['level'] = 'INFO'
+
+GRPC_SERVER_PORT = '{{ gateway_control_plane_port }}'
+GRPC_SERVER_PROCESSES = {{ gateway_grpc_server_processes | int }}
+GRPC_SERVER_MAX_THREADS_PER_PROCESS = {{ gateway_grpc_server_max_threads_per_process | int }}
+GRPC_SERVER_AUTH_SERVICE_TIMEOUT = '{{ gateway_grpc_auth_service_timeout }}'
+
+FRONT_END_URL = '{{ gateway_hostname }}'
+
+{% for item in gateway_extra_settings %}
+{% if item.value is string %}
+{{ item.setting }} = '{{ item.value }}'
+{% else %}
+{{ item.setting }} = {{ item.value }}
+{% endif %}
+{% endfor %}

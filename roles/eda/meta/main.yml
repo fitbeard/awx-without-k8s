@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: eda
+  author: Tadas Sutkaitis <tadasas@gmail.com>
+  description: Install and configures Event-Driven Ansible (EDA)
+  license: BSD
+  min_ansible_version: 5.5.0
+  platforms:
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+dependencies:
+  - role: defaults
