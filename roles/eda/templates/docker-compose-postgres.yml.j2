@@ -1,0 +1,19 @@
+services:
+  eda-postgres:
+    image: docker.io/postgres:{{ eda_pg_version }}
+    container_name: eda-postgres
+    hostname: eda-postgres
+    restart: unless-stopped
+    network_mode: host
+    command: ["-p", "{{ eda_pg_port }}", "-c", "ssl=on", "-c", "ssl_cert_file=/etc/ssl/pg/server.crt", "-c", "ssl_key_file=/etc/ssl/pg/server.key"]
+    volumes:
+      - "{{ eda_pg_directory }}/data:/var/lib/postgresql/data:Z"
+      - "{{ eda_pg_directory }}/postgresql.crt:/etc/ssl/pg/server.crt:ro"
+      - "{{ eda_pg_directory }}/postgresql.key:/etc/ssl/pg/server.key:ro"
+    environment:
+      POSTGRES_DB: {{ eda_pg_database }}
+      POSTGRES_USER: {{ eda_pg_username }}
+      POSTGRES_PASSWORD: {{ eda_pg_password }}
+      POSTGRES_INITDB_ARGS: {{ eda_pg_initdb_args }}
+      POSTGRES_HOST_AUTH_METHOD: {{ eda_pg_host_auth_method }}
+      PGDATA: /var/lib/postgresql/data/pgdata

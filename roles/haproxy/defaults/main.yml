@@ -1,0 +1,50 @@
+---
+haproxy_directory: /opt/haproxy
+haproxy_config_directory: "{{ haproxy_directory }}/config"
+haproxy_cert_directory: "{{ haproxy_directory }}/certs"
+
+haproxy_no_log: true
+
+haproxy_project_name: haproxy
+haproxy_container_name: haproxy
+haproxy_image: haproxy:3.4-alpine
+haproxy_restart_policy: unless-stopped
+
+# This repository commonly disables Docker bridge networking. Host networking keeps
+# HAProxy compatible with that mode while still running it as a container.
+haproxy_network_mode: host
+haproxy_http_port: 80
+haproxy_https_port: 443
+haproxy_frontend_bind_address: "*"
+haproxy_http_redirect: true
+haproxy_reject_unknown_hosts: true
+
+haproxy_maxconn: 4096
+haproxy_client_timeout: 50s
+haproxy_connect_timeout: 5s
+haproxy_server_timeout: 50s
+
+haproxy_backend_protocol: https
+haproxy_backend_port: 443
+haproxy_backend_balance: roundrobin
+haproxy_backend_check: true
+haproxy_backend_httpchk_method: GET
+haproxy_backend_httpchk_uri: /
+haproxy_backend_httpchk_expect_status: 200-399
+haproxy_backend_ssl_verify: none
+
+haproxy_frontend_cert_common_name: ""
+haproxy_frontend_tls_subject_alt_names: []
+haproxy_frontend_tls_days: 3650
+haproxy_frontend_tls_force_regenerate: false
+
+# Optional: provide certificate/key content. If these are empty, the role
+# creates a certificate signed by the AP CA from the tls role.
+haproxy_frontend_tls_crt: ""
+haproxy_frontend_tls_key: ""
+
+# Define one route per public FQDN and one named backend pool per route.
+# Backend pools can use generated config from servers, or raw_backend for a
+# complete hand-written backend stanza named be_<pool_name>.
+haproxy_routes: []
+haproxy_backend_pools: {}

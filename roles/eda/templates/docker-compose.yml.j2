@@ -1,0 +1,186 @@
+services:
+  eda-web:
+    image: {{ eda_ui_image_url }}
+    container_name: eda-web
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - "{{ eda_directory }}/eda.crt:/etc/eda/eda.crt:ro"
+      - "{{ eda_directory }}/eda.key:/etc/eda/eda.key:ro"
+      - "{{ eda_directory }}/eda-nginx.conf:/etc/nginx/nginx.conf:ro"
+      - eda_data:/var/lib/eda:ro
+
+  eda-api:
+    image: {{ eda_server_image_url }}
+    container_name: eda-api
+    restart: unless-stopped
+    network_mode: host
+    command: /usr/bin/launch_eda_api.sh
+    environment:
+      EDA_SETTINGS_FILE: /etc/eda.yaml
+      REQUESTS_CA_BUNDLE: /etc/pki/tls/certs/ca-bundle.crt
+    volumes:
+      - "{{ eda_directory }}/launch_eda_api.sh:/usr/bin/launch_eda_api.sh:ro"
+{% if eda_cluster_node_type == 'primary' %}
+      - "{{ eda_directory }}/environment.sh:/etc/eda/environment.sh:ro"
+{% endif %}
+      - "{{ eda_directory }}/settings.yaml:/etc/eda.yaml:ro"
+      - "{{ eda_directory }}/SECRET_KEY:/etc/eda/SECRET_KEY:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
+{% if eda_pg_crt_auth | bool %}
+      - "{{ eda_directory }}/postgresql.crt:/etc/eda/postgresql.crt:ro"
+      - "{{ eda_directory }}/postgresql.key:/etc/eda/postgresql.key:ro"
+{% endif %}
+{% if not eda_redis_disable_tls | bool %}
+      - "{{ eda_directory }}/redis.crt:/etc/eda/redis.crt:ro"
+      - "{{ eda_directory }}/redis.key:/etc/eda/redis.key:ro"
+{% endif %}
+      - eda_data:/var/lib/eda
+{% if not eda_standalone | bool and groups.get('gateway', []) | length > 0 %}
+    env_file:
+      - path: "{{ eda_directory }}/eda-service.key"
+        required: true
+{% endif %}
+
+{% if eda_type in ['hybrid', 'worker'] %}
+  eda-ws:
+    image: {{ eda_server_image_url }}
+    container_name: eda-ws
+    command: 'daphne --bind 127.0.0.1 --port {{ eda_daphne_port }} aap_eda.asgi:application'
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      EDA_SETTINGS_FILE: /etc/eda.yaml
+    volumes:
+      - "{{ eda_directory }}/settings.yaml:/etc/eda.yaml:ro"
+      - "{{ eda_directory }}/SECRET_KEY:/etc/eda/SECRET_KEY:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
+{% if eda_pg_crt_auth | bool %}
+      - "{{ eda_directory }}/postgresql.crt:/etc/eda/postgresql.crt:ro"
+      - "{{ eda_directory }}/postgresql.key:/etc/eda/postgresql.key:ro"
+{% endif %}
+{% if not eda_redis_disable_tls | bool %}
+      - "{{ eda_directory }}/redis.crt:/etc/eda/redis.crt:ro"
+      - "{{ eda_directory }}/redis.key:/etc/eda/redis.key:ro"
+{% endif %}
+      - eda_data:/var/lib/eda
+{% if not eda_standalone | bool and groups.get('gateway', []) | length > 0 %}
+    env_file:
+      - path: "{{ eda_directory }}/eda-service.key"
+        required: true
+{% endif %}
+
+  eda-scheduler:
+    image: {{ eda_server_image_url }}
+    container_name: eda-scheduler
+    command: 'aap-eda-manage scheduler'
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      EDA_SETTINGS_FILE: /etc/eda.yaml
+    volumes:
+      - "{{ eda_directory }}/settings.yaml:/etc/eda.yaml:ro"
+      - "{{ eda_directory }}/SECRET_KEY:/etc/eda/SECRET_KEY:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
+{% if eda_pg_crt_auth | bool %}
+      - "{{ eda_directory }}/postgresql.crt:/etc/eda/postgresql.crt:ro"
+      - "{{ eda_directory }}/postgresql.key:/etc/eda/postgresql.key:ro"
+{% endif %}
+{% if not eda_redis_disable_tls | bool %}
+      - "{{ eda_directory }}/redis.crt:/etc/eda/redis.crt:ro"
+      - "{{ eda_directory }}/redis.key:/etc/eda/redis.key:ro"
+{% endif %}
+      - eda_data:/var/lib/eda
+{% if not eda_standalone | bool and groups.get('gateway', []) | length > 0 %}
+    env_file:
+      - path: "{{ eda_directory }}/eda-service.key"
+        required: true
+{% endif %}
+
+  eda-worker:
+    image: {{ eda_server_image_url }}
+    command: 'aap-eda-manage rqworker --worker-class aap_eda.core.tasking.DefaultWorker'
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      EDA_SETTINGS_FILE: /etc/eda.yaml
+      CONTAINER_HOST: "tcp://127.0.0.1:8888"
+    volumes:
+      - "{{ eda_directory }}/settings.yaml:/etc/eda.yaml:ro"
+      - "{{ eda_directory }}/SECRET_KEY:/etc/eda/SECRET_KEY:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
+{% if eda_pg_crt_auth | bool %}
+      - "{{ eda_directory }}/postgresql.crt:/etc/eda/postgresql.crt:ro"
+      - "{{ eda_directory }}/postgresql.key:/etc/eda/postgresql.key:ro"
+{% endif %}
+{% if not eda_redis_disable_tls | bool %}
+      - "{{ eda_directory }}/redis.crt:/etc/eda/redis.crt:ro"
+      - "{{ eda_directory }}/redis.key:/etc/eda/redis.key:ro"
+{% endif %}
+      - eda_data:/var/lib/eda
+{% if not eda_standalone | bool and groups.get('gateway', []) | length > 0 %}
+    env_file:
+      - path: "{{ eda_directory }}/eda-service.key"
+        required: true
+{% endif %}
+    deploy:
+      replicas: {{ eda_workers }}
+
+  eda-activation-worker:
+    image: {{ eda_server_image_url }}
+    command: 'aap-eda-manage rqworker --worker-class aap_eda.core.tasking.ActivationWorker'
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      EDA_SETTINGS_FILE: /etc/eda.yaml
+      CONTAINER_HOST: "tcp://127.0.0.1:8888"
+    volumes:
+      - "{{ eda_directory }}/settings.yaml:/etc/eda.yaml:ro"
+      - "{{ eda_directory }}/SECRET_KEY:/etc/eda/SECRET_KEY:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
+{% if eda_pg_crt_auth | bool %}
+      - "{{ eda_directory }}/postgresql.crt:/etc/eda/postgresql.crt:ro"
+      - "{{ eda_directory }}/postgresql.key:/etc/eda/postgresql.key:ro"
+{% endif %}
+{% if not eda_redis_disable_tls | bool %}
+      - "{{ eda_directory }}/redis.crt:/etc/eda/redis.crt:ro"
+      - "{{ eda_directory }}/redis.key:/etc/eda/redis.key:ro"
+{% endif %}
+      - eda_data:/var/lib/eda
+{% if not eda_standalone | bool and groups.get('gateway', []) | length > 0 %}
+    env_file:
+      - path: "{{ eda_directory }}/eda-service.key"
+        required: true
+{% endif %}
+    deploy:
+      replicas: {{ eda_activation_workers }}
+
+  eda-podman:
+    image: quay.io/containers/podman:v5
+    container_name: eda-podman
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    command: podman --log-level info system service --time=0 tcp://127.0.0.1:8888
+    volumes:
+      - "{{ eda_directory }}/containers:/var/lib/containers/:rw"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
+{% endif %}
+{% if not eda_external_redis | bool and eda_cluster_node_type == 'primary' %}
+
+  eda-redis:
+    image: docker.io/redis:{{ eda_redis_version }}
+    container_name: eda-redis
+    restart: unless-stopped
+    network_mode: host
+    command: ["/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - "{{ eda_directory }}/redis.conf:/usr/local/etc/redis/redis.conf:ro"
+      - "{{ eda_directory }}/redis-users.acl:/usr/local/etc/redis/redis-users.acl:ro"
+      - "{{ eda_directory }}/redis.crt:/var/lib/redis/server.crt:ro"
+      - "{{ eda_directory }}/redis.key:/var/lib/redis/server.key:ro"
+      - "{{ ap_ca_directory }}/pki/extracted/pem:/certs:z"
+{% endif %}
+
+volumes:
+  eda_data:

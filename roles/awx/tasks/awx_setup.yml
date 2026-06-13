@@ -8,7 +8,7 @@
     project_src: "{{ awx_pg_directory }}"
     state: absent
   when:
-    - (postgres_configs is changed | bool) and awx_cluster_node_type == 'primary' and not awx_external_database # noqa: yaml[line-length]
+    - (awx_postgres_configs is changed | bool or awx_pg_tls_crt_result.changed or awx_pg_tls_key_result.changed) and awx_cluster_node_type == 'primary' and not awx_external_database # noqa: yaml[line-length]
 
 - name: Start Postgres containers
   community.docker.docker_compose_v2:
@@ -23,7 +23,12 @@
     project_name: awx
     project_src: "{{ awx_directory }}"
     state: absent
-  when: awx_configs is changed | bool
+  when:
+    - awx_configs is changed | bool
+      or ((awx_postgres_configs is changed | bool or awx_pg_tls_crt_result.changed or awx_pg_tls_key_result.changed)
+      and awx_cluster_node_type == 'primary' and not awx_external_database)
+      or ((ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      or (ap_custom_ca_crt_result is defined and ap_custom_ca_crt_result.changed))
 
 - name: Remove receptor.conf
   ansible.builtin.file:
@@ -31,9 +36,14 @@
     state: absent
   when: awx_configs is changed | bool
 
+- name: Check if AWX task container is running
+  community.docker.docker_container_info:
+    name: awx-task
+  register: awx_task_container_info
+
 - name: Start AWX containers
   community.docker.docker_compose_v2:
     project_name: awx
     project_src: "{{ awx_directory }}"
-    renew_anon_volumes: true
+    renew_anon_volumes: "{{ not awx_task_container_info.exists }}"
     state: present

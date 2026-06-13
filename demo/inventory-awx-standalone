@@ -1,0 +1,17 @@
+[all:vars]
+ansible_python_interpreter=auto
+ansible_user=root
+awx_standalone=true
+
+[awx]
+awx-1.demo.io
+awx-2.demo.io
+awx-receptor-1.demo.io
+awx-receptor-2.demo.io
+awx-receptor-3.demo.io
+awx-receptor-hop-1.demo.io
+awx-receptor-behind-hop-1.demo.io
+
+[haproxy]
+awx-1.demo.io
+awx-2.demo.io

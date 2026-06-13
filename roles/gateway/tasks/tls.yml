@@ -1,0 +1,328 @@
+---
+- name: Set gateway hostname
+  ansible.builtin.set_fact:
+    _gateway_hostname: "{{ gateway_cluster_node_host_id }}"
+
+- name: Set gateway IPs
+  ansible.builtin.set_fact:
+    _gateway_ips: "{{ _gateway_ips | default([]) | union(['IP:' + item]) }}"
+  loop: "{{ ansible_all_ipv4_addresses + ansible_all_ipv6_addresses }}"
+
+- name: Set gateway main URL hostname
+  ansible.builtin.set_fact:
+    _gateway_main_url_hostname: '{{ gateway_hostname | urlsplit("hostname") }}'
+  when: gateway_hostname is defined and gateway_hostname != ""
+
+- name: Generate TLS certificate and key
+  when:
+    - gateway_tls_crt is not defined or gateway_tls_crt == ""
+    - gateway_tls_key is not defined or gateway_tls_key == ""
+  block:
+    - name: Install python-cryptography
+      ansible.builtin.package:
+        name: python3-cryptography
+
+    - name: Check the current gateway private key
+      ansible.builtin.stat:
+        path: "{{ gateway_directory }}/gateway.key"
+      register: _gateway_tls_key
+
+    - name: Generate a private key
+      community.crypto.openssl_privatekey:
+        path: "{{ gateway_directory }}/gateway.key"
+        mode: "0o440"
+        owner: "{{ gateway_uid }}"
+        group: "{{ gateway_proxy_gid }}"
+      no_log: "{{ gateway_no_log }}"
+      when: not _gateway_tls_key.stat.exists | bool
+
+    - name: Check the current gateway certificate
+      ansible.builtin.stat:
+        path: "{{ gateway_directory }}/gateway.crt"
+      register: _gateway_tls_cert
+
+    - name: Create the gateway TLS certificate
+      when: not _gateway_tls_cert.stat.exists | bool or (ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      block:
+        - name: Set subject alt name fact
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_gateway_hostname | fitbeard.awx.subject_alt_name] | union(_gateway_ips) }}"
+
+        - name: Add gateway main url hostname to SAN list
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_gateway_main_url_hostname | fitbeard.awx.subject_alt_name] | union(_subject_alt_name) }}"
+          when: gateway_hostname is defined and gateway_hostname != ""
+
+        - name: Generate a certificate signing request
+          community.crypto.openssl_csr_pipe:
+            common_name: "{{ _gateway_hostname }}"
+            country_name: "{{ ap_ca_country_name | default(omit) }}"
+            locality_name: "{{ ap_ca_locality_name | default(omit) }}"
+            organization_name: "{{ ap_ca_organization_name | default(omit) }}"
+            organizational_unit_name: "{{ ap_ca_organizational_unit_name | default(omit) }}"
+            state_or_province_name: "{{ ap_ca_state_or_province_name | default(omit) }}"
+            subject_alt_name: "{{ _subject_alt_name }}"
+            privatekey_path: "{{ gateway_directory }}/gateway.key"
+          no_log: "{{ gateway_no_log }}"
+          register: _gateway_tls_csr
+
+        - name: Generate a self signed x509 certificate
+          community.crypto.x509_certificate:
+            path: "{{ gateway_directory }}/gateway.crt"
+            csr_content: "{{ _gateway_tls_csr.csr }}"
+            privatekey_path: "{{ gateway_directory }}/gateway.key"
+            provider: ownca
+            ownca_path: "{{ ap_ca_directory }}/ca.crt"
+            ownca_privatekey_path: "{{ ap_ca_directory }}/ca.key"
+            ownca_privatekey_passphrase: "{{ ap_ca_key_passphrase | default(omit) }}"
+            mode: "0o640"
+            owner: "{{ gateway_uid }}"
+            group: "{{ gateway_proxy_gid }}"
+          no_log: "{{ gateway_no_log }}"
+          register: gateway_tls_crt_result
+
+- name: Import TLS certificate and key
+  when:
+    - gateway_tls_crt is defined and gateway_tls_crt != ""
+    - gateway_tls_key is defined and gateway_tls_key != ""
+  block:
+    - name: Copy gateway TLS certificate
+      ansible.builtin.template:
+        src: gateway.crt.j2
+        dest: "{{ gateway_directory }}/gateway.crt"
+        mode: "0o640"
+        owner: "{{ gateway_uid }}"
+        group: "{{ gateway_proxy_gid }}"
+      register: gateway_tls_crt_result
+
+    - name: Copy gateway TLS key
+      ansible.builtin.template:
+        src: gateway.key.j2
+        dest: "{{ gateway_directory }}/gateway.key"
+        mode: "0o440"
+        owner: "{{ gateway_uid }}"
+        group: "{{ gateway_proxy_gid }}"
+      no_log: "{{ gateway_no_log }}"
+      register: gateway_tls_key_result
+
+- name: Generate Postgres TLS certificate and key
+  when:
+    - not gateway_external_database | bool
+    - gateway_pg_tls_crt is not defined or gateway_pg_tls_crt == ""
+    - gateway_pg_tls_key is not defined or gateway_pg_tls_key == ""
+    - gateway_cluster_node_type == 'primary'
+  block:
+    - name: Check the current Postgres private key
+      ansible.builtin.stat:
+        path: "{{ gateway_pg_directory }}/postgresql.key"
+      register: _gateway_pg_tls_key
+
+    - name: Generate a private key
+      community.crypto.openssl_privatekey:
+        path: "{{ gateway_pg_directory }}/postgresql.key"
+        mode: "0o600"
+        owner: "{{ gateway_pg_uid }}"
+        group: "{{ gateway_gid }}"
+      no_log: "{{ gateway_no_log }}"
+      when: not _gateway_pg_tls_key.stat.exists | bool
+
+    - name: Check the current Postgres certificate
+      ansible.builtin.stat:
+        path: "{{ gateway_pg_directory }}/postgresql.crt"
+      register: _gateway_pg_tls_cert
+
+    - name: Create the Postgres TLS certificate
+      when: not _gateway_pg_tls_cert.stat.exists | bool or (ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      block:
+        - name: Set subject alt name fact
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_gateway_hostname | fitbeard.awx.subject_alt_name] | union(_gateway_ips) }}"
+
+        - name: Generate a certificate signing request
+          community.crypto.openssl_csr_pipe:
+            common_name: "{{ _gateway_hostname }}"
+            country_name: "{{ ap_ca_country_name | default(omit) }}"
+            locality_name: "{{ ap_ca_locality_name | default(omit) }}"
+            organization_name: "{{ ap_ca_organization_name | default(omit) }}"
+            organizational_unit_name: "{{ ap_ca_organizational_unit_name | default(omit) }}"
+            state_or_province_name: "{{ ap_ca_state_or_province_name | default(omit) }}"
+            subject_alt_name: "{{ _subject_alt_name }}"
+            privatekey_path: "{{ gateway_pg_directory }}/postgresql.key"
+          no_log: "{{ gateway_no_log }}"
+          register: _gateway_pg_tls_csr
+
+        - name: Generate a self signed x509 certificate
+          community.crypto.x509_certificate:
+            path: "{{ gateway_pg_directory }}/postgresql.crt"
+            csr_content: "{{ _gateway_pg_tls_csr.csr }}"
+            privatekey_path: "{{ gateway_pg_directory }}/postgresql.key"
+            provider: ownca
+            ownca_path: "{{ ap_ca_directory }}/ca.crt"
+            ownca_privatekey_path: "{{ ap_ca_directory }}/ca.key"
+            ownca_privatekey_passphrase: "{{ ap_ca_key_passphrase | default(omit) }}"
+            mode: "0o640"
+            owner: "{{ gateway_pg_uid }}"
+            group: "{{ gateway_gid }}"
+          no_log: "{{ gateway_no_log }}"
+          register: gateway_pg_tls_crt_result
+
+- name: Import Postgres TLS certificate and key
+  when:
+    - gateway_pg_crt_auth is defined
+    - gateway_pg_crt_auth | bool
+    - gateway_external_database | bool
+    - gateway_pg_tls_crt is defined and gateway_pg_tls_crt != ""
+    - gateway_pg_tls_key is defined and gateway_pg_tls_key != ""
+  block:
+    - name: Copy gateway Postgres TLS certificate
+      ansible.builtin.template:
+        src: postgresql.crt.j2
+        dest: "{{ gateway_directory }}/postgresql.crt"
+        mode: "0o640"
+        owner: "{{ gateway_uid }}"
+        group: "{{ gateway_gid }}"
+      register: gateway_pg_tls_crt_result
+
+    - name: Copy gateway Postgres TLS key
+      ansible.builtin.template:
+        src: postgresql.key.j2
+        dest: "{{ gateway_directory }}/postgresql.key"
+        mode: "0o440"
+        owner: "{{ gateway_uid }}"
+        group: "{{ gateway_gid }}"
+      no_log: "{{ gateway_no_log }}"
+      register: gateway_pg_tls_key_result
+
+- name: Generate Redis TLS certificate and key
+  run_once: true
+  when:
+    - not gateway_external_redis | bool
+    - gateway_redis_tls_crt is not defined or gateway_redis_tls_crt == ""
+    - gateway_redis_tls_key is not defined or gateway_redis_tls_key == ""
+  block:
+    - name: Check the current Redis private key
+      ansible.builtin.stat:
+        path: "{{ gateway_directory }}/redis.key"
+      register: _gateway_redis_tls_key
+
+    - name: Generate a private key
+      community.crypto.openssl_privatekey:
+        path: "{{ gateway_directory }}/redis.key"
+        mode: "0o440"
+        owner: "{{ gateway_redis_uid }}"
+        group: "{{ gateway_gid }}"
+      no_log: "{{ gateway_no_log }}"
+      when: not _gateway_redis_tls_key.stat.exists | bool
+
+    - name: Check the current Redis certificate
+      ansible.builtin.stat:
+        path: "{{ gateway_directory }}/redis.crt"
+      register: _gateway_redis_tls_cert
+
+    - name: Create the Redis TLS certificate
+      when: not _gateway_redis_tls_cert.stat.exists | bool or (ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      block:
+        - name: Set subject alt name fact
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_gateway_hostname | fitbeard.awx.subject_alt_name] | union(_gateway_ips) }}"
+
+        - name: Generate a certificate signing request
+          community.crypto.openssl_csr_pipe:
+            common_name: "{{ _gateway_hostname }}"
+            country_name: "{{ ap_ca_country_name | default(omit) }}"
+            locality_name: "{{ ap_ca_locality_name | default(omit) }}"
+            organization_name: "{{ ap_ca_organization_name | default(omit) }}"
+            organizational_unit_name: "{{ ap_ca_organizational_unit_name | default(omit) }}"
+            state_or_province_name: "{{ ap_ca_state_or_province_name | default(omit) }}"
+            subject_alt_name: "{{ _subject_alt_name }}"
+            privatekey_path: "{{ gateway_directory }}/redis.key"
+          no_log: "{{ gateway_no_log }}"
+          register: _gateway_redis_tls_csr
+
+        - name: Generate a self signed x509 certificate
+          community.crypto.x509_certificate:
+            path: "{{ gateway_directory }}/redis.crt"
+            csr_content: "{{ _gateway_redis_tls_csr.csr }}"
+            privatekey_path: "{{ gateway_directory }}/redis.key"
+            provider: ownca
+            ownca_path: "{{ ap_ca_directory }}/ca.crt"
+            ownca_privatekey_path: "{{ ap_ca_directory }}/ca.key"
+            ownca_privatekey_passphrase: "{{ ap_ca_key_passphrase | default(omit) }}"
+            mode: "0o640"
+            owner: "{{ gateway_redis_uid }}"
+            group: "{{ gateway_gid }}"
+          no_log: "{{ gateway_no_log }}"
+          register: gateway_redis_tls_crt_result
+
+    - name: Copy Redis TLS files to other nodes
+      block:
+        - name: Create local temporary directory
+          ansible.builtin.tempfile:
+            state: directory
+          register: _redis_tls_temp
+          delegate_to: localhost
+          become: false
+          changed_when: false
+
+        - name: Fetch files locally
+          ansible.builtin.fetch:
+            src: "{{ gateway_directory }}/redis.{{ item }}"
+            dest: "{{ _redis_tls_temp.path }}/redis.{{ item }}"
+            flat: true
+          loop:
+            - crt
+            - key
+          changed_when: false
+
+        - name: Copy Redis TLS certificate
+          ansible.builtin.copy:
+            src: "{{ _redis_tls_temp.path }}/redis.crt"
+            dest: "{{ gateway_directory }}/redis.crt"
+            mode: "0o640"
+            owner: "{{ gateway_redis_uid }}"
+            group: "{{ gateway_gid }}"
+          run_once: false
+          register: gateway_redis_tls_crt_result
+
+        - name: Copy Redis TLS key
+          ansible.builtin.copy:
+            src: "{{ _redis_tls_temp.path }}/redis.key"
+            dest: "{{ gateway_directory }}/redis.key"
+            mode: "0o440"
+            owner: "{{ gateway_redis_uid }}"
+            group: "{{ gateway_gid }}"
+          no_log: "{{ gateway_no_log }}"
+          run_once: false
+      always:
+        - name: Remove local temporary directory
+          ansible.builtin.file:
+            path: "{{ _redis_tls_temp.path }}"
+            state: absent
+          delegate_to: localhost
+          become: false
+          changed_when: false
+
+- name: Import Redis TLS certificate and key
+  when:
+    - gateway_external_redis | bool
+    - gateway_redis_tls_crt is defined and gateway_redis_tls_crt != ""
+    - gateway_redis_tls_key is defined and gateway_redis_tls_key != ""
+  block:
+    - name: Copy gateway Redis TLS certificate
+      ansible.builtin.template:
+        src: redis.crt.j2
+        dest: "{{ gateway_directory }}/redis.crt"
+        mode: "0o640"
+        owner: "{{ gateway_uid }}"
+        group: "{{ gateway_gid }}"
+      register: gateway_redis_tls_crt_result
+
+    - name: Copy gateway Redis TLS key
+      ansible.builtin.template:
+        src: redis.key.j2
+        dest: "{{ gateway_directory }}/redis.key"
+        mode: "0o440"
+        owner: "{{ gateway_uid }}"
+        group: "{{ gateway_gid }}"
+      no_log: "{{ gateway_no_log }}"
+      register: gateway_redis_tls_key_result

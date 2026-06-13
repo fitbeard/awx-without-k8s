@@ -1,0 +1,37 @@
+---
+- name: Set gateway init facts
+  ansible.builtin.include_tasks: facts.yml
+
+- name: Ensure Gateway proxy is ready
+  ansible.builtin.uri:
+    url: "{{ gateway_hostname }}"
+    validate_certs: true
+    ca_path: "{{ ap_ca_directory }}/pki/extracted/pem/tls-ca-bundle.pem"
+  register: _gateway_proxy_ready
+  until: _gateway_proxy_ready.status == 200
+  retries: 30
+  delay: 10
+  run_once: true
+
+- name: Merge organization
+  community.docker.docker_container:
+    name: gateway-init
+    image: "{{ gateway_image_url }}"
+    command: "aap-gateway-manage migrate_service_data --username={{ gateway_admin_username }}"
+    detach: false
+    cleanup: true
+    entrypoint: ""
+    network_mode: host
+    volumes: "{{ _gateway_init_volumes }}"
+    env: "{{ _gateway_init_env }}"
+  register: _migrate_data
+  changed_when: "_migrate_data.container.Output is regex('Items remaining: [1-9][0-9]*')"
+  retries: 5
+  delay: 60
+  until: "_migrate_data.container.Output is not regex('Items remaining: [1-9][0-9]*')"
+  no_log: false
+  run_once: true
+  delegate_to: "{{ groups['gateway'] | first }}"
+  when: >
+    groups.get('awx', []) | length > 0 or
+    groups.get('eda', []) | length > 0

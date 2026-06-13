@@ -8,7 +8,7 @@
         hostname: "{{ awx_cluster_node_host_id }}"
         node_type: "{{ awx_node_role_type }}"
         managed_by_policy: true
-        listener_port: 27199
+        listener_port: "{{ awx_receptor_port }}"
         controller_config_file: "{{ awx_config_file | default(omit, true) }}"
         controller_host: "{{ awx_hostname | default(omit, true) }}"
         controller_password: "{{ awx_password | default(omit, true) }}"
@@ -16,10 +16,19 @@
         controller_oauthtoken: "{{ awx_oauthtoken | default(omit, true) }}"
         validate_certs: "{{ awx_validate_certs | default(omit) }}"
 
+    - name: Resolve peer addresses
+      ansible.builtin.set_fact:
+        _resolved_peers: >-
+          {%- set peers = [] -%}
+          {%- for peer in hostvars[inventory_hostname]['awx_peers'] | default([]) -%}
+          {%-   set _ = peers.append(peer.canonical_address | default(peer.address)) -%}
+          {%- endfor -%}
+          {{ peers }}
+
     - name: Create peers
       awx.awx.instance:
         hostname: "{{ awx_cluster_node_host_id }}"
-        peers: "{{ hostvars[inventory_hostname]['awx_peers'] | default([]) }}"
+        peers: "{{ _resolved_peers }}"
         peers_from_control_nodes: "{{ awx_peers_from_control_nodes }}"
         controller_config_file: "{{ awx_config_file | default(omit, true) }}"
         controller_host: "{{ awx_hostname | default(omit, true) }}"

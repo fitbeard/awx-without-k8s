@@ -1,0 +1,236 @@
+---
+- name: Assert HAProxy routes are configured
+  ansible.builtin.assert:
+    that:
+      - haproxy_routes | length > 0
+      - haproxy_backend_pools | length > 0
+    fail_msg: >-
+      Configure haproxy_routes and haproxy_backend_pools before running this role.
+
+- name: Assert HAProxy route backend pools exist
+  ansible.builtin.assert:
+    that:
+      - item.fqdn is defined
+      - item.backend_pool is defined
+      - item.backend_pool in haproxy_backend_pools
+    fail_msg: >-
+      Each HAProxy route needs fqdn and an existing backend_pool.
+  loop: "{{ haproxy_routes }}"
+  loop_control:
+    label: "{{ item.fqdn | default('missing-fqdn') }}"
+
+- name: Assert HAProxy backend pools are valid
+  ansible.builtin.assert:
+    that:
+      - >-
+        item.value.raw_backend | default('') | length > 0 or
+        (
+          item.value.servers is defined and
+          item.value.servers | length >= 1
+        )
+      - >-
+        item.value.raw_backend | default('') | length == 0 or
+        (
+          'backend be_' ~
+          (item.key | regex_replace('[^A-Za-z0-9_.:-]', '_'))
+        ) in item.value.raw_backend
+    fail_msg: >-
+      Each HAProxy backend pool needs either raw_backend containing the expected
+      backend name, or at least one generated server.
+  loop: "{{ haproxy_backend_pools | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Assert HAProxy frontend certificate variables are valid
+  ansible.builtin.assert:
+    that:
+      - >-
+        (haproxy_frontend_tls_crt | length == 0) ==
+        (haproxy_frontend_tls_key | length == 0)
+    fail_msg: >-
+      Provide both haproxy_frontend_tls_crt and haproxy_frontend_tls_key, or
+      leave both empty to generate a certificate signed by the AP CA.
+
+- name: Set HAProxy frontend certificate defaults
+  ansible.builtin.set_fact:
+    haproxy_frontend_tls_effective_common_name: >-
+      {{
+        haproxy_frontend_cert_common_name
+        if haproxy_frontend_cert_common_name | length > 0
+        else haproxy_routes[0].fqdn
+      }}
+    haproxy_frontend_tls_effective_subject_alt_names: >-
+      {{
+        haproxy_frontend_tls_subject_alt_names
+        if haproxy_frontend_tls_subject_alt_names | length > 0
+        else haproxy_routes | map(attribute='fqdn') | list
+      }}
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+
+- name: Create HAProxy directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ haproxy_directory }}"
+      mode: "0o755"
+    - path: "{{ haproxy_config_directory }}"
+      mode: "0o755"
+    - path: "{{ haproxy_cert_directory }}"
+      mode: "0o700"
+    - path: "{{ haproxy_cert_directory }}/frontend-pem.d"
+      mode: "0o700"
+
+- name: Install python-cryptography
+  ansible.builtin.package:
+    name: python3-cryptography
+    state: present
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+
+- name: Render provided HAProxy frontend PEM
+  ansible.builtin.template:
+    src: frontend.pem.j2
+    dest: "{{ haproxy_cert_directory }}/frontend.pem"
+    mode: "0o600"
+  no_log: true
+  notify: Recreate HAProxy
+  when:
+    - haproxy_frontend_tls_crt | length > 0
+
+- name: Check HAProxy generated frontend PEM
+  ansible.builtin.stat:
+    path: "{{ haproxy_cert_directory }}/frontend.pem"
+  register: haproxy_frontend_pem
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+
+- name: Check HAProxy generated frontend certificate
+  ansible.builtin.stat:
+    path: "{{ haproxy_cert_directory }}/frontend.crt"
+  register: haproxy_frontend_crt
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+
+- name: Generate HAProxy frontend private key
+  community.crypto.openssl_privatekey:
+    path: "{{ haproxy_cert_directory }}/frontend.key"
+    mode: "0o400"
+  no_log: "{{ haproxy_no_log }}"
+  register: haproxy_frontend_tls_key_result
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+
+- name: Set HAProxy frontend subject alt names
+  ansible.builtin.set_fact:
+    haproxy_frontend_tls_effective_subject_alt_name: >-
+      {{
+        haproxy_frontend_tls_effective_subject_alt_names |
+        map('regex_replace', '^(.*)$', 'DNS:\1') |
+        list
+      }}
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+
+- name: Generate HAProxy frontend certificate signing request
+  community.crypto.openssl_csr_pipe:
+    common_name: "{{ haproxy_frontend_tls_effective_common_name }}"
+    country_name: "{{ ap_ca_country_name | default(omit) }}"
+    locality_name: "{{ ap_ca_locality_name | default(omit) }}"
+    organization_name: "{{ ap_ca_organization_name | default(omit) }}"
+    organizational_unit_name: "{{ ap_ca_organizational_unit_name | default(omit) }}"
+    state_or_province_name: "{{ ap_ca_state_or_province_name | default(omit) }}"
+    subject_alt_name: "{{ haproxy_frontend_tls_effective_subject_alt_name }}"
+    privatekey_path: "{{ haproxy_cert_directory }}/frontend.key"
+  no_log: "{{ haproxy_no_log }}"
+  register: haproxy_frontend_tls_csr
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+    - >-
+      haproxy_frontend_tls_force_regenerate | bool or
+      not haproxy_frontend_crt.stat.exists or
+      haproxy_frontend_tls_key_result is changed or
+      (ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+
+- name: Generate CA-signed HAProxy frontend certificate
+  community.crypto.x509_certificate:
+    path: "{{ haproxy_cert_directory }}/frontend.crt"
+    csr_content: "{{ haproxy_frontend_tls_csr.csr }}"
+    privatekey_path: "{{ haproxy_cert_directory }}/frontend.key"
+    provider: ownca
+    ownca_path: "{{ ap_ca_directory }}/ca.crt"
+    ownca_privatekey_path: "{{ ap_ca_directory }}/ca.key"
+    ownca_privatekey_passphrase: "{{ ap_ca_key_passphrase | default(omit) }}"
+    ownca_not_after: "+{{ haproxy_frontend_tls_days }}d"
+    mode: "0o640"
+  no_log: "{{ haproxy_no_log }}"
+  register: haproxy_frontend_tls_crt_result
+  notify: Recreate HAProxy
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+    - haproxy_frontend_tls_csr is changed
+
+- name: Stage generated HAProxy frontend certificate
+  ansible.builtin.copy:
+    src: "{{ haproxy_cert_directory }}/frontend.crt"
+    dest: "{{ haproxy_cert_directory }}/frontend-pem.d/10-frontend.crt"
+    mode: "0o600"
+    remote_src: true
+  notify: Recreate HAProxy
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+    - >-
+      haproxy_frontend_tls_crt_result is changed or
+      not haproxy_frontend_pem.stat.exists
+
+- name: Stage generated HAProxy frontend private key
+  ansible.builtin.copy:
+    src: "{{ haproxy_cert_directory }}/frontend.key"
+    dest: "{{ haproxy_cert_directory }}/frontend-pem.d/20-frontend.key"
+    mode: "0o600"
+    remote_src: true
+  no_log: true
+  notify: Recreate HAProxy
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+    - >-
+      haproxy_frontend_tls_key_result is changed or
+      not haproxy_frontend_pem.stat.exists
+
+- name: Assemble generated HAProxy frontend PEM
+  ansible.builtin.assemble:
+    src: "{{ haproxy_cert_directory }}/frontend-pem.d"
+    dest: "{{ haproxy_cert_directory }}/frontend.pem"
+    mode: "0o600"
+  notify: Recreate HAProxy
+  when:
+    - haproxy_frontend_tls_crt | length == 0
+    - >-
+      haproxy_frontend_tls_crt_result is changed or
+      haproxy_frontend_tls_key_result is changed or
+      not haproxy_frontend_pem.stat.exists
+
+- name: Template HAProxy configuration
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: "{{ haproxy_config_directory }}/haproxy.cfg"
+    mode: "0o644"
+  notify: Recreate HAProxy
+
+- name: Template HAProxy Docker Compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ haproxy_directory }}/docker-compose.yml"
+    mode: "0o644"
+  notify: Recreate HAProxy
+
+- name: Start HAProxy container
+  community.docker.docker_compose_v2:
+    project_name: "{{ haproxy_project_name }}"
+    project_src: "{{ haproxy_directory }}"
+    state: present
+
+- name: Flush HAProxy handlers
+  ansible.builtin.meta: flush_handlers

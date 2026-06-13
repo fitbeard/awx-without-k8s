@@ -1,0 +1,44 @@
+---
+- name: Import EDA configuration tasks
+  ansible.builtin.import_tasks: configure.yml
+
+- name: Destroy Postgres container
+  community.docker.docker_compose_v2:
+    project_name: eda-postgres
+    project_src: "{{ eda_pg_directory }}"
+    state: absent
+  when:
+    - (eda_postgres_configs is changed | bool or eda_pg_tls_crt_result.changed or eda_pg_tls_key_result.changed) and eda_cluster_node_type == 'primary' and not eda_external_database # noqa: yaml[line-length]
+
+- name: Start Postgres containers
+  community.docker.docker_compose_v2:
+    project_name: eda-postgres
+    project_src: "{{ eda_pg_directory }}"
+    state: present
+  when:
+    - eda_cluster_node_type == 'primary' and not eda_external_database
+
+- name: Destroy EDA containers
+  community.docker.docker_compose_v2:
+    project_name: eda
+    project_src: "{{ eda_directory }}"
+    state: absent
+  when:
+    - eda_configs is changed | bool
+      or ((eda_postgres_configs is changed | bool or eda_pg_tls_crt_result.changed
+      or eda_pg_tls_key_result.changed or eda_redis_tls_crt_result.changed or eda_redis_tls_key_result.changed)
+      and eda_cluster_node_type == 'primary' and not eda_external_database)
+      or ((ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      or (ap_custom_ca_crt_result is defined and ap_custom_ca_crt_result.changed))
+
+- name: Check if EDA api container is running
+  community.docker.docker_container_info:
+    name: eda-api
+  register: eda_api_container_info
+
+- name: Start EDA containers
+  community.docker.docker_compose_v2:
+    project_name: eda
+    project_src: "{{ eda_directory }}"
+    renew_anon_volumes: "{{ not eda_api_container_info.exists }}"
+    state: present

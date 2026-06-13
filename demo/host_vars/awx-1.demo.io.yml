@@ -1,5 +1,13 @@
 ansible_host: 10.13.55.201
 awx_cluster_node_type: primary
+
+# eda_queue_name: one-queue-for-all
+# eda_queue_name: "eda-{{ ansible_hostname[:200] }}-{{ ansible_machine_id | to_uuid }}"
+
+gateway_cluster_node_type: primary
+
+eda_cluster_node_type: primary
+
 # Generate unique value with `echo 'import uuid; print(uuid.uuid4())' | /usr/bin/python3`
 awx_cluster_node_system_uuid: 83df7748-5bb6-439e-a87e-42493991fc47
 awx_node_role_type: hybrid

@@ -1,88 +1,113 @@
 ---
+# AWX configuration defaults
 awx_no_log: true
 
-awx_rootful_containers: false
-awx_external_frontend: false
+awx_standalone: false
 
 awx_uid: 1000
-awx_gid: "{{ '0' if awx_rootful_containers | bool else '1000' }}"
+awx_gid: 1000
+awx_pg_uid: 999
 
-# Must be one of ['setup', 'upgrade']
+awx_client_request_timeout: 30
+
+awx_percent_memory_capacity: 1.0
+
+## Must be one of ['setup', 'upgrade']
 awx_tasks: setup
 
 awx_hostname: "{{ undef(hint='You must specify a AWX frontend address with protocol e.g. https://awx.demo.io') }}"
 
-# Must be one of ['secondary', 'primary']
+## Must be one of ['secondary', 'primary']
 awx_cluster_node_type: primary
-awx_cluster_primary_node: "{{ groups['awx'][0] }}"
 awx_cluster_node_host_id: "{{ ansible_fqdn }}"
-# Generate with `echo 'import uuid; print(uuid.uuid4())' | /usr/bin/python3`
+## Generate with `echo 'import uuid; print(uuid.uuid4())' | /usr/bin/python3`
 awx_cluster_node_system_uuid: ""
-# Must be one of ['control', 'hybrid', 'hop', 'execution']
+## Must be one of ['control', 'hybrid', 'hop', 'execution']
 awx_node_role_type: control
-# Must be one of ['info', 'debug']
+## Must be one of ['info', 'debug']
 awx_receptor_log_level: info
+awx_receptor_protocol: tcp
+awx_receptor_port: 27199
 awx_receptor_additional_volumes: []
 awx_peers: []
 awx_peers_from_control_nodes: true
 
-# AWX
-awx_image_tag: 24.6.1.post330
+## AWX
+awx_image_tag: 25.0.0
 awx_image: awx
+awx_ee_image_tag: "{{ awx_image_tag }}"
+awx_ee_image: awx-ee
 awx_image_registry: quay.io
-awx_image_url: "{{ awx_image_registry }}/tadas/{{ awx_image }}:{{ awx_image_tag }}"
-awx_ee_image_url: quay.io/tadas/awx-ee:24.6.1.post330
+awx_image_url: "{{ awx_image_registry }}/fitbeard/ansible-platform/{{ awx_image }}:{{ awx_image_tag }}"
+awx_ee_image_url: "{{ awx_image_registry }}/fitbeard/ansible-platform/{{ awx_ee_image }}:{{ awx_ee_image_tag }}"
+
 awx_directory: /opt/awx
 
 awx_admin_username: "xxx"
 awx_admin_password: "xxx"
 awx_secret_key: "xxx"
+
+awx_service_key: ""
+
 awx_broadcast_websocket_secret: ""
-# Must be one of ['443', '8052']
-awx_broadcast_websocket_port: 443
-# Must be one of ['https', 'http']
+## Must be one of ['443', '{{ awx_nginx_https_port }}']
+awx_broadcast_websocket_port: "{{ awx_nginx_https_port }}"
+## Must be one of ['https', 'http']
 awx_broadcast_websocket_protocol: https
 
-# Postgres
+## Postgres
 awx_external_database: false
 awx_pg_directory: /opt/postgres
 awx_pg_version: 15
 awx_pg_initdb_args: '--auth-host=scram-sha-256'
 awx_pg_host_auth_method: scram-sha-256
-# Must be set to 'true' in a fresh installations and switched
-# to 'true' in an upgraded installations only after successful
-# Postgres upgrade to v15 and data migration
-awx_pg_is_on_supported_version: false
 awx_pg_hostname: 127.0.0.1
 awx_pg_username: awx
 awx_pg_password: awx
 awx_pg_database: awx
 awx_pg_port: 5432
-# Must be one of ['required', 'prefer']
-awx_pg_sslmode: prefer
-# Configure postgres connection keepalive
+## Must be one of ['require', 'prefer', 'verify-ca', 'verify-full']
+awx_pg_sslmode: require
+## Configure postgres connection keepalive
 awx_pg_keepalives: true
 awx_pg_keepalives_idle: 5
 awx_pg_keepalives_interval: 5
 awx_pg_keepalives_count: 5
+## Only external database topology supports postgresql TLS authentication
+awx_pg_crt_auth: false
+awx_pg_tls_crt: ""
+awx_pg_tls_key: ""
 
-# Redis
+## Redis
 awx_redis_version: 7
+awx_redis_cache_db: 0
 
-# UWSGI default values
-awx_uwsgi_processes: 5
-# NOTE: to increase this value, net.core.somaxconn must also be increased
+## UWSGI default values
+awx_uwsgi_port: 8050
+## NOTE: to increase this value, net.core.somaxconn must also be increased
 awx_uwsgi_listen_queue_size: 128
+
+awx_uwsgi_timeout: '{{ (([(awx_client_request_timeout | int), 10] | max) / 3) | int }}'
+awx_uwsgi_timeout_grace_period: 2
+awx_uwsgi_processes: '{{ ansible_processor_vcpus | default(4) | int * 2 + 1 }}'
+
+awx_daphne_port: 8051
+
+awx_nginx_http_port: 8080
+awx_nginx_https_port: 8443
 
 awx_nginx_worker_processes: 1
 awx_nginx_worker_connections: "{{ awx_uwsgi_listen_queue_size }}"
 awx_nginx_worker_cpu_affinity: 'auto'
 awx_nginx_listen_queue_size: "{{ awx_uwsgi_listen_queue_size }}"
 
-# Certs
-awx_web_cert_bundle: ""
-awx_web_cert_crt: ""
-awx_web_cert_key: ""
+awx_nginx_https_protocols:
+  - TLSv1.2
+  - TLSv1.3
+
+## Certs
+awx_tls_crt: ""
+awx_tls_key: ""
 awx_receptor_signing_public_key: ""
 awx_receptor_signing_private_key: ""
 awx_mesh_ca_crt: ""
@@ -90,4 +115,245 @@ awx_mesh_ca_key: ""
 awx_receptor_crt: ""
 awx_receptor_key: ""
 
-awx_validate_certs: false
+# awx_validate_certs: false
+
+awx_extra_settings: []
+
+# Gateway configuration defaults
+gateway_no_log: true
+
+# This should be the same as gateway_nginx_read_timeout, because that's how long a request may take after the jwt is injected
+gateway_client_request_timeout: 30
+
+gateway_uid: 1000
+gateway_gid: 0
+gateway_proxy_gid: 101
+gateway_pg_uid: 999
+gateway_redis_uid: 999
+
+## Must be one of ['setup', 'upgrade']
+gateway_tasks: setup
+
+## Must be one of ['secondary', 'primary']
+gateway_cluster_node_type: primary
+gateway_cluster_node_host_id: "{{ ansible_fqdn }}"
+
+gateway_hostname: "{{ undef(hint='You must specify a AP frontend address with protocol e.g. https://gateway.demo.io') }}"
+
+gateway_image_tag: 2.6.20260422
+gateway_image: gateway
+gateway_image_registry: quay.io
+gateway_image_url: "{{ gateway_image_registry }}/fitbeard/ansible-platform/{{ gateway_image }}:{{ gateway_image_tag }}"
+gateway_envoy_version: v1.34.14
+
+gateway_directory: /opt/gateway
+
+gateway_admin_username: "xxx"
+gateway_admin_password: "xxx"
+gateway_secret_key: "xxx"
+
+# Postgres
+gateway_external_database: false
+gateway_pg_directory: /opt/gateway-postgres
+gateway_pg_version: 15
+gateway_pg_initdb_args: '--auth-host=scram-sha-256'
+gateway_pg_host_auth_method: scram-sha-256
+gateway_pg_hostname: 127.0.0.1
+gateway_pg_username: gateway
+gateway_pg_password: gateway
+gateway_pg_database: gateway
+# Using a non-standard port to avoid conflicts with AWX or EDA Postgres in case both are running on the same host
+gateway_pg_port: 5434
+## Must be one of ['require', 'prefer', 'verify-ca', 'verify-full']
+gateway_pg_sslmode: require
+## Only external database topology supports postgresql TLS authentication
+gateway_pg_crt_auth: false
+gateway_pg_tls_crt: ""
+gateway_pg_tls_key: ""
+
+## Redis
+gateway_external_redis: false
+gateway_redis_version: 7
+## Must be one of ['standalone', 'cluster']
+## Only external Redis topology supports cluster mode
+gateway_redis_mode: standalone
+## Only used if Redis mode is cluster. Comma separated list of host:port values for all Redis cluster nodes.
+# gateway_redis_cluster_hostnames: ""
+gateway_redis_disable_tls: false
+gateway_redis_cache_db: 4
+# Using non-standard port to avoid conflicts with EDA Redis in case both are running on the same host
+gateway_redis_port: 6381
+gateway_redis_hostname: 127.0.0.1
+gateway_redis_username: gateway
+gateway_redis_password: gateway
+gateway_redis_tls_crt: ""
+gateway_redis_tls_key: ""
+gateway_redis_url: "rediss://{{ gateway_redis_username }}:{{ gateway_redis_password }}@{{ gateway_redis_hostname }}:{{ gateway_redis_port }}/{{ gateway_redis_cache_db }}" # noqa: yaml[line-length]
+
+gateway_nginx_disable_hsts: false
+gateway_nginx_hsts_max_age: 63072000
+gateway_nginx_https_port: 8446
+gateway_nginx_https_protocols:
+  - TLSv1.2
+  - TLSv1.3
+gateway_nginx_client_max_body_size: 5m
+gateway_nginx_user_headers: []
+gateway_nginx_read_timeout: '{{ (([(gateway_client_request_timeout | int), 10] | max) / 2) | int }}'
+
+## UWSGI default values
+gateway_uwsgi_port: 8052
+gateway_uwsgi_timeout: '{{ (([(gateway_client_request_timeout | int), 10] | max) / 3) | int }}'
+gateway_uwsgi_timeout_grace_period: 2
+gateway_uwsgi_processes: '{{ ansible_processor_vcpus | default(4) | int * 2 + 1 }}'
+## NOTE: to increase this value, net.core.somaxconn must also be increased
+gateway_uwsgi_listen_queue_size: 4096
+
+## Certs
+gateway_tls_crt: ""
+gateway_tls_key: ""
+
+gateway_control_plane_port: 50051
+gateway_extra_settings: []
+gateway_jwt_expiration_buffer_in_seconds: '{{ (([(gateway_client_request_timeout | int), 10] | max) / 2) | int }}'
+
+gateway_envoy_https_port: 9080
+gateway_envoy_request_timeout: '{{ (([(gateway_client_request_timeout | int), 10] | max) / 2) | int }}'
+
+## GRPC
+gateway_grpc_server_processes: 5
+gateway_grpc_server_max_threads_per_process: 10
+## When grpc times out, users start to see 502s, indicating we need to horizontally scale GRPC.
+gateway_grpc_auth_service_timeout: '{{ (([(gateway_client_request_timeout | int), 10] | max) / 2) | int }}s'
+
+ap_ca_directory: /opt/ap-ca
+ap_ca_crt: ""
+ap_ca_key: ""
+## Only used if the CA key is password protected
+# ap_ca_key_passphrase: ""
+
+ap_ca_trust_bundle: /etc/pki/tls/certs/ca-bundle.crt
+
+common_docker_image: "docker.io/rockylinux/rockylinux:9"
+
+tls_no_log: true
+
+# EDA configuration defaults
+eda_no_log: true
+
+eda_debug: false
+eda_safe_plugins: []
+eda_type: hybrid
+
+eda_standalone: false
+
+eda_event_stream_mtls: true
+eda_event_stream_mtls_url: "{{ eda_hostname }}"
+# the prefix path for the event stream mtls urls
+# this should be a large random string to prevent guessing, like for example an uuid
+eda_event_stream_mtls_prefix_path: "/mtls/eda-event-streams"
+
+eda_event_stream_url: "{{ eda_hostname }}"
+# the prefix path for the event stream urls of type webhook
+# this should be a large random string to prevent guessing, like for example an uuid
+eda_event_stream_prefix_path: "/eda-event-streams"
+
+eda_uid: 1001
+eda_gid: 0
+eda_nginx_gid: 0
+eda_pg_uid: 999
+eda_redis_uid: 999
+
+## Must be one of ['setup', 'upgrade']
+eda_tasks: setup
+
+## Must be one of ['secondary', 'primary']
+eda_cluster_node_type: primary
+eda_cluster_node_host_id: "{{ ansible_fqdn }}"
+
+eda_hostname: "{{ undef(hint='You must specify a AP frontend address with protocol e.g. https://eda.demo.io') }}"
+
+eda_server_image_tag: 1.2.8
+eda_server_image: eda-server
+eda_ui_image_tag: 2.6.8
+eda_ui_image: eda-ui
+eda_image_registry: quay.io
+eda_server_image_url: "{{ eda_image_registry }}/fitbeard/ansible-platform/{{ eda_server_image }}:{{ eda_server_image_tag }}"
+eda_ui_image_url: "{{ eda_image_registry }}/fitbeard/ansible-platform/{{ eda_ui_image }}:{{ eda_ui_image_tag }}"
+
+eda_directory: /opt/eda
+
+eda_admin_username: "xxx"
+eda_admin_email: admin@example.com
+eda_admin_password: "xxx"
+eda_secret_key: "xxx"
+
+eda_service_key: ""
+
+eda_extra_settings: []
+
+# Postgres
+eda_external_database: false
+eda_pg_directory: /opt/eda-postgres
+eda_pg_version: 15
+eda_pg_initdb_args: '--auth-host=scram-sha-256'
+eda_pg_host_auth_method: scram-sha-256
+eda_pg_hostname: 127.0.0.1
+eda_pg_username: eda
+eda_pg_password: eda-password
+eda_pg_database: eda
+# Using a non-standard port to avoid conflicts with AWX or Gateway Postgres in case both are running on the same host
+eda_pg_port: 5436
+## Must be one of ['require', 'prefer', 'verify-ca', 'verify-full']
+eda_pg_sslmode: require
+## Only external database topology supports postgresql TLS authentication
+eda_pg_crt_auth: false
+eda_pg_tls_crt: ""
+eda_pg_tls_key: ""
+
+## Redis
+eda_external_redis: false
+eda_redis_version: 7
+## Must be one of ['standalone', 'cluster']
+## Only external Redis topology supports cluster mode
+eda_redis_mode: standalone
+## Only used if Redis mode is cluster. Comma separated list of host:port values for all Redis cluster nodes.
+# eda_redis_cluster_hostnames: ""
+eda_redis_disable_tls: false
+eda_redis_cache_db: 3
+# Using non-standard port to avoid conflicts with Gateway Redis in case both are running on the same host
+eda_redis_port: 6383
+eda_redis_hostname: 127.0.0.1
+eda_redis_username: eda
+eda_redis_password: eda-password
+eda_redis_tls_crt: ""
+eda_redis_tls_key: ""
+
+eda_nginx_disable_hsts: false
+eda_nginx_hsts_max_age: 63072000
+eda_nginx_http_port: 8081
+eda_nginx_https_port: 8445
+eda_nginx_https_protocols:
+  - TLSv1.2
+  - TLSv1.3
+eda_nginx_client_max_body_size: 1m
+eda_nginx_user_headers: []
+eda_nginx_read_timeout: '{{ (([(eda_client_request_timeout | int), 10] | max) / 2) | int }}'
+
+eda_ws_protocol: wss
+
+eda_client_request_timeout: 30
+
+eda_daphne_port: 8001
+eda_gunicorn_port: 8000
+eda_gunicorn_timeout: '{{ (([(eda_client_request_timeout | int), 10] | max) / 3) | int }}'
+eda_gunicorn_timeout_grace_period: 2
+eda_gunicorn_workers: '{{ ansible_processor_vcpus | default(4) | int * 2 + 1 }}'
+
+eda_workers: 1
+eda_activation_workers: 1
+
+eda_podman_mounts:
+  - type: bind
+    source: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+    target: /etc/pki/tls/certs/ca-bundle.crt
+    read_only: true

@@ -1,0 +1,29 @@
+---
+- name: Prepare dependencies
+  hosts: all
+  become: true
+  roles:
+    - role: docker
+      tags:
+        - docker
+        - base
+      when: docker_install | bool
+    - role: tls
+      tags:
+        - always
+
+- name: Install HAProxy
+  hosts: haproxy
+  become: true
+  roles:
+    - role: haproxy
+      tags:
+        - haproxy
+
+- name: Install EDA
+  hosts: eda
+  become: true
+  roles:
+    - role: eda
+      tags:
+        - eda

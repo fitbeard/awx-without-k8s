@@ -1,0 +1,74 @@
+---
+ACTIVATION_DB_HOST: '{{ eda_pg_hostname }}'
+ALLOWED_HOSTS: ["*"]
+DB_HOST: '{{ eda_pg_hostname }}'
+DB_NAME: '{{ eda_pg_database }}'
+DB_PORT: '{{ eda_pg_port }}'
+DB_USER: '{{ eda_pg_username }}'
+{% if not eda_pg_crt_auth | bool %}
+DB_PASSWORD: '{{ eda_pg_password }}'
+{% endif %}
+DEBUG: {{ eda_debug | bool }}
+DEPLOYMENT_TYPE: podman
+STATIC_ROOT: /var/lib/eda/static
+STATIC_URL: /api/eda/static/
+{% if eda_redis_mode == 'cluster' %}
+MQ_REDIS_HA_CLUSTER_HOSTS: '{{ eda_redis_cluster_hostnames }}'
+{% else %}
+MQ_HOST: '{{ eda_redis_hostname }}'
+MQ_PORT: '{{ eda_redis_port }}'
+MQ_DB: '{{ eda_redis_cache_db }}'
+{% endif %}
+MQ_USER: '{{ eda_redis_username }}'
+MQ_USER_PASSWORD: '{{ eda_redis_password }}'
+{% if not eda_redis_disable_tls | bool %}
+MQ_CLIENT_CACERT_PATH: '{{ ap_ca_trust_bundle }}'
+MQ_CLIENT_CERT_PATH: '/etc/eda/redis.crt'
+MQ_CLIENT_KEY_PATH: '/etc/eda/redis.key'
+{% endif %}
+PGSSLMODE: '{{ eda_pg_sslmode }}'
+PGSSLROOTCERT: '{{ ap_ca_trust_bundle }}'
+{% if eda_pg_crt_auth | bool %}
+PGSSLCERT: '/etc/eda/postgresql.crt'
+PGSSLKEY: '/etc/eda/postgresql.key'
+{% endif %}
+PODMAN_EXTRA_ARGS: '@json {"security_opt": ["disable"], "network_mode": "host", "environment": {"SSL_CERT_FILE": "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", "REQUESTS_CA_BUNDLE": "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"}}'
+PODMAN_MOUNTS: '@json {{ eda_podman_mounts | to_json }}'
+PODMAN_SOCKET_URL: 'tcp://127.0.0.1:8888'
+{% if eda_type in ['hybrid', 'worker'] %}
+RULEBOOK_QUEUE_NAME: '{{ eda_queue_name }}'
+{% endif %}
+RULEBOOK_WORKER_QUEUES: '{{ groups["eda"] | map("extract", hostvars) | selectattr("eda_queue_name", "defined") | map(attribute="eda_queue_name") | ansible.builtin.unique | join(",") }}'
+{% if eda_safe_plugins | length > 0 %}
+SAFE_PLUGINS_FOR_PORT_FORWARD: {{ eda_safe_plugins }}
+{% endif %}
+SECRET_KEY_FILE: /etc/eda/SECRET_KEY
+WEBSOCKET_BASE_URL: '{{ eda_ws_protocol }}://{{ eda_cluster_node_host_id | fitbeard.awx.ipv6_wrap }}:{{ eda_nginx_https_port }}'
+WEBSOCKET_SSL_VERIFY: 'yes'
+{% if not eda_standalone | bool %}
+ENABLE_SERVICE_BACKED_SSO: False
+ANSIBLE_BASE_JWT_VALIDATE_CERT: True
+ANSIBLE_BASE_JWT_REDIRECT_TYPE: eda
+ANSIBLE_BASE_JWT_KEY: '{{ gateway_hostname }}'
+ANSIBLE_BASE_MANAGED_ROLE_REGISTRY: '@json {"platform_auditor": {"name": "Platform Auditor", "shortname": "sys_auditor"}}'
+RESOURCE_SERVER__URL: '{{ gateway_hostname }}'
+RESOURCE_SERVER__VALIDATE_HTTPS: True
+{% endif %}
+{% if eda_standalone | bool %}
+RESOURCE_SERVER__URL: ''
+ALLOW_LOCAL_RESOURCE_MANAGEMENT: True
+{% endif %}
+EVENT_STREAM_BASE_URL: '{{ eda_event_stream_url }}/{{ eda_event_stream_prefix_path.strip("/") }}'
+{% if eda_event_stream_mtls | bool %}
+EVENT_STREAM_MTLS_BASE_URL: '{{ eda_event_stream_mtls_url }}/{{ eda_event_stream_mtls_prefix_path.strip("/") }}'
+{% else %}
+EVENT_STREAM_MTLS_BASE_URL: '@none None'
+{% endif %}
+
+{% for item in eda_extra_settings %}
+{% if item.value is string %}
+{{ item.setting }}: '{{ item.value }}'
+{% else %}
+{{ item.setting }}: {{ item.value }}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,18 @@
+---
+- name: Set gateway init facts
+  ansible.builtin.include_tasks: facts.yml
+
+- name: Generate service key
+  community.docker.docker_container:
+    name: gateway-init
+    image: "{{ gateway_image_url }}"
+    command: "aap-gateway-manage generate_service_secret {{ _component }}"
+    detach: false
+    cleanup: true
+    entrypoint: ""
+    network_mode: host
+    volumes: "{{ _gateway_init_volumes }}"
+    env: "{{ _gateway_init_env }}"
+  register: _service_key
+  no_log: "{{ _no_log }}"
+  delegate_to: "{{ groups['gateway'] | first }}"

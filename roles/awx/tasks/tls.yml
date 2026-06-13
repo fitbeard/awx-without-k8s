@@ -1,0 +1,192 @@
+---
+- name: Set awx hostname
+  ansible.builtin.set_fact:
+    _awx_hostname: "{{ awx_cluster_node_host_id }}"
+
+- name: Set awx IPs
+  ansible.builtin.set_fact:
+    _awx_ips: "{{ _awx_ips | default([]) | union(['IP:' + item]) }}"
+  loop: "{{ ansible_all_ipv4_addresses + ansible_all_ipv6_addresses }}"
+
+- name: Set awx main URL hostname
+  ansible.builtin.set_fact:
+    _awx_main_url_hostname: '{{ awx_hostname | urlsplit("hostname") }}'
+  when: awx_hostname is defined and awx_hostname != ""
+
+- name: Generate TLS certificate and key
+  when:
+    - awx_tls_crt is not defined or awx_tls_crt == ""
+    - awx_tls_key is not defined or awx_tls_key == ""
+  block:
+    - name: Install python-cryptography
+      ansible.builtin.package:
+        name: python3-cryptography
+
+    - name: Check the current awx private key
+      ansible.builtin.stat:
+        path: "{{ awx_directory }}/awx.key"
+      register: _awx_tls_key
+
+    - name: Generate a private key
+      community.crypto.openssl_privatekey:
+        path: "{{ awx_directory }}/awx.key"
+        mode: "0o440"
+        owner: "{{ awx_uid }}"
+        group: "{{ awx_gid }}"
+      no_log: "{{ awx_no_log }}"
+      when: not _awx_tls_key.stat.exists | bool
+
+    - name: Check the current awx certificate
+      ansible.builtin.stat:
+        path: "{{ awx_directory }}/awx.crt"
+      register: _awx_tls_cert
+
+    - name: Create the awx TLS certificate
+      when: not _awx_tls_cert.stat.exists | bool or (ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      block:
+        - name: Set subject alt name fact
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_awx_hostname | fitbeard.awx.subject_alt_name] | union(_awx_ips) }}"
+
+        - name: Add a main url hostname to SAN list
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_awx_main_url_hostname | fitbeard.awx.subject_alt_name] | union(_subject_alt_name) }}"
+          when: awx_hostname is defined and awx_hostname != ""
+
+        - name: Generate a certificate signing request
+          community.crypto.openssl_csr_pipe:
+            common_name: "{{ _awx_hostname }}"
+            country_name: "{{ ap_ca_country_name | default(omit) }}"
+            locality_name: "{{ ap_ca_locality_name | default(omit) }}"
+            organization_name: "{{ ap_ca_organization_name | default(omit) }}"
+            organizational_unit_name: "{{ ap_ca_organizational_unit_name | default(omit) }}"
+            state_or_province_name: "{{ ap_ca_state_or_province_name | default(omit) }}"
+            subject_alt_name: "{{ _subject_alt_name }}"
+            privatekey_path: "{{ awx_directory }}/awx.key"
+          no_log: "{{ awx_no_log }}"
+          register: _awx_tls_csr
+
+        - name: Generate a self signed x509 certificate
+          community.crypto.x509_certificate:
+            path: "{{ awx_directory }}/awx.crt"
+            csr_content: "{{ _awx_tls_csr.csr }}"
+            privatekey_path: "{{ awx_directory }}/awx.key"
+            provider: ownca
+            ownca_path: "{{ ap_ca_directory }}/ca.crt"
+            ownca_privatekey_path: "{{ ap_ca_directory }}/ca.key"
+            ownca_privatekey_passphrase: "{{ ap_ca_key_passphrase | default(omit) }}"
+            mode: "0o640"
+            owner: "{{ awx_uid }}"
+            group: "{{ awx_gid }}"
+          no_log: "{{ awx_no_log }}"
+          register: awx_tls_crt_result
+
+- name: Import TLS certificate and key
+  when:
+    - awx_tls_crt is defined and awx_tls_crt != ""
+    - awx_tls_key is defined and awx_tls_key != ""
+  block:
+    - name: Copy awx TLS certificate
+      ansible.builtin.template:
+        src: awx.crt.j2
+        dest: "{{ awx_directory }}/awx.crt"
+        mode: "0o640"
+        owner: "{{ awx_uid }}"
+        group: "{{ awx_gid }}"
+      register: awx_tls_crt_result
+
+    - name: Copy awx TLS key
+      ansible.builtin.template:
+        src: awx.key.j2
+        dest: "{{ awx_directory }}/awx.key"
+        mode: "0o440"
+        owner: "{{ awx_uid }}"
+        group: "{{ awx_gid }}"
+      register: awx_tls_key_result
+
+- name: Generate Postgres TLS certificate and key
+  when:
+    - not awx_external_database | bool
+    - awx_pg_tls_crt is not defined or awx_pg_tls_crt == ""
+    - awx_pg_tls_key is not defined or awx_pg_tls_key == ""
+    - awx_cluster_node_type == 'primary'
+  block:
+    - name: Check the current Postgres private key
+      ansible.builtin.stat:
+        path: "{{ awx_pg_directory }}/postgresql.key"
+      register: _awx_pg_tls_key
+
+    - name: Generate a private key
+      community.crypto.openssl_privatekey:
+        path: "{{ awx_pg_directory }}/postgresql.key"
+        mode: "0o600"
+        owner: "{{ awx_pg_uid }}"
+        group: "{{ awx_gid }}"
+      no_log: "{{ awx_no_log }}"
+      when: not _awx_pg_tls_key.stat.exists | bool
+
+    - name: Check the current Postgres certificate
+      ansible.builtin.stat:
+        path: "{{ awx_pg_directory }}/postgresql.crt"
+      register: _awx_pg_tls_cert
+
+    - name: Create the Postgres TLS certificate
+      when: not _awx_pg_tls_cert.stat.exists | bool or (ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      block:
+        - name: Set subject alt name fact
+          ansible.builtin.set_fact:
+            _subject_alt_name: "{{ [_awx_hostname | fitbeard.awx.subject_alt_name] | union(_awx_ips) }}"
+
+        - name: Generate a certificate signing request
+          community.crypto.openssl_csr_pipe:
+            common_name: "{{ _awx_hostname }}"
+            country_name: "{{ ap_ca_country_name | default(omit) }}"
+            locality_name: "{{ ap_ca_locality_name | default(omit) }}"
+            organization_name: "{{ ap_ca_organization_name | default(omit) }}"
+            organizational_unit_name: "{{ ap_ca_organizational_unit_name | default(omit) }}"
+            state_or_province_name: "{{ ap_ca_state_or_province_name | default(omit) }}"
+            subject_alt_name: "{{ _subject_alt_name }}"
+            privatekey_path: "{{ awx_pg_directory }}/postgresql.key"
+          no_log: "{{ awx_no_log }}"
+          register: _awx_pg_tls_csr
+
+        - name: Generate a self signed x509 certificate
+          community.crypto.x509_certificate:
+            path: "{{ awx_pg_directory }}/postgresql.crt"
+            csr_content: "{{ _awx_pg_tls_csr.csr }}"
+            privatekey_path: "{{ awx_pg_directory }}/postgresql.key"
+            provider: ownca
+            ownca_path: "{{ ap_ca_directory }}/ca.crt"
+            ownca_privatekey_path: "{{ ap_ca_directory }}/ca.key"
+            ownca_privatekey_passphrase: "{{ ap_ca_key_passphrase | default(omit) }}"
+            mode: "0o640"
+            owner: "{{ awx_pg_uid }}"
+            group: "{{ awx_gid }}"
+          no_log: "{{ awx_no_log }}"
+          register: awx_pg_tls_crt_result
+
+- name: Import Postgres TLS certificate and key
+  when:
+    - awx_pg_crt_auth is defined
+    - awx_pg_crt_auth | bool
+    - awx_external_database | bool
+    - awx_pg_tls_crt is defined and awx_pg_tls_crt != ""
+    - awx_pg_tls_key is defined and awx_pg_tls_key != ""
+  block:
+    - name: Copy awx Postgres TLS certificate
+      ansible.builtin.template:
+        src: postgresql.crt.j2
+        dest: "{{ awx_directory }}/postgresql.crt"
+        mode: "0o640"
+        owner: "{{ awx_uid }}"
+        group: "{{ awx_gid }}"
+      register: awx_pg_tls_crt_result
+
+    - name: Copy awx Postgres TLS key
+      ansible.builtin.template:
+        src: postgresql.key.j2
+        dest: "{{ awx_directory }}/postgresql.key"
+        mode: "0o440"
+        owner: "{{ awx_uid }}"
+        group: "{{ awx_gid }}"
+      register: awx_pg_tls_key_result

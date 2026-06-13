@@ -1,0 +1,58 @@
+---
+- name: Import Gateway configuration tasks
+  ansible.builtin.import_tasks: configure.yml
+
+- name: Pull Gateway images
+  community.docker.docker_image:
+    name: "{{ item }}"
+    source: pull
+  with_items:
+    - "{{ gateway_image_url }}"
+
+- name: Destroy Gateway containers
+  community.docker.docker_compose_v2:
+    project_name: gateway
+    project_src: "{{ gateway_directory }}"
+    state: absent
+
+- name: Start Gateway containers (on a primary)
+  community.docker.docker_compose_v2:
+    project_name: gateway
+    project_src: "{{ gateway_directory }}"
+    renew_anon_volumes: true
+    state: present
+  when:
+    - gateway_cluster_node_type == 'primary'
+
+- name: Ensure Gateway API is reachable (on primary)
+  ansible.builtin.uri:
+    url: "https://{{ gateway_cluster_node_host_id | fitbeard.awx.ipv6_wrap }}:{{ gateway_nginx_https_port }}/api/gateway/v1/ping/"
+    validate_certs: true
+    ca_path: "{{ ap_ca_directory }}/pki/extracted/pem/tls-ca-bundle.pem"
+  register: _gateway_ready
+  until: _gateway_ready.status == 200
+  retries: 30
+  delay: 10
+  when:
+    - gateway_cluster_node_type == 'primary'
+
+- name: Start Gateway containers (on secondary)
+  community.docker.docker_compose_v2:
+    project_name: gateway
+    project_src: "{{ gateway_directory }}"
+    renew_anon_volumes: true
+    state: present
+  when:
+    - gateway_cluster_node_type == 'secondary'
+
+- name: Ensure Gateway API is reachable (on a secondary)
+  ansible.builtin.uri:
+    url: "https://{{ gateway_cluster_node_host_id | fitbeard.awx.ipv6_wrap }}:{{ gateway_nginx_https_port }}/api/gateway/v1/ping/"
+    validate_certs: true
+    ca_path: "{{ ap_ca_directory }}/pki/extracted/pem/tls-ca-bundle.pem"
+  register: _gateway_ready
+  until: _gateway_ready.status == 200
+  retries: 30
+  delay: 10
+  when:
+    - gateway_cluster_node_type == 'secondary'

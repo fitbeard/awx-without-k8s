@@ -1,4 +1,4 @@
 GLOBAL_JOB_EXECUTION_ENVIRONMENTS = [
-    {'name': 'awx-ee-unofficial-latest' , 'image': 'quay.io/tadas/awx-ee:latest'},
+    {'name': 'Default execution environment' , 'image': '{{ awx_ee_image_url | quote }}'},
 ]
-CONTROL_PLANE_EXECUTION_ENVIRONMENT = "quay.io/tadas/awx-ee:latest"
+CONTROL_PLANE_EXECUTION_ENVIRONMENT = "{{ awx_ee_image_url | quote }}"

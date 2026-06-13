@@ -1,5 +1,21 @@
 ansible_host: 10.13.55.202
 awx_cluster_node_type: secondary
+
+gateway_cluster_node_type: secondary
+gateway_pg_hostname: "{{ hostvars['awx-1.demo.io'].ansible_host }}"
+gateway_redis_hostname: "{{ hostvars['awx-1.demo.io'].ansible_host }}"
+
+# eda_queue_name: one-queue-for-all
+# eda_queue_name: "eda-{{ ansible_hostname[:200] }}-{{ ansible_machine_id | to_uuid }}"
+
+eda_cluster_node_type: secondary
+eda_type: worker
+
+eda_pg_hostname: "{{ hostvars['awx-1.demo.io'].ansible_host }}"
+eda_redis_hostname: "{{ hostvars['awx-1.demo.io'].ansible_host }}"
+eda_workers: 2
+eda_activation_workers: 2
+
 # Generate unique value with `echo 'import uuid; print(uuid.uuid4())' | /usr/bin/python3`
 awx_cluster_node_system_uuid: c365b173-baa0-49be-90f7-d9ad43a7c948
 awx_pg_hostname: "{{ hostvars['awx-1.demo.io'].ansible_host }}"

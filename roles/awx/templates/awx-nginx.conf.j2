@@ -29,40 +29,35 @@ http {
     #gzip  on;
 
     upstream uwsgi {
-        server 127.0.0.1:8050;
+        server 127.0.0.1:{{ awx_uwsgi_port }};
         }
 
     upstream daphne {
-        server 127.0.0.1:8051;
+        server 127.0.0.1:{{ awx_daphne_port }};
     }
 
-{% if awx_rootful_containers | bool and not awx_external_frontend | bool %}
     server {
-        listen 80 default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
-        listen [::]:80 default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
+        listen {{ awx_nginx_http_port }} default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
+        listen [::]:{{ awx_nginx_http_port }} default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
         server_name _;
 
         # Redirect all HTTP links to the matching HTTPS page
-        return 301 https://$host$request_uri;
+        return 301 https://$host:{{ awx_nginx_https_port }}$request_uri;
     }
-{% endif %}
 
     server {
-{% if awx_rootful_containers | bool and not awx_external_frontend | bool %}
-        listen 443 ssl{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
-        listen [::]:443 ssl{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
+        listen {{ awx_nginx_https_port }} ssl{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
+        listen [::]:{{ awx_nginx_https_port }} ssl{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
 
-        ssl_certificate /etc/nginx/awx-nginx.pem;
-        ssl_certificate_key /etc/nginx/awx-nginx.pem;
+        ssl_certificate /etc/tower/tower.crt;
+        ssl_certificate_key /etc/tower/tower.key;
         ssl_session_cache shared:SSL:50m;
         ssl_session_timeout 1d;
         ssl_session_tickets off;
+
+        ssl_protocols {{ awx_nginx_https_protocols | join(' ') }};
         ssl_ciphers PROFILE=SYSTEM;
         ssl_prefer_server_ciphers on;
-{% else %}
-        listen 8052 default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
-        listen [::]:8052 default_server{% if awx_nginx_listen_queue_size > 511 %} backlog={{ awx_nginx_listen_queue_size }}{% endif %};
-{% endif %}
 
         # If you have a domain name, this is where to add it
         server_name _;
@@ -112,8 +107,7 @@ http {
             proxy_buffering off;
             # http://en.wikipedia.org/wiki/X-Forwarded-For
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            # enable this if you use HTTPS:
-            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Proto {{ awx_broadcast_websocket_protocol }};
             # pass the Host: header from the client for the sake of redirects
             proxy_set_header Host $http_host;
             # We've set the Host header, so we don't need Nginx to muddle
@@ -129,24 +123,24 @@ http {
             uwsgi_read_timeout 120s;
             uwsgi_pass uwsgi;
             include /etc/nginx/uwsgi_params;
-            proxy_set_header X-Forwarded-Port 443;
-            uwsgi_param HTTP_X_FORWARDED_PORT 443;
+            proxy_set_header X-Forwarded-Port {{ awx_nginx_https_port }};
+            uwsgi_param HTTP_X_FORWARDED_PORT {{ awx_nginx_https_port }};
         }
 
         location /sso {
             uwsgi_read_timeout 120s;
             uwsgi_pass uwsgi;
             include /etc/nginx/uwsgi_params;
-            proxy_set_header X-Forwarded-Port 443;
-            uwsgi_param HTTP_X_FORWARDED_PORT 443;
+            proxy_set_header X-Forwarded-Port {{ awx_nginx_https_port }};
+            uwsgi_param HTTP_X_FORWARDED_PORT {{ awx_nginx_https_port }};
         }
 
         location /login {
             uwsgi_read_timeout 120s;
             uwsgi_pass uwsgi;
             include /etc/nginx/uwsgi_params;
-            proxy_set_header X-Forwarded-Port 443;
-            uwsgi_param HTTP_X_FORWARDED_PORT 443;
+            proxy_set_header X-Forwarded-Port {{ awx_nginx_https_port }};
+            uwsgi_param HTTP_X_FORWARDED_PORT {{ awx_nginx_https_port }};
         }
 
         location /csp-violation {

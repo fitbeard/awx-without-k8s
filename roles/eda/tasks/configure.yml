@@ -1,0 +1,114 @@
+---
+- name: Create EDA directories
+  ansible.builtin.file:
+    name: "{{ directory.name }}"
+    mode: "{{ directory.mode }}"
+    owner: "{{ directory.owner | default('root') }}"
+    group: "{{ directory.group | default('root') }}"
+    state: directory
+  with_items:
+    - {name: "{{ eda_directory }}", mode: "0o755"}
+    - {name: "{{ eda_directory }}/containers", mode: "0o775"}
+  loop_control:
+    loop_var: directory
+
+- name: Compute eda_queue_name
+  ansible.builtin.set_fact:
+    eda_queue_name: "{{ eda_queue_name | default('eda-' ~ ansible_hostname[:200] ~ '-' ~ (ansible_machine_id | to_uuid)) }}"
+  when: eda_type in ['hybrid', 'worker']
+
+- name: Template EDA configuration files
+  ansible.builtin.template:
+    src: "{{ config.src }}"
+    dest: "{{ eda_directory }}/{{ config.dst }}"
+    mode: "{{ config.mode }}"
+    owner: "{{ config.owner | default('root') }}"
+    group: "{{ config.group | default('root') }}"
+  with_items:
+    - {src: docker-compose.yml.j2, dst: docker-compose.yml, mode: "0o600"}
+    - {src: settings.yaml.j2, dst: settings.yaml, mode: "0o600", owner: "{{ eda_uid }}", group: "{{ eda_gid }}"}
+    - {src: redis.conf.j2, dst: redis.conf, mode: "0o664", owner: "{{ eda_redis_uid }}", group: "{{ eda_gid }}", create: "{{ eda_cluster_node_type == 'primary' and not eda_external_redis | bool }}"} # noqa: yaml[line-length]
+    - {src: redis-users.acl.j2, dst: redis-users.acl, mode: "0o600", owner: "{{ eda_redis_uid }}", group: "{{ eda_gid }}", create: "{{ eda_cluster_node_type == 'primary' and not eda_external_redis | bool }}"} # noqa: yaml[line-length]
+    - {src: eda-nginx.conf.j2, dst: eda-nginx.conf, mode: "0o640", owner: "{{ eda_uid }}", group: "{{ eda_gid }}"}
+    - {src: SECRET_KEY.j2, dst: SECRET_KEY, mode: "0o600", owner: "{{ eda_uid }}", group: "{{ eda_gid }}"}
+    - {src: launch_eda_api.sh.j2, dst: launch_eda_api.sh, mode: "0o744", owner: "{{ eda_uid }}", group: "{{ eda_gid }}"}
+    - {src: environment.sh.j2, dst: environment.sh, mode: "0o600", owner: "{{ eda_uid }}", group: "{{ eda_gid }}", create: "{{ eda_cluster_node_type == 'primary' }}"} # noqa: yaml[line-length]
+  loop_control:
+    loop_var: config
+  no_log: "{{ eda_no_log }}"
+  register: eda_configs
+  when: config.create | default(True) | bool
+
+- name: Create Postgres directories
+  ansible.builtin.file:
+    name: "{{ pg_directory }}"
+    state: directory
+    mode: "0o755"
+  with_items:
+    - "{{ eda_pg_directory }}"
+    - "{{ eda_pg_directory }}/data"
+  loop_control:
+    loop_var: pg_directory
+  when:
+    - eda_cluster_node_type == 'primary' and not eda_external_database
+
+- name: Template Postgres configuration files
+  ansible.builtin.template:
+    src: "{{ pg_config.src }}"
+    dest: "{{ eda_pg_directory }}/{{ pg_config.dst }}"
+    mode: "0o600"
+  with_items:
+    - {src: docker-compose-postgres.yml.j2, dst: docker-compose.yml}
+  loop_control:
+    loop_var: pg_config
+  no_log: "{{ eda_no_log }}"
+  register: eda_postgres_configs
+  when:
+    - eda_cluster_node_type == 'primary' and not eda_external_database
+
+- name: Import EDA TLS configuration tasks
+  ansible.builtin.import_tasks: tls.yml
+
+- name: Manage eda service key
+  run_once: true
+  when:
+    - eda_service_key is not defined or eda_service_key == ""
+    - groups.get('gateway', []) | length > 0
+    - not eda_standalone | bool
+  block:
+    - name: Get EDA service key
+      ansible.builtin.stat:
+        path: "{{ eda_directory }}/eda-service.key"
+      register: _eda_service_key
+      delegate_to: '{{ groups["eda"] | first }}'
+
+    - name: Generate eda service key
+      ansible.builtin.include_role:
+        name: gateway
+        tasks_from: service_key.yml
+      vars:
+        _component: eda
+        _no_log: "{{ eda_no_log }}"
+      when: not _eda_service_key.stat.exists | bool
+
+    - name: Set eda service key fact
+      ansible.builtin.set_fact:
+        eda_service_key: '{{ _service_key.container.Output | trim }}'
+      no_log: "{{ eda_no_log }}"
+      when: not _eda_service_key.stat.exists | bool
+
+- name: Copy eda service key
+  ansible.builtin.template:
+    src: eda-service.key.j2
+    dest: "{{ eda_directory }}/eda-service.key"
+    mode: "0o440"
+    owner: "{{ eda_uid }}"
+    group: "{{ eda_gid }}"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['eda'] }}"
+  run_once: true
+  when:
+    - eda_service_key is defined
+    - eda_service_key != ""
+    - groups.get('gateway', []) | length > 0
+    - not eda_standalone | bool

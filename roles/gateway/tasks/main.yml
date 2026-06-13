@@ -1,0 +1,3 @@
+---
+- name: Include Gateway node tasks
+  ansible.builtin.include_tasks: "{{ gateway_tasks }}.yml"

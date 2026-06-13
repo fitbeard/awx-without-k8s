@@ -1,4 +1,9 @@
 ---
+- name: Install python-requests
+  ansible.builtin.package:
+    name: python3-requests
+    state: present
+
 - name: Include RedHat tasks
   ansible.builtin.include_tasks: setup-RedHat.yml
   when: ansible_os_family == 'RedHat'

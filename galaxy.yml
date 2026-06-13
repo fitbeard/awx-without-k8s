@@ -4,12 +4,13 @@ version: 1.0.0 # injected dynamically when publishing
 readme: README.md
 authors:
   - Tadas Sutkaitis <tadasas@gmail.com>
-description: AWX clustering using Ansible and Docker
+description: AWX clustering and more
 license:
   - GPL-3.0-or-later
 dependencies:
   awx.awx: 24.6.1
   ansible.posix: ">=2.0.0"
+  community.crypto: ">=2.2.3"
   community.docker: ">=4.3.1"
   community.general: ">=10.3.1"
 repository: https://github.com/fitbeard/awx-without-k8s

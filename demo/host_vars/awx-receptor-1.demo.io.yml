@@ -3,6 +3,15 @@ awx_node_role_type: execution
 # Generate unique value with `echo 'import uuid; print(uuid.uuid4())' | /usr/bin/python3`
 awx_cluster_node_system_uuid: 511e2860-b755-4ba6-98bb-533442c58612
 
+awx_peers:
+  - address: awx-receptor-2.demo.io
+  - address: awx-receptor-3.demo.io
+    port: 27199
+  # - address: wss://awx-mesh.k8s.fqdn
+  #   port: 27199
+  #   protocol: ws
+  #   canonical_address: awx-mesh-ingress
+
 awx_receptor_crt: |
   -----BEGIN CERTIFICATE-----
   MIIEPjCCAiagAwIBAgIEZtbTJDANBgkqhkiG9w0BAQsFADAkMSIwIAYDVQQDDBlB

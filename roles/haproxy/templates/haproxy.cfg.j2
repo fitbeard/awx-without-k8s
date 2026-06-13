@@ -1,0 +1,68 @@
+global
+    log stdout format raw local0
+    maxconn {{ haproxy_maxconn }}
+    ssl-default-bind-options ssl-min-ver TLSv1.2 no-tls-tickets
+
+defaults
+    log global
+    mode http
+    option httplog
+    option dontlognull
+    option forwardfor
+    timeout connect {{ haproxy_connect_timeout }}
+    timeout client {{ haproxy_client_timeout }}
+    timeout server {{ haproxy_server_timeout }}
+
+frontend fe_http
+    bind {{ haproxy_frontend_bind_address }}:{{ haproxy_http_port }}
+{% if haproxy_http_redirect | bool %}
+    http-request redirect scheme https code 301
+{% endif %}
+
+frontend fe_https
+    bind {{ haproxy_frontend_bind_address }}:{{ haproxy_https_port }} ssl crt /usr/local/etc/haproxy/certs/frontend.pem alpn h2,http/1.1
+    http-request set-header X-Forwarded-Proto https
+    http-request set-header X-Forwarded-Port {{ haproxy_https_port }}
+{% for route in haproxy_routes %}
+    acl host_{{ loop.index }} hdr(host) -i {{ route.fqdn }} {{ route.fqdn }}:{{ haproxy_https_port }}
+{% endfor %}
+{% for route in haproxy_routes %}
+    use_backend be_{{ route.backend_pool | regex_replace('[^A-Za-z0-9_.:-]', '_') }} if host_{{ loop.index }}
+{% endfor %}
+{% if haproxy_reject_unknown_hosts | bool %}
+    default_backend be_unmatched_host
+{% else %}
+    default_backend be_{{ haproxy_routes[0].backend_pool | regex_replace('[^A-Za-z0-9_.:-]', '_') }}
+{% endif %}
+
+{% if haproxy_reject_unknown_hosts | bool %}
+backend be_unmatched_host
+    http-request return status 421 content-type text/plain lf-string "Unknown host\n"
+
+{% endif %}
+{% for pool_name, pool in haproxy_backend_pools | dictsort %}
+{% if pool.raw_backend | default('') | length > 0 %}
+{{ pool.raw_backend | trim }}
+
+{% else %}
+backend be_{{ pool_name | regex_replace('[^A-Za-z0-9_.:-]', '_') }}
+    balance {{ pool.balance | default(haproxy_backend_balance) }}
+{% if pool.backend_extra_config | default('') | length > 0 %}
+{{ pool.backend_extra_config | trim | indent(4, true) }}
+{% endif %}
+{% if pool.httpchk | default(haproxy_backend_check) | bool %}
+    option httpchk {{ pool.httpchk_method | default(haproxy_backend_httpchk_method) }} {{ pool.httpchk_uri | default(haproxy_backend_httpchk_uri) }}
+    http-check expect status {{ pool.httpchk_expect_status | default(haproxy_backend_httpchk_expect_status) }}
+{% endif %}
+{% for server in pool.servers %}
+{% set server_host = server.host | default(server.address) %}
+{% set server_port = server.port | default(pool.port | default(haproxy_backend_port)) %}
+{% set server_protocol = server.protocol | default(pool.protocol | default(haproxy_backend_protocol)) %}
+{% set server_sni = server.sni | default(server_host) %}
+    server {{ server.name | regex_replace('[^A-Za-z0-9_.:-]', '_') }} {{ server_host }}:{{ server_port }}{% if server_protocol == 'https' %} ssl verify {{ server.verify | default(pool.verify | default(haproxy_backend_ssl_verify)) }} sni str({{ server_sni }}) check-sni {{ server_sni }}{% endif %}{% if server.check | default(pool.httpchk | default(haproxy_backend_check)) | bool %} check{% endif %}
+
+{% endfor %}
+
+{% endif %}
+
+{% endfor %}

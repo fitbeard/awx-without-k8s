@@ -1,0 +1,44 @@
+---
+- name: Set gateway init volumes
+  ansible.builtin.set_fact:
+    _gateway_init_volumes:
+      - "{{ gateway_directory }}/settings.py:/etc/ansible-automation-platform/gateway/settings.py:ro"
+      - "{{ gateway_directory }}/gateway-nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "{{ gateway_directory }}/gateway.crt:/etc/ansible-automation-platform/gateway/gateway.crt:ro"
+      - "{{ gateway_directory }}/gateway.key:/etc/ansible-automation-platform/gateway/gateway.key:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
+      - "{{ gateway_directory }}/supervisord.conf:/etc/supervisord.conf:ro"
+      - "{{ gateway_directory }}/uwsgi.ini:/etc/ansible-automation-platform/gateway/uwsgi.ini:ro"
+      - "{{ gateway_directory }}/SECRET_KEY:/etc/ansible-automation-platform/gateway/SECRET_KEY:ro"
+      - "{{ gateway_directory }}/launch-gateway.sh:/usr/bin/launch-gateway:ro"
+      - "{{ gateway_directory }}/envoy-path-rewrite.lua:/etc/ansible-automation-platform/gateway/envoy-path-rewrite.lua:ro"
+
+- name: Add postgresql cert to gateway init volumes
+  ansible.builtin.set_fact:
+    _gateway_init_volumes: >-
+      {{ _gateway_init_volumes + [
+        gateway_directory + '/postgresql.crt:/etc/ansible-automation-platform/gateway/postgresql.crt:ro',
+        gateway_directory + '/postgresql.key:/etc/ansible-automation-platform/gateway/postgresql.key:ro'
+      ] }}
+  when: gateway_pg_crt_auth | bool
+
+- name: Add redis cert to gateway init volumes
+  ansible.builtin.set_fact:
+    _gateway_init_volumes: >-
+      {{ _gateway_init_volumes + [
+        gateway_directory + '/redis.crt:/etc/ansible-automation-platform/gateway/redis.crt:ro',
+        gateway_directory + '/redis.key:/etc/ansible-automation-platform/gateway/redis.key:ro'
+      ] }}
+  when: not gateway_redis_disable_tls | bool
+
+- name: Set gateway init environment
+  ansible.builtin.set_fact:
+    _gateway_init_env:
+      DJANGO_SUPERUSER_PASSWORD: "{{ gateway_admin_password }}"
+      REDIS_URL: "{{ gateway_redis_url }}"
+      REQUESTS_CA_BUNDLE: "/etc/pki/tls/certs/ca-bundle.crt"
+
+- name: Add database password to gateway init environment
+  ansible.builtin.set_fact:
+    _gateway_init_env: "{{ _gateway_init_env | combine({'DATABASE_PASSWORD': gateway_pg_password}) }}"
+  when: not gateway_pg_crt_auth | bool

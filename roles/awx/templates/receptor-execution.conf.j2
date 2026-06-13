@@ -21,6 +21,7 @@
     key: /etc/receptor/tls/receptor.key
     clientcas: /etc/receptor/tls/ca/mesh-CA.crt
     requireclientcert: true
+    mintls13: false
 
 - tls-client:
     name: tls_client
@@ -28,18 +29,18 @@
     key: /etc/receptor/tls/receptor.key
     rootcas: /etc/receptor/tls/ca/mesh-CA.crt
     insecureskipverify: false
+    mintls13: false
 
-- tcp-listener:
-    port: 27199
+- {{ awx_receptor_protocol }}-listener:
+    port: {{ awx_receptor_port }}
     tls: tls_server
 
 {% if hostvars[inventory_hostname]['awx_peers'] is defined and hostvars[inventory_hostname]['awx_peers'] | length %}
 {% for peer in hostvars[inventory_hostname]['awx_peers'] %}
-- tcp-peer:
-    address: {{ peer }}:27199
+- {{ peer['protocol'] | default('tcp') }}-peer:
+    address: {{ peer['address'] }}:{{ peer['port'] | default(awx_receptor_port) }}
     redial: true
     tls: tls_client
-
 {% endfor %}
 {% endif %}
 

@@ -1,0 +1,12 @@
+---
+- name: Update CA trust
+  community.docker.docker_container:
+    name: update-ca-trust
+    image: "{{ common_docker_image }}"
+    command: "update-ca-trust"
+    detach: false
+    cleanup: true
+    entrypoint: ""
+    auto_remove: true
+    user: root
+    volumes: "{{ ap_ca_volumes }}"

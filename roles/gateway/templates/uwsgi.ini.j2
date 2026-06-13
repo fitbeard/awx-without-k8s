@@ -1,0 +1,18 @@
+[uwsgi]{% raw %}
+log-format = [pid: %(pid)|app: -|req: -/-] %(addr) (%(user)) {%(vars) vars in %(pktsize) bytes} [%(ctime)] %(method) %(uri) => generated %(rsize) bytes in %(msecs) msecs (%(proto) %(status)) %(headers) headers in %(hsize) bytes (%(switches) switches on core %(core)) x-request-id: %(var.HTTP_X_REQUEST_ID)
+{% endraw %}
+socket = 127.0.0.1:{{ gateway_uwsgi_port }}
+processes = {{ gateway_uwsgi_processes }}
+listen = {{ gateway_uwsgi_listen_queue_size }}
+buffer-size = 10240
+master = true
+vacuum = true
+no-orphans = true
+lazy-apps = true
+manage-script-name = true
+mount = /=aap_gateway_api.wsgi:application
+
+harakiri = {{ gateway_uwsgi_timeout }}
+harakiri-graceful-timeout = {{ gateway_uwsgi_timeout_grace_period }}
+harakiri-graceful-signal = 6
+py-call-osafterfork = true

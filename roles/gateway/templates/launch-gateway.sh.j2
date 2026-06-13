@@ -1,0 +1,103 @@
+#!/bin/bash
+set -o errexit
+
+GATEWAY_BASE_DIR=/opt/aap_gateway
+GATEWAY_APP_DIR="${GATEWAY_BASE_DIR}/src"
+GATEWAY_PYTHON="${GATEWAY_BASE_DIR}/venv/bin/python"
+GATEWAY_MANAGE="/usr/bin/aap-gateway-manage"
+
+timestamp() {
+    TZ=UTC echo -n "[$(date +'%Y-%m-%d %H:%M:%S.%N %Z')]"
+}
+
+database_ready() {
+${GATEWAY_PYTHON} <<EOF
+import sys
+from django.db import connection
+
+try:
+    connection.ensure_connection()
+except Exception as e:
+    print(f'$(timestamp) {e}')
+    sys.exit(1)
+EOF
+}
+
+get_admin_username() {
+    ${GATEWAY_PYTHON} <<EOF
+import yaml
+
+data = {}
+with open("${GATEWAY_APP_DIR}/container-startup.yml", "r") as stream:
+    try:
+        data = yaml.safe_load(stream)
+    except Exception:
+        pass
+print(data.get('gateway_admin_username', 'admin'))
+EOF
+}
+
+get_admin_password() {
+${GATEWAY_PYTHON} <<EOF
+import yaml
+import secrets
+
+random_password = secrets.token_urlsafe(20)
+data = {}
+with open("${GATEWAY_APP_DIR}/container-startup.yml", "r") as stream:
+    try:
+        data = yaml.safe_load(stream)
+    except Exception:
+        pass
+print(data.get('gateway_admin_password', random_password))
+EOF
+}
+
+update_user_password() {
+${GATEWAY_PYTHON} << EOF
+import os
+import django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "aap_gateway_api.settings")
+django.setup()
+from aap_gateway_api.models import User
+user = User.objects.filter(username='$DJANGO_SUPERUSER_USERNAME').first()
+user.password='$DJANGO_SUPERUSER_PASSWORD'
+user.save()
+EOF
+}
+
+until database_ready; do
+    echo "$(timestamp) Waiting until the database is ready..."
+    sleep 5
+done
+echo ${timestamp} Database is ready for connections
+
+if [ ${CONTAINER_NUMBER} -eq 1 ] ; then
+    # If multiple services are starting up we only want migrations and user creation to run on the first node
+    echo ${timestamp} Running migrations since I am container ${CONTAINER_NUMBER}
+    ${GATEWAY_MANAGE} migrate --noinput
+    export DJANGO_SUPERUSER_PASSWORD=$(get_admin_password)
+    export DJANGO_SUPERUSER_USERNAME=$(get_admin_username)
+    if output=$(${GATEWAY_MANAGE} createsuperuser --noinput --username=$DJANGO_SUPERUSER_USERNAME --email=admin@localhost 2> /dev/null); then
+        echo "$(timestamp) $output"
+    else
+        # Make sure the password is set as required
+        update_user_password
+    fi
+    echo "$(timestamp) >>>>>>>> Admin password: hidden"
+
+else
+    # Other containers need to wait until node 1 has competed migrations
+    until [ $(${GATEWAY_MANAGE} showmigrations | grep '\[ \]' | wc -l) == 0 ]; do
+        echo "${timestamp} Waiting for all migrations to be applied by node 1"
+        sleep 3
+    done
+fi
+
+${GATEWAY_MANAGE} collectstatic --noinput
+${GATEWAY_MANAGE} authenticators --initialize
+if [ $? != 0 ] ; then
+    exit 255
+fi
+
+exec supervisord -n

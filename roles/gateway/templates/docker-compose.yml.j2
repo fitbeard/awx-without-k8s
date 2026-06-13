@@ -1,0 +1,64 @@
+services:
+  gateway-api:
+    image: {{ gateway_image_url }}
+    container_name: gateway-api
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      DJANGO_SUPERUSER_PASSWORD: "{{ gateway_admin_password }}"
+{% if not gateway_pg_crt_auth | bool %}
+      DATABASE_PASSWORD: "{{ gateway_pg_password }}"
+{% endif %}
+      REDIS_URL: "{{ gateway_redis_url }}"
+{% if gateway_cluster_node_type == 'primary' %}
+      CONTAINER_NUMBER: "1"
+{% endif %}
+    volumes:
+      - "{{ gateway_directory }}/settings.py:/etc/ansible-automation-platform/gateway/settings.py:ro"
+      - "{{ gateway_directory }}/gateway-nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "{{ gateway_directory }}/gateway.crt:/etc/ansible-automation-platform/gateway/gateway.crt:ro"
+      - "{{ gateway_directory }}/gateway.key:/etc/ansible-automation-platform/gateway/gateway.key:ro"
+      - "{{ ap_ca_directory }}/pki/extracted:/etc/pki/ca-trust/extracted:z"
+      - "{{ gateway_directory }}/supervisord.conf:/etc/supervisord.conf:ro"
+      - "{{ gateway_directory }}/uwsgi.ini:/etc/ansible-automation-platform/gateway/uwsgi.ini:ro"
+      - "{{ gateway_directory }}/SECRET_KEY:/etc/ansible-automation-platform/gateway/SECRET_KEY:ro"
+{% if gateway_cluster_node_type == 'primary' %}
+      - "{{ gateway_directory }}/container-startup.yml:/opt/aap_gateway/src/container-startup.yml:ro"
+{% endif %}
+{% if gateway_pg_crt_auth | bool %}
+      - "{{ gateway_directory }}/postgresql.crt:/etc/ansible-automation-platform/gateway/postgresql.crt:ro"
+      - "{{ gateway_directory }}/postgresql.key:/etc/ansible-automation-platform/gateway/postgresql.key:ro"
+{% endif %}
+{% if not gateway_redis_disable_tls | bool %}
+      - "{{ gateway_directory }}/redis.crt:/etc/ansible-automation-platform/gateway/redis.crt:ro"
+      - "{{ gateway_directory }}/redis.key:/etc/ansible-automation-platform/gateway/redis.key:ro"
+{% endif %}
+      - "{{ gateway_directory }}/launch-gateway.sh:/usr/bin/launch-gateway:ro"
+      - "{{ gateway_directory }}/envoy-path-rewrite.lua:/etc/ansible-automation-platform/gateway/envoy-path-rewrite.lua:ro"
+
+  gateway-proxy:
+    image: docker.io/envoyproxy/envoy:{{ gateway_envoy_version }}
+    container_name: gateway-proxy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - "{{ gateway_directory }}/envoy.yaml:/etc/envoy/envoy.yaml:ro"
+      - "{{ gateway_directory }}/gateway.crt:/etc/ansible-automation-platform/gateway/gateway.crt:ro"
+      - "{{ gateway_directory }}/gateway.key:/etc/ansible-automation-platform/gateway/gateway.key:ro"
+      - "{{ ap_ca_directory }}/pki/extracted/pem:/etc/ssl/certs:z"
+      - "{{ gateway_directory }}/envoy-path-rewrite.lua:/etc/ansible-automation-platform/gateway/envoy-path-rewrite.lua:ro"
+{% if not gateway_external_redis | bool and gateway_cluster_node_type == 'primary' %}
+
+  gateway-redis:
+    image: docker.io/redis:{{ gateway_redis_version }}
+    container_name: gateway-redis
+    restart: unless-stopped
+    network_mode: host
+    command: ["/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - "{{ gateway_directory }}/redis.conf:/usr/local/etc/redis/redis.conf:ro"
+      - "{{ gateway_directory }}/redis-users.acl:/usr/local/etc/redis/redis-users.acl:ro"
+      - "{{ gateway_directory }}/redis.crt:/var/lib/redis/server.crt:ro"
+      - "{{ gateway_directory }}/redis.key:/var/lib/redis/server.key:ro"
+      - "{{ ap_ca_directory }}/pki/extracted/pem:/certs:z"
+{% endif %}

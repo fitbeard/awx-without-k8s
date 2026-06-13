@@ -1,0 +1,48 @@
+#!/bin/bash
+set -e
+
+{% if eda_cluster_node_type == 'primary' %}
+source /etc/eda/environment.sh
+
+(
+  while true; do
+    echo "[$(date -Is)] migration in progress..."
+    sleep 30
+  done
+) &
+HEARTBEAT=$!
+trap "kill $HEARTBEAT 2>/dev/null || true" EXIT
+
+aap-eda-manage migrate --noinput
+kill $HEARTBEAT 2>/dev/null || true
+trap - EXIT
+
+aap-eda-manage create_initial_data
+
+set +e
+OUTPUT=$(aap-eda-manage createsuperuser --username="${EDA_ADMIN_USER}" --email="${EDA_ADMIN_EMAIL}" --noinput 2>&1)
+RC=$?
+set -e
+if [ $RC -eq 0 ]; then
+  echo "Superuser created."
+elif echo "$OUTPUT" | grep -q "username is already taken"; then
+  echo "Superuser already exists."
+else
+  echo "createsuperuser failed:"
+  echo "$OUTPUT"
+  exit 1
+fi
+aap-eda-manage update_password --username="${EDA_ADMIN_USER}" --password="${EDA_ADMIN_PASSWORD}"
+
+unset $(cut -d = -f -1 /etc/eda/environment.sh)
+{% endif %}
+
+aap-eda-manage wait_for_migrations -t 180
+
+exec gunicorn \
+  --bind 127.0.0.1:{{ eda_gunicorn_port }} \
+  --workers {{ eda_gunicorn_workers }} \
+  --timeout {{ eda_gunicorn_timeout }} \
+  --graceful-timeout {{ eda_gunicorn_timeout_grace_period }} \
+  aap_eda.wsgi:application \
+  --error-logfile /dev/stdout

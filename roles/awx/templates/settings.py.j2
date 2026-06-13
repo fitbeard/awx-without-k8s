@@ -29,8 +29,8 @@ AWX_AUTO_DEPROVISION_INSTANCES = False
 CLUSTER_HOST_ID = "{{ awx_cluster_node_host_id }}"
 SYSTEM_UUID = '{{ awx_cluster_node_system_uuid }}'
 
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 
 SERVER_EMAIL = 'root@localhost'
 DEFAULT_FROM_EMAIL = 'webmaster@localhost'
@@ -47,9 +47,44 @@ USE_X_FORWARDED_PORT = True
 
 BROADCAST_WEBSOCKET_PORT = {{ awx_broadcast_websocket_port }}
 BROADCAST_WEBSOCKET_PROTOCOL = '{{ awx_broadcast_websocket_protocol }}'
-BROADCAST_WEBSOCKET_VERIFY_CERT = False
+BROADCAST_WEBSOCKET_VERIFY_CERT = True
 
 RECEPTOR_LOG_LEVEL = '{{ awx_receptor_log_level }}'
 
-# STATIC_ROOT and UI_NEXT are now set in awx/settings/defaults.py (2.6.5).
-# No need to override them here.
+# This setting adjusts the amount of memory that AWX
+# considers available for determining its capacity.
+# When colocating with other services, such as the gateway or the databse,
+# it is advised to set awx_percent_memory_capacity to less than 1.0
+# to throttle how many jobs awx will attempt to control/execute on this node
+SYSTEM_TASK_ABS_MEM =  "{{ (ansible_memtotal_mb * awx_percent_memory_capacity) | round | int  }}Mi"
+
+{% if not awx_standalone | bool %}
+###### AP Gateway settings
+RESOURCE_SERVER_SYNC_ENABLED = True
+ENABLE_SERVICE_BACKED_SSO = False
+ANSIBLE_BASE_JWT_KEY = '{{ gateway_hostname }}'
+ANSIBLE_BASE_JWT_REDIRECT_TYPE= "awx"
+ANSIBLE_BASE_MANAGED_ROLE_REGISTRY = {'platform_auditor': {'name': 'Platform Auditor', 'shortname': 'sys_auditor'}}
+RESOURCE_SERVER__URL = '{{ gateway_hostname }}'
+RESOURCE_SERVER__VALIDATE_HTTPS = True
+REMOTE_HOST_HEADERS = ['HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR', 'REMOTE_HOST']
+
+# Update URL prefix when gateway deployed so internal links work correctly
+OPTIONAL_API_URLPATTERN_PREFIX = "controller"
+OPTIONAL_UI_URL_PREFIX = "execution"
+
+ANSIBLE_BASE_JWT_VALIDATE_CERT = True
+###########
+{% endif %}
+
+# Add warning logger for ap (all of gateway is under ap.gateway)
+LOGGING['loggers']['ap'] = {'handlers': ['console', 'file', 'tower_warnings', 'external_logger'], 'level': 'WARNING'}
+LOGGING['loggers']['ansible_base'] = {'handlers': ['console', 'file', 'tower_warnings', 'external_logger'], 'level': 'WARNING'}
+
+{% for item in awx_extra_settings %}
+{% if item.value is string %}
+{{ item.setting }} = '{{ item.value }}'
+{% else %}
+{{ item.setting }} = {{ item.value }}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,44 @@
+---
+- name: Import Gateway configuration tasks
+  ansible.builtin.import_tasks: configure.yml
+
+- name: Destroy Postgres container
+  community.docker.docker_compose_v2:
+    project_name: gateway-postgres
+    project_src: "{{ gateway_pg_directory }}"
+    state: absent
+  when:
+    - (gateway_postgres_configs is changed | bool or gateway_pg_tls_crt_result.changed or gateway_pg_tls_key_result.changed) and gateway_cluster_node_type == 'primary' and not gateway_external_database # noqa: yaml[line-length]
+
+- name: Start Postgres containers
+  community.docker.docker_compose_v2:
+    project_name: gateway-postgres
+    project_src: "{{ gateway_pg_directory }}"
+    state: present
+  when:
+    - gateway_cluster_node_type == 'primary' and not gateway_external_database
+
+- name: Destroy Gateway containers
+  community.docker.docker_compose_v2:
+    project_name: gateway
+    project_src: "{{ gateway_directory }}"
+    state: absent
+  when:
+    - gateway_configs is changed | bool
+      or ((gateway_postgres_configs is changed | bool or gateway_pg_tls_crt_result.changed
+      or gateway_pg_tls_key_result.changed or gateway_redis_tls_crt_result.changed or gateway_redis_tls_key_result.changed)
+      and gateway_cluster_node_type == 'primary' and not gateway_external_database)
+      or ((ap_ca_crt_result is defined and ap_ca_crt_result.changed)
+      or (ap_custom_ca_crt_result is defined and ap_custom_ca_crt_result.changed))
+
+- name: Check if Gateway api container is running
+  community.docker.docker_container_info:
+    name: gateway-api
+  register: gateway_api_container_info
+
+- name: Start Gateway containers
+  community.docker.docker_compose_v2:
+    project_name: gateway
+    project_src: "{{ gateway_directory }}"
+    renew_anon_volumes: "{{ not gateway_api_container_info.exists }}"
+    state: present

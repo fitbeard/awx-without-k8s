@@ -1,15 +1,21 @@
-[uwsgi]
-socket = 127.0.0.1:8050
+[uwsgi]{% raw %}
+log-format = [pid: %(pid)|app: -|req: -/-] %(addr) (%(user)) {%(vars) vars in %(pktsize) bytes} [%(ctime)] %(method) %(uri) => generated %(rsize) bytes in %(msecs) msecs (%(proto) %(status)) %(headers) headers in %(hsize) bytes (%(switches) switches on core %(core)) x-request-id: %(var.HTTP_X_REQUEST_ID)
+{% endraw %}
+socket = 127.0.0.1:{{ awx_uwsgi_port }}
 processes = {{ awx_uwsgi_processes }}
 listen = {{ awx_uwsgi_listen_queue_size }}
-master = true
 vacuum = true
 no-orphans = true
+master = true
 lazy-apps = true
-manage-script-name = true
-master-fifo = /var/lib/awx/awxfifo
 max-requests = 1000
 buffer-size = 32768
+master-fifo = /var/lib/awx/awxfifo
+
+harakiri = {{ awx_uwsgi_timeout }}
+harakiri-graceful-timeout = {{ awx_uwsgi_timeout_grace_period }}
+harakiri-graceful-signal = 6
+py-call-osafterfork = true
 
 if-env = UWSGI_MOUNT_PATH
 mount = %(_)=awx.wsgi:application

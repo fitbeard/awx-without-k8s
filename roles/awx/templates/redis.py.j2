@@ -1,0 +1,7 @@
+BROKER_URL = 'unix:///var/run/redis/redis.sock?db={{ awx_redis_cache_db }}'
+CACHES = {
+    'default': {
+        'BACKEND': 'awx.main.cache.AWXRedisCache',
+        'LOCATION': 'unix:///var/run/redis/redis.sock?db={{ awx_redis_cache_db }}'
+    }
+}
