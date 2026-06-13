@@ -83,7 +83,7 @@ http {
         add_header {{ header }};
 {% endfor %}
         # end of headers added with gateway_nginx_user_headers variable
-       
+
         add_header X-Content-Type-Options nosniff;
 
         gzip on;

@@ -14,6 +14,7 @@ jmespath = "^1.1.0"
 pre-commit = "^4.5.1"
 ansible-lint = "26.4.0"
 ansible-builder = "^3.1.1"
+pre-commit-hooks = "^6.0.0"
 
 [build-system]
 requires = ["poetry-core"]

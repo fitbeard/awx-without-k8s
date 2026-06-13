@@ -733,6 +733,21 @@ pyyaml = ">=5.1"
 virtualenv = ">=20.10.0"
 
 [[package]]
+name = "pre-commit-hooks"
+version = "6.0.0"
+description = "Some out-of-the-box hooks for pre-commit."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "pre_commit_hooks-6.0.0-py2.py3-none-any.whl", hash = "sha256:76161b76d321d2f8ee2a8e0b84c30ee8443e01376121fd1c90851e33e3bd7ee2"},
+    {file = "pre_commit_hooks-6.0.0.tar.gz", hash = "sha256:76d8370c006f5026cdd638a397a678d26dda735a3c88137e05885a020f824034"},
+]
+
+[package.dependencies]
+"ruamel.yaml" = ">=0.15"
+
+[[package]]
 name = "pycparser"
 version = "3.0"
 description = "C parser in Python"
@@ -1272,4 +1287,4 @@ dev = ["doc8", "flake8", "flake8-import-order", "rstcheck[sphinx]", "ruff", "sph
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "206f4465535a1d8c2ce06085b97b390afdc6863baf6ad4b824f58b64ffa6627c"
+content-hash = "5d41cf0d97be719d97d991e9fcded20ad1644bfc89e852de5cb1651b7ed1ade4"
