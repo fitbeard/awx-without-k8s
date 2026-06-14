@@ -330,6 +330,41 @@ ansible-playbook -i inventory-eda-standalone playbook-eda-standalone.yml --diff 
   -e eda_tasks=upgrade
 ```
 
+## Removing a component cleanly
+
+This example is for Kubernetes deployment but comamnd used to remove services
+is the same for both types of installation.
+Example: removing EDA after a full reconcile.
+
+```bash
+# 1. Disable EDA on the AAP CR
+kubectl edit aap <ap-name> -n ansible
+#   eda:
+#     disabled: true
+
+# 2. Delete the EDA sub-CR — cascade GC cleans pods/services/secrets owned
+#    by the eda-server-operator
+kubectl delete eda <eda-name> -n ansible
+
+# 3. Drop EDA's database + user inside the shared postgres + its secret
+kubectl exec -n ansible <ap-name>-postgres-15-0 -- \
+  psql -U postgres -c "DROP DATABASE IF EXISTS eda;"
+kubectl exec -n ansible <ap-name>-postgres-15-0 -- \
+  psql -U postgres -c "DROP USER IF EXISTS eda;"
+kubectl delete secret <ap-name>-eda-postgres-configuration -n ansible
+
+# 4. Drop the orphaned gateway ServiceCluster (cascades to ServiceNodes,
+#    ServiceKeys, Routes, AdditionalRoutes, ServiceAPIRoutes)
+GW_POD=$(kubectl get pod -n ansible -l app.kubernetes.io/component=aap-gateway \
+  -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -n ansible "$GW_POD" -c api -- aap-gateway-manage shell --no-imports \
+  -c "from aap_gateway_api.models import ServiceCluster; \
+      ServiceCluster.objects.filter(name='eda').delete()"
+```
+
+After step 4 the next reconcile runs cleanly — `migrate_service_data`
+no longer trips on the orphan, no 503 from envoy.
+
 ## Contributing
 
 Install the local development dependencies and hooks:
