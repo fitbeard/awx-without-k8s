@@ -31,6 +31,11 @@ spec:
   # spec.hostname → migrate_service_data fails. Plug in your real public
   # URL once you wire HTTPRoute/Ingress.
   public_base_url: http://ap.ansible.svc.cluster.local
+  # extra_settings:
+  #   - setting: CSRF_COOKIE_SECURE
+  #     value: false
+  #   - setting: SESSION_COOKIE_SECURE
+  #     value: false
   controller:
     name: awx
   eda:
@@ -66,6 +71,12 @@ spec:
 #         - path:
 #             type: PathPrefix
 #             value: /
+#       filters:
+#         - type: RequestHeaderModifier
+#           requestHeaderModifier:
+#             set:
+#               - name: X-Forwarded-Proto
+#                 value: https # or http if your setup is plain http
 #       backendRefs:
 #         - name: ap
 #           port: 80
